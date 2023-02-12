@@ -1,0 +1,12 @@
+[
+{
+  "modid": "mbtool",
+  "name": "Multi Builder Tool",
+  "description": "This mod is for builders.",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "authorList": ["igentuman"],
+  "logoFile": "assets/mbtool/logo.png",
+  "url": "https://www.curseforge.com/minecraft/mc-mods/multi-builder-tool"
+}
+]

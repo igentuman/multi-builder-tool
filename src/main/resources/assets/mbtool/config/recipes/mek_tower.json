@@ -1,0 +1,198 @@
+{
+  "name": "mek_tower",
+  "label": "Thermoelectric Tower",
+  "target-item": "mekanism:basicblock2",
+
+  "input-types": {
+    "a": {
+      "id": "minecraft:air",
+      "meta": 0,
+      "ignore-meta": true
+    },
+    "b": {
+      "id": "mekanismgenerators:generator",
+      "meta": 5
+    },
+    "c": {
+      "id": "mekanism:basicblock2",
+      "meta": 0
+    },
+    "d": {
+      "id": "mekanism:basicblock",
+      "meta": 15
+    },
+    "e": {
+      "id": "mekanism:basicblock",
+      "meta": 14
+    }
+  },
+  "input-nbt": {
+    "a:A": {
+      "nbt": "{prevPower:0,mainX:-147,receivedCoords:1b,id:\"mekanism:bounding_block\",mainZ:200,mainY:75}"
+    },
+    "a:B": {
+      "nbt": "{prevPower:0,mainX:-144,receivedCoords:1b,id:\"mekanism:bounding_block\",mainZ:200,mainY:75}"
+    },
+    "b:A": {
+      "nbt": "{electricityStored:0.0d,facing:3,securityMode:0,isActive:0b,controlType:0,Items:[],id:\"mekanismgenerators:advanced_solar_generator\",redstone:0b}"
+    },
+    "c:A": {
+      "nbt": "{facing:4,Items:[],id:\"mekanism:thermal_evaporation_block\",redstone:0b}"
+    },
+    "c:B": {
+      "nbt": "{facing:2,Items:[],id:\"mekanism:thermal_evaporation_block\",redstone:0b}"
+    },
+    "c:C": {
+      "nbt": "{facing:5,Items:[],id:\"mekanism:thermal_evaporation_block\",redstone:0b}"
+    },
+    "d:A": {
+      "nbt": "{facing:3,Items:[],id:\"mekanism:thermal_evaporation_valve\",redstone:0b}"
+    },
+    "c:D": {
+      "nbt": "{facing:3,Items:[],id:\"mekanism:thermal_evaporation_block\",redstone:0b}"
+    },
+    "a:C": {
+      "nbt": "{prevPower:0,mainX:-147,receivedCoords:1b,id:\"mekanism:bounding_block\",mainZ:197,mainY:75}"
+    },
+    "a:D": {
+      "nbt": "{prevPower:0,mainX:-144,receivedCoords:1b,id:\"mekanism:bounding_block\",mainZ:197,mainY:75}"
+    },
+    "e:A": {
+      "nbt": "{partialWater:0.0d,brineTank:{Empty:\"\"},facing:4,temperature:5.6724463f,Items:[],id:\"mekanism:thermal_evaporation_controller\",waterTank:{Empty:\"\"},redstone:0b,partialBrine:0.0d}"
+    },
+    "b:B": {
+      "nbt": "{electricityStored:0.0d,facing:2,securityMode:0,isActive:0b,controlType:0,Items:[],id:\"mekanismgenerators:advanced_solar_generator\",redstone:0b}"
+    },
+    "d:B": {
+      "nbt": "{facing:2,Items:[],id:\"mekanism:thermal_evaporation_valve\",redstone:0b}"
+    }
+  },
+  "shape": [
+    [
+      [
+        "a:C", "a:C", "a:C", "a:D", "a:D", "a:D"
+      ],
+      [
+        "a:C", "a:C", "a:C", "a:D", "a:D", "a:D"
+      ],
+      [
+        "a:C", "a:C", "a:C", "a:D", "a:D", "a:D"
+      ],
+      [
+        "a:A", "a:A", "a:A", "a:B", "a:B", "a:B"
+      ],
+      [
+        "a:A", "a:A", "a:A", "a:B", "a:B", "a:B"
+      ],
+      [
+        "a:A", "a:A", "a:A", "a:B", "a:B", "a:B"
+      ]
+    ],
+    [
+      [
+        "_", "_", "_", "_", "_", "_"
+      ],
+      [
+        "_", "a:C", "_", "_", "a:D", "_"
+      ],
+      [
+        "_", "_", "_", "_", "_", "_"
+      ],
+      [
+        "_", "_", "_", "_", "_", "_"
+      ],
+      [
+        "_", "a:A", "_", "_", "a:B", "_"
+      ],
+      [
+        "_", "_", "_", "_", "_", "_"
+      ]
+    ],
+    [
+      [
+        "_", "_", "_", "_", "_", "_"
+      ],
+      [
+        "_", "b:B", "c:C", "c:C", "b:B", "_"
+      ],
+      [
+        "_", "c:A", "_", "_", "c:C", "_"
+      ],
+      [
+        "_", "c:A", "_", "_", "c:C", "_"
+      ],
+      [
+        "_", "b:A", "c:A", "c:A", "b:A", "_"
+      ],
+      [
+        "_", "_", "_", "_", "_", "_"
+      ]
+    ],
+    [
+      [
+        "_", "_", "_", "_", "_", "_"
+      ],
+      [
+        "_", "c:B", "c:B", "c:C", "c:C", "_"
+      ],
+      [
+        "_", "c:B", "_", "_", "c:C", "_"
+      ],
+      [
+        "_", "c:B", "_", "_", "c:C", "_"
+      ],
+      [
+        "_", "c:B", "c:C", "c:C", "c:C", "_"
+      ],
+      [
+        "_", "_", "_", "_", "_", "_"
+      ]
+    ],
+    [
+      [
+        "_", "_", "_", "_", "_", "_"
+      ],
+      [
+        "_", "c:B", "c:B", "d:B", "c:C", "_"
+      ],
+      [
+        "_", "e:A", "_", "_", "c:C", "_"
+      ],
+      [
+        "_", "c:A", "_", "_", "c:C", "_"
+      ],
+      [
+        "_", "c:A", "c:A", "d:A", "c:A", "_"
+      ],
+      [
+        "_", "_", "_", "_", "_", "_"
+      ]
+    ],
+    [
+      [
+        "_", "_", "_", "_", "_", "_"
+      ],
+      [
+        "_", "c:D", "c:D", "c:D", "c:D", "_"
+      ],
+      [
+        "_", "c:D", "c:D", "c:D", "c:D", "_"
+      ],
+      [
+        "_", "c:D", "c:D", "c:D", "c:D", "_"
+      ],
+      [
+        "_", "c:A", "c:A", "c:A", "c:A", "_"
+      ],
+      [
+        "_", "_", "_", "_", "_", "_"
+      ]
+    ]
+  ]
+
+}
+
+
+
+
+
