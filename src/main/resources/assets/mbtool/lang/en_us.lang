@@ -1,1 +1,4 @@
 item.mbtool.name=Multi Builder Tool
+container.mbtool.recipe=Current Structure: %s
+container.mbtool=Multi Builder Tool
+container.mbtool.energy=Energy stored: $s RF

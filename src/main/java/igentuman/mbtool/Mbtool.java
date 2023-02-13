@@ -1,5 +1,6 @@
 package igentuman.mbtool;
 
+import igentuman.mbtool.handler.PlayerEventHandler;
 import igentuman.mbtool.network.GuiProxy;
 import igentuman.mbtool.network.ModPacketHandler;
 import net.minecraftforge.common.MinecraftForge;
@@ -41,6 +42,8 @@ public class Mbtool
         proxy.preInit(event);
         logger = event.getModLog();
         MinecraftForge.EVENT_BUS.register(new RegistryHandler());
+        MinecraftForge.EVENT_BUS.register(new PlayerEventHandler());
+
         MinecraftForge.EVENT_BUS.register(this);
         ModPacketHandler.registerMessages(MODID);
     }
