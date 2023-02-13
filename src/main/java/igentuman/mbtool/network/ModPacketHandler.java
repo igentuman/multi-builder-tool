@@ -11,5 +11,6 @@ public class ModPacketHandler {
     public static void registerMessages(String channelName) {
         instance = NetworkRegistry.INSTANCE.newSimpleChannel(channelName);
 
+        instance.registerMessage(NetworkMessage.Handler.class, NetworkMessage.class, 1, Side.SERVER);
     }
 }

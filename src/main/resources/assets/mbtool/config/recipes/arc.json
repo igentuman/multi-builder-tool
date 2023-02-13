@@ -4,7 +4,7 @@
   "target-item": "immersiveengineering:tool",
   "input-types": {
     "a": {
-      "id": "ic2:resource",
+      "id": "immersiveengineering:storage",
       "meta": 8
     },
     "b": {

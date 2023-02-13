@@ -2,13 +2,18 @@ package igentuman.mbtool.common.item;
 
 import igentuman.mbtool.Mbtool;
 import igentuman.mbtool.RegistryHandler;
+import igentuman.mbtool.network.ModPacketHandler;
+import igentuman.mbtool.network.NetworkMessage;
 import igentuman.mbtool.recipe.MultiblockRecipe;
 import igentuman.mbtool.recipe.MultiblockRecipes;
+import mekanism.api.EnumColor;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.*;
 import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
+import net.minecraft.client.resources.I18n;
+import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
@@ -21,6 +26,7 @@ import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.text.TextComponentUtils;
 import net.minecraft.world.World;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.common.MinecraftForge;
@@ -29,8 +35,10 @@ import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.lwjgl.input.Keyboard;
-import org.lwjgl.input.Mouse;
+
 import org.lwjgl.opengl.GL11;
+
+import java.util.List;
 
 public class ItemMultiBuilder extends Item {
 
@@ -54,11 +62,21 @@ public class ItemMultiBuilder extends Item {
     public EnumActionResult onItemUse(EntityPlayer player, World worldIn, BlockPos pos, EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ)
     {
         super.onItemUse(player, worldIn, pos, hand, facing, hitX, hitY, hitZ);
-
-        return EnumActionResult.SUCCESS;
+         return EnumActionResult.SUCCESS;
     }
+
+
+
     int xd = 0;
     int zd = 0;
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public void addInformation(ItemStack stack, World worldIn, List<String> tooltip, ITooltipFlag flagIn)
+    {
+        tooltip.add(EnumColor.AQUA + "\u00a7o" + I18n.format("tooltip.mbtool.gui_key"));
+        tooltip.add(EnumColor.AQUA + "\u00a7o" + I18n.format("tooltip.mbtool.rotate_keys"));
+    }
 
     private boolean hasRecipe(ItemStack item)
     {
@@ -69,27 +87,21 @@ public class ItemMultiBuilder extends Item {
         }
     }
 
-    @SideOnly(Side.CLIENT)
-    @SubscribeEvent
-    public void renderLast(RenderWorldLastEvent event)
+    public BlockPos getRayTraceHit()
     {
         Minecraft mc = Minecraft.getMinecraft();
 
+        Vec3d vec = mc.player.getLookVec();
+        RayTraceResult rt = mc.player.rayTrace(10, 1f);
+        if(!rt.typeOfHit.equals(RayTraceResult.Type.BLOCK)) {
+            return null;
+        }
         ItemStack mainItem = mc.player.getHeldItemMainhand();
         ItemStack secondItem = mc.player.getHeldItemOffhand();
 
         boolean main = !mainItem.isEmpty() && mainItem.getItem() == RegistryHandler.MBTOOL && hasRecipe(mainItem);
         boolean off = !secondItem.isEmpty() && secondItem.getItem() == RegistryHandler.MBTOOL && hasRecipe(secondItem);
 
-        if(!main && !off) {
-            return;
-        }
-
-        Vec3d vec = mc.player.getLookVec();
-        RayTraceResult rt = mc.player.rayTrace(10, 1f);
-        if(!rt.typeOfHit.equals(RayTraceResult.Type.BLOCK)) {
-            return;
-        }
         BlockPos hit = rt.getBlockPos();
         EnumFacing look = (Math.abs(vec.z) > Math.abs(vec.x)) ? (vec.z > 0 ? EnumFacing.SOUTH : EnumFacing.NORTH) : (vec.x > 0 ? EnumFacing.EAST : EnumFacing.WEST);
 
@@ -108,26 +120,40 @@ public class ItemMultiBuilder extends Item {
         hit = hit.add(-recipe.getWidth()/2, 0, -recipe.getDepth()/2+1);
 
         if(recipe.getWidth() % 2 != 0) {
-           // hit = hit.add(-1, 0, 0);
+            // hit = hit.add(-1, 0, 0);
         }
 
         if(recipe.getDepth() % 2 != 0) {
             //hit = hit.add(0, 0, -1);
         }
+        return hit;
+    }
 
-        switch (rotation)
-        {
-            case 0:
-                break;
-            case 1:
+    @SideOnly(Side.CLIENT)
+    @SubscribeEvent
+    public void renderLast(RenderWorldLastEvent event)
+    {
+        Minecraft mc = Minecraft.getMinecraft();
 
-                break;
-            case 2:
+        ItemStack mainItem = mc.player.getHeldItemMainhand();
+        ItemStack secondItem = mc.player.getHeldItemOffhand();
 
-                break;
-            case 3:
+        boolean main = !mainItem.isEmpty() && mainItem.getItem() == RegistryHandler.MBTOOL && hasRecipe(mainItem);
+        boolean off = !secondItem.isEmpty() && secondItem.getItem() == RegistryHandler.MBTOOL && hasRecipe(secondItem);
 
-                break;
+        if(!main && !off) {
+            return;
+        }
+
+
+
+        BlockPos hit = getRayTraceHit();
+        if(hit == null) return;
+        MultiblockRecipe recipe;
+        if(main) {
+            recipe = MultiblockRecipes.getAvaliableRecipes().get(mainItem.getTagCompound().getInteger("recipe"));
+        } else {
+            recipe = MultiblockRecipes.getAvaliableRecipes().get(secondItem.getTagCompound().getInteger("recipe"));
         }
         GlStateManager.pushMatrix();
         renderSchematic(mc.player, hit, event.getPartialTicks(), recipe);
@@ -291,6 +317,23 @@ public class ItemMultiBuilder extends Item {
             playerIn.openGui(Mbtool.instance, 0, worldIn, playerIn.getPosition().getX(), playerIn.getPosition().getY(), playerIn.getPosition().getZ());
             return ActionResult.newResult(EnumActionResult.SUCCESS, playerIn.getHeldItem(handIn));
         }
+        BlockPos hit = getRayTraceHit();
+        if(hit == null) return super.onItemRightClick(worldIn, playerIn, handIn);
+        Minecraft mc = Minecraft.getMinecraft();
+
+        ItemStack mainItem = mc.player.getHeldItemMainhand();
+        ItemStack secondItem = mc.player.getHeldItemOffhand();
+
+        boolean main = !mainItem.isEmpty() && mainItem.getItem() == RegistryHandler.MBTOOL && hasRecipe(mainItem);
+        boolean off = !secondItem.isEmpty() && secondItem.getItem() == RegistryHandler.MBTOOL && hasRecipe(secondItem);
+        int recipeid;
+        if(main) {
+            recipeid = mainItem.getTagCompound().getInteger("recipe");
+        } else {
+            recipeid = secondItem.getTagCompound().getInteger("recipe");
+        }
+        ModPacketHandler.instance.sendToServer(new NetworkMessage(hit, getRotation(), recipeid, playerIn.getUniqueID().toString()));
+
         return super.onItemRightClick(worldIn, playerIn, handIn);
     }
 

@@ -2,3 +2,5 @@ item.mbtool.name=Multi Builder Tool
 mbtool.mek_boiler=Boiler
 container.mbtool=Multi Builder Tool
 container.mbtool.energy=Energy stored: %s RF
+tooltip.mbtool.gui_key=SHIFT+LMB to open GUI
+tooltip.mbtool.rotate_keys=Arrow keys to rotate

@@ -8,6 +8,7 @@ import igentuman.mbtool.util.SerializationHelper;
 import igentuman.mbtool.Mbtool;
 import igentuman.mbtool.util.JarExtract;
 import igentuman.mbtool.util.ResourceLoader;
+import org.apache.logging.log4j.Level;
 
 import java.io.File;
 import java.io.InputStream;
@@ -30,6 +31,8 @@ public class MultiblockRecipes {
             for (MultiblockRecipe recipe: recipes) {
                 if(recipe.isValid()) {
                     avaliableRecipes.add(recipe);
+                } else {
+                    Mbtool.instance.logger.log(Level.WARN, "Skipping multiblock recipe "+ recipe.getName());
                 }
             }
         }
@@ -82,6 +85,7 @@ public class MultiblockRecipes {
                 recipe = SerializationHelper.GSON.fromJson(reader, MultiblockRecipe.class);
             } catch (NullPointerException e) {
                 recipe = null;
+                Mbtool.instance.logger.log(Level.WARN, "Error parsing multiblock recipe .json "+ filename);
             }
 
             if (recipe == null) {
