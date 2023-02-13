@@ -1,10 +1,10 @@
 package igentuman.mbtool.common.container;
 
-import igentuman.mbtool.recipe.MultiblockRecipe;
 import igentuman.mbtool.recipe.MultiblockRecipes;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.Container;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumHand;
 import org.jetbrains.annotations.NotNull;
 
@@ -12,16 +12,24 @@ public class ContainerMbtool extends Container {
     public EntityPlayer player;
     public ContainerMbtool(EntityPlayer player) {
         this.player = player;
+        mbtool = player.getHeldItem(EnumHand.MAIN_HAND);
     }
+    public ItemStack mbtool;
 
     public int getEnergyStored()
     {
         return 10;
     }
 
+    public void setCurrentRecipe(int id)
+    {
+        NBTTagCompound nbt = new NBTTagCompound();
+        nbt.setInteger("recipe", id);
+        mbtool.setTagCompound(nbt);
+    }
+
     public int getCurrentRecipe()
     {
-        ItemStack mbtool = player.getHeldItem(EnumHand.MAIN_HAND);
         int recipeId = 0;
         if(mbtool.getTagCompound() == null) return recipeId;
         recipeId = mbtool.getTagCompound().getInteger("recipe");

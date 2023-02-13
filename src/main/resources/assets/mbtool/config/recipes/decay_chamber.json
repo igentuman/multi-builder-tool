@@ -1,6 +1,6 @@
 {
   "name": "decay_chamber",
-  "label": "Basic Decay Chamber",
+  "label": "Decay Chamber",
   "target-item": "qmd:decay_chamber_controller",
 
   "input-types": {

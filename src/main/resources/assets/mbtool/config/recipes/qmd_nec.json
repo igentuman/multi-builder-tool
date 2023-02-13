@@ -1,6 +1,6 @@
 {
   "name": "qmd_nec",
-  "label": "Neutral Exotic Containment",
+  "label": "NEC",
   "target-item": "qmd:neutral_containment_controller",
   
   "input-types": {

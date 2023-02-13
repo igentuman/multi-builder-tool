@@ -1,6 +1,6 @@
 {
   "name": "mek_boiler",
-  "label": "Thermoelectric Boiler",
+  "label": "Boiler",
   "target-item": "mekanism:basicblock2",
   "target-item-meta": 5,
   "input-types": {

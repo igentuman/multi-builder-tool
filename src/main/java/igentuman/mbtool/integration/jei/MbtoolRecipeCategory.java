@@ -35,7 +35,7 @@ public class MbtoolRecipeCategory implements IRecipeCategory<MbtoolRecipeCategor
 
     public MbtoolRecipeCategory(IGuiHelper guiHelper) {
         localizedName = I18n.format(Mbtool.MODID+".jei.category.multiblocks");
-        background = guiHelper.createBlankDrawable(180, 150);
+        background = guiHelper.createBlankDrawable(174, 120);
         slotDrawable = guiHelper.getSlotDrawable();
     }
 
@@ -86,15 +86,15 @@ public class MbtoolRecipeCategory implements IRecipeCategory<MbtoolRecipeCategor
         slotDrawable.draw(minecraft, 19 * 7, 0);
         slotDrawable.draw(minecraft, 19 * 8, 0);
 
-        slotDrawable.draw(minecraft, 19 * 0, 130);
-        slotDrawable.draw(minecraft, 19 * 1, 130);
-        slotDrawable.draw(minecraft, 19 * 2, 130);
-        slotDrawable.draw(minecraft, 19 * 3, 130);
-        slotDrawable.draw(minecraft, 19 * 4, 130);
-        slotDrawable.draw(minecraft, 19 * 5, 130);
-        slotDrawable.draw(minecraft, 19 * 6, 130);
-        slotDrawable.draw(minecraft, 19 * 7, 130);
-        slotDrawable.draw(minecraft, 19 * 8, 130);
+        slotDrawable.draw(minecraft, 19 * 0, 100);
+        slotDrawable.draw(minecraft, 19 * 1, 100);
+        slotDrawable.draw(minecraft, 19 * 2, 100);
+        slotDrawable.draw(minecraft, 19 * 3, 100);
+        slotDrawable.draw(minecraft, 19 * 4, 100);
+        slotDrawable.draw(minecraft, 19 * 5, 100);
+        slotDrawable.draw(minecraft, 19 * 6, 100);
+        slotDrawable.draw(minecraft, 19 * 7, 100);
+        slotDrawable.draw(minecraft, 19 * 8, 100);
 
     }
 
@@ -115,15 +115,15 @@ public class MbtoolRecipeCategory implements IRecipeCategory<MbtoolRecipeCategor
         recipeLayout.getItemStacks().init(7, true, 19 * 7, 0);
         recipeLayout.getItemStacks().init(8, true, 19 * 8, 0);
 
-        recipeLayout.getItemStacks().init(9, true, 19 * 0, 130);
-        recipeLayout.getItemStacks().init(10, true,19 * 1, 130);
-        recipeLayout.getItemStacks().init(11, true,19 * 2, 130);
-        recipeLayout.getItemStacks().init(12, true,19 * 3, 130);
-        recipeLayout.getItemStacks().init(13, true,19 * 4, 130);
-        recipeLayout.getItemStacks().init(14, true,19 * 5, 130);
-        recipeLayout.getItemStacks().init(15, true,19 * 6, 130);
-        recipeLayout.getItemStacks().init(16, true,19 * 7, 130);
-        recipeLayout.getItemStacks().init(17, true,19 * 8, 130);
+        recipeLayout.getItemStacks().init(9, true, 19 * 0, 100);
+        recipeLayout.getItemStacks().init(10, true,19 * 1, 100);
+        recipeLayout.getItemStacks().init(11, true,19 * 2, 100);
+        recipeLayout.getItemStacks().init(12, true,19 * 3, 100);
+        recipeLayout.getItemStacks().init(13, true,19 * 4, 100);
+        recipeLayout.getItemStacks().init(14, true,19 * 5, 100);
+        recipeLayout.getItemStacks().init(15, true,19 * 6, 100);
+        recipeLayout.getItemStacks().init(16, true,19 * 7, 100);
+        recipeLayout.getItemStacks().init(17, true,19 * 8, 100);
 
         recipeLayout.getItemStacks().addTooltipCallback(this);
         recipeLayout.getItemStacks().set(ingredients);
@@ -137,7 +137,6 @@ public class MbtoolRecipeCategory implements IRecipeCategory<MbtoolRecipeCategor
 
     @Override
     public void onTooltip(int slotIndex, boolean input, ItemStack ingredient, List<String> tooltip) {
-        if(zoom) return;
         String last = tooltip.get(tooltip.size()-1);
         tooltip.remove(tooltip.size()-1);
         if(slotIndex >= 0 && slotIndex <= 17) {
@@ -165,24 +164,6 @@ public class MbtoolRecipeCategory implements IRecipeCategory<MbtoolRecipeCategor
                 this.input.add(null);
             }
             layers = recipe.getHeight();
-        }
-        public boolean zoom = false;
-
-        public boolean handleClick(Minecraft minecraft, int mouseX, int mouseY, int mouseButton) {
-
-            if(mouseX > 0 && mouseX < 150 && mouseY > 20 && mouseY < 170) {
-                if(mouseButton == 0) {
-                    layers--;
-                    if (layers < 1) {
-                        layers = recipe.getHeight();
-                    }
-                    recipe.setLevels(layers);
-                } else if(mouseButton == 1) {
-                    td =- td;
-                }
-                return true;
-            }
-            return false;
         }
 
         Map<Integer,? extends IGuiIngredient<ItemStack>> guiIngredients = new HashMap<>();
@@ -214,20 +195,9 @@ public class MbtoolRecipeCategory implements IRecipeCategory<MbtoolRecipeCategor
             GlStateManager.translate(0F, 0F, 1.5F);
             GlStateManager.popMatrix();
 
-            if(!zoom) {
-                mc.fontRenderer.drawString(recipe.getLabel(), 180 - mc.fontRenderer.getStringWidth(recipe.getLabel()), -13, 0x444444);
-                mc.fontRenderer.drawString(recipe.getDimensionsString(), 180 - mc.fontRenderer.getStringWidth(recipe.getDimensionsString()), 153, 0x444444);
-                mc.fontRenderer.drawString("CTRL - Zoom", 19, 153, 0x444444);
-            }
+            mc.fontRenderer.drawString(recipe.getLabel(), 170 - mc.fontRenderer.getStringWidth(recipe.getLabel()), 22, 0x444444);
+
             angle = ticks * 45.0f / 128.0f;
-/*            if(isMouseOver(mouseX, mouseY, recipeWidth, recipeHeight)) {
-                //do tracing
-                xMouse = (int) (mouseX/16*scale);
-                yMouse = (int) ((recipeHeight-mouseY)/16*scale);
-            } else {
-                xMouse = 0;
-                yMouse = 0;
-            }*/
             ticks+=td;
             TextureManager textureManager = Minecraft.getMinecraft().getTextureManager();
             textureManager.bindTexture(TextureMap.LOCATION_BLOCKS_TEXTURE);
@@ -275,44 +245,22 @@ public class MbtoolRecipeCategory implements IRecipeCategory<MbtoolRecipeCategor
             // We have big recipes, we need to adjust the size accordingly.
             int maxDiff = Math.max(Math.max(diffZ + 1, diffX), diffY+3) + 1;
 
-            scale = 1.0f / ((float)maxDiff / 7.0f);
+            scale = 1.0f / ((float)maxDiff / 5.0f);
             recipe.getCategory().layout.getItemStacks().set(ingredients);
             recipe.getCategory().setRecipe(recipe.getCategory().layout, this, ingredients);
-            if(zoom) {
-                 scale *= 2;
-                 recipe.getCategory().layout.getItemStacks().getGuiIngredients().clear();
-            }
+
             GlStateManager.enableCull();
             GlStateManager.scale(scale, scale, scale);
 
-            // Move the shape to the center of the crafting window
             GlStateManager.translate(
                     (diffX + 1) / -2.0f,
                     (diffY + 1) / -2.0f,
                     (diffZ + 1) / -2.0f
             );
 
-            // If the client holds down the shift button, render everything as wireframe
-            boolean renderWireframe = false;
-            if(GuiScreen.isShiftKeyDown()) {
-                renderWireframe = true;
-                GlStateManager.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_LINE);
-            }
-            zoom = false;
-            if(GuiScreen.isCtrlKeyDown()) {
-               zoom = true;
 
-            }
-
-
-            MbtoolRecipeCategory.zoom = zoom;
             recipe.setLevels(layers);
             RecipeRenderManager.instance.renderRecipe(recipe, 0.0f, layers);
-
-            if(renderWireframe) {
-                GlStateManager.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_FILL);
-            }
-
             textureManager.bindTexture(TextureMap.LOCATION_BLOCKS_TEXTURE);
             textureManager.getTexture(TextureMap.LOCATION_BLOCKS_TEXTURE).restoreLastBlurMipmap();
 

@@ -1,7 +1,7 @@
 {
   "name": "tc_furnace",
 
-  "label": "TConstruct Furnace",
+  "label": "TC Furnace",
   "target-item": "tconstruct:seared_furnace_controller",
 
   "input-types": {

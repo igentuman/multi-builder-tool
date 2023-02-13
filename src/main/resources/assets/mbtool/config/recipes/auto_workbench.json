@@ -1,6 +1,6 @@
 {
   "name": "auto_workbench",
-  "label": "Automatic Workbench",
+  "label": "Auto Workbench",
   "target-item": "immersiveengineering:blueprint",
 
   "input-types": {

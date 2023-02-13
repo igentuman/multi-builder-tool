@@ -1,6 +1,6 @@
 {
   "name": "smeltery",
-  "label": "TConstruct Smeltery",
+  "label": "Smeltery",
   "target-item": "tconstruct:smeltery_controller",
 
   "input-types": {

@@ -1,7 +1,7 @@
 {
   "name": "nc_turbine",
 
-  "label": "Basic NC Turbine",
+  "label": "NC Turbine",
   "target-item": "nuclearcraft:turbine_controller",
 
 

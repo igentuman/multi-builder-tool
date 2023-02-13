@@ -1,6 +1,6 @@
 {
   "name": "tc_tank",
-  "label": "TConstruct Tank",
+  "label": "TC Tank",
   "target-item": "tconstruct:tinker_tank_controller",
 
   "input-types": {

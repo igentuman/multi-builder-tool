@@ -1,7 +1,7 @@
 {
   "name": "target_chamber",
 
-  "label": "Basic Target Chamber",
+  "label": "Target Chamber",
   "target-item": "qmd:target_chamber_controller",
 
   "input-types": {

@@ -1,6 +1,6 @@
 {
   "name": "mek_tower",
-  "label": "Thermoelectric Tower",
+  "label": "Thermo Tower",
   "target-item": "mekanism:basicblock2",
 
   "input-types": {

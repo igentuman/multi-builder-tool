@@ -1,6 +1,6 @@
 {
   "name": "nucleo_synth",
-  "label": "Nucleosynthesis Chamber",
+  "label": "Nucleo Chamber",
   "target-item": "qmd:nucleosynthesis_chamber_controller",
   "input-types": {
     "a": {

@@ -1,9 +1,5 @@
 package igentuman.mbtool.handler;
 
-import igentuman.mbtool.client.capability.BuilderClientCapabilityHandler;
-import igentuman.mbtool.client.capability.BuilderClientDataProvider;
-import igentuman.mbtool.common.capability.BuilderCapabilityHandler;
-import igentuman.mbtool.common.capability.BuilderDataProvider;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayerMP;

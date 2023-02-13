@@ -28,19 +28,6 @@ public class RecipeRenderManager {
 
     private HashMap<MultiblockRecipe, RecipeRenderData> data = new HashMap<>();
 
-    private RayTraceResult traceMouse(MultiblockRecipe recipe) {
-        if(MbtoolRecipeCategory.Wrapper.yMouse > 0) {
-            Vec3d start = new Vec3d(MbtoolRecipeCategory.Wrapper.xMouse, MbtoolRecipeCategory.Wrapper.yMouse, -100);
-            Vec3d end = new Vec3d(MbtoolRecipeCategory.Wrapper.xMouse, MbtoolRecipeCategory.Wrapper.yMouse, 100);
-            RayTraceResult rayTraceResult = data.get(recipe).proxyWorld.rayTraceBlocks(start, end);
-            if(rayTraceResult != null) {
-                return rayTraceResult;
-            }
-            return rayTraceResult;
-        }
-        return null;
-    }
-
     public void renderRecipe(MultiblockRecipe recipe, float partialTicks, int layers) {
         if(recipe == null) {
             return;
@@ -57,15 +44,13 @@ public class RecipeRenderManager {
         }
 
         renderData.render(partialTicks);
-       // traceMouse(recipe);
-
     }
 
-    private class RecipeRenderData {
+    public static class RecipeRenderData {
         ProxyWorld proxyWorld;
         IBlockAccess blockAccess;
         int glListId = -1;
-        List<BlockPos> toRender;
+        public List<BlockPos> toRender;
 
         public RecipeRenderData(MultiblockRecipe recipe) {
             this.proxyWorld = new ProxyWorld();
