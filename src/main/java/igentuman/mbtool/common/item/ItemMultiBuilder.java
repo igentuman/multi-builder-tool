@@ -104,6 +104,31 @@ public class ItemMultiBuilder extends Item {
         } else {
             recipe = MultiblockRecipes.getAvaliableRecipes().get(secondItem.getTagCompound().getInteger("recipe"));
         }
+        int rotation = getRotation();
+        hit = hit.add(-recipe.getWidth()/2, 0, -recipe.getDepth()/2+1);
+
+        if(recipe.getWidth() % 2 != 0) {
+           // hit = hit.add(-1, 0, 0);
+        }
+
+        if(recipe.getDepth() % 2 != 0) {
+            //hit = hit.add(0, 0, -1);
+        }
+
+        switch (rotation)
+        {
+            case 0:
+                break;
+            case 1:
+
+                break;
+            case 2:
+
+                break;
+            case 3:
+
+                break;
+        }
         GlStateManager.pushMatrix();
         renderSchematic(mc.player, hit, event.getPartialTicks(), recipe);
         GlStateManager.popMatrix();
@@ -135,6 +160,7 @@ public class ItemMultiBuilder extends Item {
         return rotation;
     }
 
+    int keyPressDelay = 10;
 
     public void setRotation(int dir, ItemStack item)
     {
@@ -142,13 +168,11 @@ public class ItemMultiBuilder extends Item {
         rot+=dir;
         if(dir < 0 && rot < 0) {
             rot = 3;
-            item.getTagCompound().setInteger("rotation", rot);
-            return;
         }
-        if(rot > 3) {
+        if(dir > 0 && rot > 3) {
             rot = 0;
-            item.getTagCompound().setInteger("rotation", rot);
         }
+        item.getTagCompound().setInteger("rotation", rot);
     }
 
     @SideOnly(Side.CLIENT)
@@ -163,11 +187,11 @@ public class ItemMultiBuilder extends Item {
 
         boolean main = !mainItem.isEmpty() && mainItem.getItem() == RegistryHandler.MBTOOL && hasRecipe(mainItem);
         boolean off = !secondItem.isEmpty() && secondItem.getItem() == RegistryHandler.MBTOOL && hasRecipe(secondItem);
-
-        if(!main && !off) {
+        keyPressDelay--;
+        if((!main && !off) || keyPressDelay > 0) {
             return;
         }
-
+        keyPressDelay=10;
         if(Keyboard.isKeyDown(Keyboard.KEY_LEFT)) {
             if(main) setRotation(-1, mainItem);
             if(off) setRotation(-1, secondItem);
@@ -192,9 +216,10 @@ public class ItemMultiBuilder extends Item {
         double px = TileEntityRendererDispatcher.staticPlayerX;
         double py = TileEntityRendererDispatcher.staticPlayerY;
         double pz = TileEntityRendererDispatcher.staticPlayerZ;
-
         GlStateManager.translate(hit.getX() - px, hit.getY() - py, hit.getZ() - pz);
-        GlStateManager.translate(Math.floor(-mw/2), 0, Math.floor(-ml/2));
+        float centerX = (float) Math.floor(-mw >> 1);
+        float centerZ = (float) Math.floor(-ml >> 1);
+        //GlStateManager.translate(centerX+2, 0, centerZ);
         GlStateManager.disableLighting();
         if (Minecraft.isAmbientOcclusionEnabled())
             GlStateManager.shadeModel(GL11.GL_SMOOTH);
@@ -217,7 +242,8 @@ public class ItemMultiBuilder extends Item {
                     if(!recipe.getStateAtBlockPos(pos).equals(Blocks.AIR.getDefaultState())) {
                         int xo = l;
                         int zo = w;
-                        switch (getRotation())
+                        int rotation = getRotation();
+                        switch (rotation)
                         {
                             case 1:
                                 zo = l;
@@ -232,6 +258,9 @@ public class ItemMultiBuilder extends Item {
                                 xo = w;
                                 break;
                         }
+
+
+
                         IBlockState state = recipe.getStateAtBlockPos(pos);
                         ItemStack stack = new ItemStack(state.getBlock());
                         BlockPos actualPos = hit.add(xo, h, zo);
