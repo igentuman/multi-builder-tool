@@ -6,10 +6,14 @@ import io.netty.buffer.ByteBuf;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.ai.EntityAIBase;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.InventoryPlayer;
+import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.text.TextComponentString;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
@@ -122,6 +126,26 @@ public class NetworkMessage implements IMessage {
         EntityPlayer playerEntity = FMLCommonHandler.instance().getMinecraftServerInstance().
                 getPlayerList().getPlayerByUUID(UUID.fromString(player));
 
+        //validate if user has all required items
+        if(!playerEntity.isCreative()) {
+            for (ItemStack required : recipe.getRequiredItemStacks()) {
+                int cnt = 0;
+                for(int i = 0; i < playerEntity.inventory.getSizeInventory(); i++) {
+                    if (playerEntity.inventory.getStackInSlot(i).isItemEqual(required) &&
+                        required.getMetadata() == playerEntity.inventory.getStackInSlot(i).getMetadata()) {
+                        cnt += playerEntity.inventory.getStackInSlot(i).getCount();
+                    }
+
+                }
+                if(cnt < required.getCount()) {
+                    playerEntity.sendMessage(new TextComponentString("Missing: " + required.getDisplayName()));
+                    return false;
+                }
+            }
+        }
+
+
+        //validate if user has permission to edit each block
         for(int x = 0; x < recipe.getWidth(); x++) {
             for(int y = 0; y < recipe.getHeight(); y++) {
                 for(int z = 0; z < recipe.getDepth(); z++) {
@@ -132,6 +156,10 @@ public class NetworkMessage implements IMessage {
                 }
             }
         }
+
+
+
+        //build
         for(int y = 0; y < recipe.getHeight(); y++) {
             for(int x = 0; x < recipe.getWidth(); x++) {
                 for(int z = 0; z < recipe.getDepth(); z++) {
@@ -149,11 +177,36 @@ public class NetworkMessage implements IMessage {
                         case 3:
                             livePos = pos.add(z,y,recipe.getWidth()-1-x);
                     }
+                    boolean foundStack = false;
                     IBlockState state = recipe.getStateAtBlockPos(new BlockPos(x, y, z));
+                    ItemStack stack = findStack(playerEntity, new ItemStack(state.getBlock(), 1, state.getBlock().getMetaFromState(state)));
+                    if(!stack.equals(ItemStack.EMPTY) && stack.getCount() > 0) {
+                        foundStack = true;
+                    }
+                    stack.shrink(1);
+                    //playerEntity.inventory.deleteStack(new ItemStack(state.getBlock(), 1, state.getBlock().getMetaFromState(state)));
+                    if(!foundStack) {
+                        playerEntity.sendMessage(new TextComponentString("Stopped construction on missing: " + new ItemStack(state.getBlock(), 1, state.getBlock().getMetaFromState(state)).getDisplayName()));
+                        return false;
+                    }
                     playerEntity.world.setBlockState(livePos, state, 2);
                 }
             }
         }
         return true;
+    }
+
+    protected ItemStack findStack(EntityPlayer player, ItemStack item)
+    {
+        for (int i = 0; i < player.inventory.getSizeInventory(); ++i)
+        {
+            ItemStack itemstack = player.inventory.getStackInSlot(i);
+
+            if (itemstack.isItemEqual(item) && itemstack.getMetadata() == item.getMetadata())
+            {
+                return itemstack;
+            }
+        }
+        return ItemStack.EMPTY;
     }
 }
