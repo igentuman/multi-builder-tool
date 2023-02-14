@@ -1,5 +1,8 @@
 package igentuman.mbtool.network;
 
+import igentuman.mbtool.ModConfig;
+import igentuman.mbtool.RegistryHandler;
+import igentuman.mbtool.common.item.ItemMultiBuilder;
 import igentuman.mbtool.recipe.MultiblockRecipe;
 import igentuman.mbtool.recipe.MultiblockRecipes;
 import io.netty.buffer.ByteBuf;
@@ -7,8 +10,10 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.ai.EntityAIBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.InventoryPlayer;
+import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
@@ -108,23 +113,79 @@ public class NetworkMessage implements IMessage {
         @Override
         public IMessage onMessage(NetworkMessage message, MessageContext ctx) {
             FMLCommonHandler.instance().getWorldThread(ctx.netHandler).addScheduledTask(() -> {
-                message.handleProcessUpdatePacket(ctx);
+                message.buildPacket(ctx);
             });
             return null;
         }
     }
 
-    public void handleProcessUpdatePacket(MessageContext ctx)
+    public void buildPacket(MessageContext ctx)
     {
         build();
     }
 
+    public static void removeExperience(int amount, EntityPlayer player){
+        player.addScore(-amount);
+        player.experience -= (float)amount / (float)player.xpBarCap()/10;
+        player.experienceTotal -= amount;
+        if(player.experience < 0) {
+            player.experience = 1f + player.experience;
+            player.addExperienceLevel(-1);
+        }
+    }
+
+    public ItemStack getMbtool(EntityPlayer playerEntity)
+    {
+        ItemStack mainItem = playerEntity.getHeldItemMainhand();
+        ItemStack secondItem = playerEntity.getHeldItemOffhand();
+        boolean main = !mainItem.isEmpty() && mainItem.getItem() == RegistryHandler.MBTOOL;
+        boolean off = !secondItem.isEmpty() && secondItem.getItem() == RegistryHandler.MBTOOL;
+
+        if(main) {
+            if(!mainItem.hasTagCompound()) {
+                mainItem.setTagCompound(new NBTTagCompound());
+            }
+            mainItem.getTagCompound().setInteger("recipe", recipeId);
+            mainItem.getTagCompound().setInteger("rotation", rotation);
+            return mainItem;
+        } else if(off) {
+            if(!secondItem.hasTagCompound()) {
+                secondItem.setTagCompound(new NBTTagCompound());
+            }
+            secondItem.getTagCompound().setInteger("recipe", recipeId);
+            secondItem.getTagCompound().setInteger("rotation", rotation);
+            return secondItem;
+        }
+        return null;
+    }
+
+    private boolean hasRecipe(ItemStack item)
+    {
+        try {
+            return item.getTagCompound().hasKey("recipe");
+        } catch (NullPointerException ignored) {
+            return false;
+        }
+    }
 
     public boolean build()
     {
         MultiblockRecipe recipe = MultiblockRecipes.getAvaliableRecipes().get(recipeId);
         EntityPlayer playerEntity = FMLCommonHandler.instance().getMinecraftServerInstance().
                 getPlayerList().getPlayerByUUID(UUID.fromString(player));
+        ItemStack mbtool = getMbtool(playerEntity);
+        ItemMultiBuilder mbuilder = (ItemMultiBuilder) mbtool.getItem();
+        //validate xp
+        if(playerEntity.experienceTotal < recipe.getShapeAsBlockPosList().size()*ModConfig.general.xp_per_block) {
+            playerEntity.sendMessage(new TextComponentString("Not enough XP"));
+            return false;
+        }
+
+        //validate energy
+        if(mbuilder.getElectricityStored(mbtool) < recipe.getShapeAsBlockPosList().size()*ModConfig.general.energy_per_block) {
+            playerEntity.sendMessage(new TextComponentString("Not enough RF"));
+            return false;
+        }
 
         //validate if user has all required items
         if(!playerEntity.isCreative()) {
@@ -152,6 +213,7 @@ public class NetworkMessage implements IMessage {
                     BlockPos livePos = pos.add(x, y, z);
                     IBlockState state = recipe.getStateAtBlockPos(new BlockPos(x, y, z));
                     boolean check = playerEntity.canPlayerEdit(livePos, EnumFacing.UP, new ItemStack(state.getBlock()));
+                    check = check && playerEntity.world.getBlockState(livePos).getBlock().isReplaceable(playerEntity.world, livePos);
                     if(!check) return false;
                 }
             }
@@ -179,11 +241,16 @@ public class NetworkMessage implements IMessage {
                     }
                     boolean foundStack = false;
                     IBlockState state = recipe.getStateAtBlockPos(new BlockPos(x, y, z));
+                    if(state.getBlock().equals(Blocks.AIR)) continue;
                     ItemStack stack = findStack(playerEntity, new ItemStack(state.getBlock(), 1, state.getBlock().getMetaFromState(state)));
                     if(!stack.equals(ItemStack.EMPTY) && stack.getCount() > 0) {
                         foundStack = true;
                     }
                     stack.shrink(1);
+                    if(!playerEntity.isCreative()) {
+                        ((ItemMultiBuilder)mbtool.getItem()).setElectricity(mbtool, ((ItemMultiBuilder)mbtool.getItem()).getElectricityStored(mbtool)-ModConfig.general.energy_per_block);
+                        removeExperience(ModConfig.general.xp_per_block, playerEntity);
+                    }
                     //playerEntity.inventory.deleteStack(new ItemStack(state.getBlock(), 1, state.getBlock().getMetaFromState(state)));
                     if(!foundStack) {
                         playerEntity.sendMessage(new TextComponentString("Stopped construction on missing: " + new ItemStack(state.getBlock(), 1, state.getBlock().getMetaFromState(state)).getDisplayName()));

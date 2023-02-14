@@ -72,6 +72,7 @@ configurations {
 dependencies {
     shade "com.github.MJaroslav.Reflectors:library:v4"
     compileOnly "org.jetbrains:annotations:17.0.0"
+    deobfCompile "net.industrial-craft:industrialcraft-2:${ic2_version}"
     deobfCompile "curse.maven:immersive-engineering-231951:2974106"
     deobfCompile "mekanism:Mekanism:${mekanism_version}"
     deobfProvided "mezz.jei:jei_1.12.2:${jei_version}:api"

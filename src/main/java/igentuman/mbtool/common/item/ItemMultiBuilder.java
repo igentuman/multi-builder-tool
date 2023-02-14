@@ -1,12 +1,17 @@
 package igentuman.mbtool.common.item;
 
+import ic2.api.item.IElectricItem;
+import ic2.api.item.IElectricItemManager;
+import ic2.api.item.ISpecialElectricItem;
 import igentuman.mbtool.Mbtool;
+import igentuman.mbtool.ModConfig;
 import igentuman.mbtool.RegistryHandler;
 import igentuman.mbtool.network.ModPacketHandler;
 import igentuman.mbtool.network.NetworkMessage;
 import igentuman.mbtool.recipe.MultiblockRecipe;
 import igentuman.mbtool.recipe.MultiblockRecipes;
 import mekanism.api.EnumColor;
+import mekanism.api.energy.IEnergizedItem;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.*;
@@ -19,17 +24,23 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTBase;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagDouble;
+import net.minecraft.nbt.NBTTagFloat;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.text.TextComponentUtils;
 import net.minecraft.world.World;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.common.Optional;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraftforge.fml.relauncher.Side;
@@ -40,11 +51,23 @@ import org.lwjgl.opengl.GL11;
 
 import java.util.List;
 
-public class ItemMultiBuilder extends Item {
+@Optional.InterfaceList(value = {
+        @Optional.Interface(iface = "ic2.api.item.ISpecialElectricItem", modid = "ic2"),
+        @Optional.Interface(iface = "ic2.api.item.IElectricItem", modid = "ic2"),
+        @Optional.Interface(iface = "mekanism.api.energy.IEnergizedItem", modid = "mekanism")
+})
+public class ItemMultiBuilder extends Item implements ISpecialElectricItem, IElectricItem, IEnergizedItem {
+
+    private static Object itemManagerIC2;
 
     public ItemMultiBuilder() {
         super();
         MinecraftForge.EVENT_BUS.register(this);
+        setMaxDamage(ModConfig.general.mbtool_energy_capacity);
+        this.setNoRepair();
+        if(Mbtool.hooks.IC2Loaded) {
+            itemManagerIC2 = new IC2ElectricManager();
+        }
     }
 
     public CreativeTabs getCreativeTab()
@@ -62,13 +85,18 @@ public class ItemMultiBuilder extends Item {
     public EnumActionResult onItemUse(EntityPlayer player, World worldIn, BlockPos pos, EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ)
     {
         super.onItemUse(player, worldIn, pos, hand, facing, hitX, hitY, hitZ);
-         return EnumActionResult.SUCCESS;
+         return EnumActionResult.FAIL;
     }
-
-
 
     int xd = 0;
     int zd = 0;
+
+    public static String getEnergyDisplayRF(float energyVal)
+    {
+        String val = String.valueOf(MathHelper.floor(energyVal));
+
+        return val + " RF";
+    }
 
     @Override
     @SideOnly(Side.CLIENT)
@@ -76,6 +104,208 @@ public class ItemMultiBuilder extends Item {
     {
         tooltip.add(EnumColor.AQUA + "\u00a7o" + I18n.format("tooltip.mbtool.gui_key"));
         tooltip.add(EnumColor.AQUA + "\u00a7o" + I18n.format("tooltip.mbtool.rotate_keys"));
+
+        String color = "";
+        float rf = this.getElectricityStored(stack);
+
+        if (rf <= this.getMaxElectricityStored(stack) / 3)
+        {
+            color = "\u00a74";
+        } else if (rf > this.getMaxElectricityStored(stack) * 2 / 3)
+        {
+            color = "\u00a72";
+        } else
+        {
+            color = "\u00a76";
+        }
+
+        tooltip.add(color + getEnergyDisplayRF(rf) + "/" + getEnergyDisplayRF(this.getMaxElectricityStored(stack)));
+
+    }
+    /**
+     * Makes sure the item is uncharged when it is crafted and not charged.
+     * Change this if you do not want this to happen!
+     */
+    @Override
+    public void onCreated(ItemStack itemStack, World par2World, EntityPlayer par3EntityPlayer)
+    {
+        this.setElectricity(itemStack, 0);
+    }
+
+    public float recharge(ItemStack itemStack, float energy, boolean doReceive)
+    {
+        float rejectedElectricity = Math.max(this.getElectricityStored(itemStack) + energy - this.getMaxElectricityStored(itemStack), 0);
+        float energyToReceive = energy - rejectedElectricity;
+        if (energyToReceive > ModConfig.general.mbtool_energy_capacity/10)
+        {
+            rejectedElectricity += energyToReceive - ModConfig.general.mbtool_energy_capacity/10;
+            energyToReceive  =ModConfig.general.mbtool_energy_capacity/10;
+        }
+
+        if (doReceive)
+        {
+            this.setElectricity(itemStack, this.getElectricityStored(itemStack) + energyToReceive);
+        }
+
+        return energyToReceive;
+    }
+
+    public float discharge(ItemStack itemStack, float energy, boolean doTransfer)
+    {
+        float thisEnergy = this.getElectricityStored(itemStack);
+        float energyToTransfer = Math.min(Math.min(thisEnergy, energy), ModConfig.general.mbtool_energy_capacity/10);
+
+        if (doTransfer)
+        {
+            this.setElectricity(itemStack, thisEnergy - energyToTransfer);
+        }
+
+        return energyToTransfer;
+    }
+
+    public int getTierGC(ItemStack itemStack)
+    {
+        return 1;
+    }
+
+    public void setElectricity(ItemStack itemStack, float rf)
+    {
+        if (itemStack.getTagCompound() == null)
+        {
+            itemStack.setTagCompound(new NBTTagCompound());
+        }
+
+        float electricityStored = Math.max(Math.min(rf, this.getMaxElectricityStored(itemStack)), 0);
+        if (rf > 0F || itemStack.getTagCompound().hasKey("electricity"))
+        {
+            itemStack.getTagCompound().setFloat("electricity", electricityStored);
+        }
+
+        itemStack.setItemDamage(ModConfig.general.mbtool_energy_capacity - (int) (electricityStored / this.getMaxElectricityStored(itemStack) * ModConfig.general.mbtool_energy_capacity));
+    }
+
+
+    public int receiveEnergy(ItemStack container, int maxReceive, boolean simulate)
+    {
+        return (int) (this.recharge(container, ModConfig.general.mbtool_energy_capacity/10, !simulate));
+    }
+
+    public int extractEnergy(ItemStack container, int maxExtract, boolean simulate)
+    {
+        return (int) (this.discharge(container, ModConfig.general.mbtool_energy_capacity/10, !simulate));
+    }
+
+    public int getEnergyStored(ItemStack container)
+    {
+        return (int) (this.getElectricityStored(container));
+    }
+
+    public int getMaxEnergyStored(ItemStack container)
+    {
+        return (int) (this.getMaxElectricityStored(container));
+    }
+
+    // The following seven methods are for Mekanism compatibility
+
+    @Optional.Method(modid = "mekanism")
+    public double getEnergy(ItemStack itemStack)
+    {
+        return this.getElectricityStored(itemStack) * 0.1;
+    }
+
+    @Optional.Method(modid = "mekanism")
+    public void setEnergy(ItemStack itemStack, double amount)
+    {
+        this.setElectricity(itemStack, (float) ((float) amount *  0.1));
+    }
+
+    @Optional.Method(modid = "mekanism")
+    public double getMaxEnergy(ItemStack itemStack)
+    {
+        return this.getMaxElectricityStored(itemStack)  * 0.1;
+    }
+
+    @Optional.Method(modid = "mekanism")
+    public double getMaxTransfer(ItemStack itemStack)
+    {
+        return ModConfig.general.mbtool_energy_capacity * 0.01;
+    }
+
+    @Optional.Method(modid = "mekanism")
+    public boolean canReceive(ItemStack itemStack)
+    {
+        return true;
+    }
+
+    public boolean canSend(ItemStack itemStack)
+    {
+        return false;
+    }
+
+    public float getElectricityStored(ItemStack itemStack)
+    {
+        if (itemStack.getTagCompound() == null)
+        {
+            itemStack.setTagCompound(new NBTTagCompound());
+        }
+        float energyStored = 0f;
+        if (itemStack.getTagCompound().hasKey("electricity"))
+        {
+            NBTBase obj = itemStack.getTagCompound().getTag("electricity");
+            if (obj instanceof NBTTagDouble)
+            {
+                energyStored = ((NBTTagDouble) obj).getFloat();
+            } else if (obj instanceof NBTTagFloat)
+            {
+                energyStored = ((NBTTagFloat) obj).getFloat();
+            }
+        } else
+        {
+            if (itemStack.getItemDamage() == ModConfig.general.mbtool_energy_capacity)
+                return 0F;
+
+            energyStored = this.getMaxElectricityStored(itemStack) * (ModConfig.general.mbtool_energy_capacity - itemStack.getItemDamage()) / ModConfig.general.mbtool_energy_capacity;
+            itemStack.getTagCompound().setFloat("electricity", energyStored);
+        }
+
+        /** Sets the damage as a percentage to render the bar properly. */
+        itemStack.setItemDamage(ModConfig.general.mbtool_energy_capacity - (int) (energyStored / this.getMaxElectricityStored(itemStack) * ModConfig.general.mbtool_energy_capacity));
+        return energyStored;
+    }
+
+    public int getMaxElectricityStored(ItemStack item)
+    {
+        return ModConfig.general.mbtool_energy_capacity;
+    }
+
+    @Optional.Method(modid = "ic2")
+    public IElectricItemManager getManager(ItemStack itemstack)
+    {
+        return (IElectricItemManager) itemManagerIC2;
+    }
+
+    @Optional.Method(modid = "ic2")
+    public boolean canProvideEnergy(ItemStack itemStack)
+    {
+        return false;
+    }
+
+    @Optional.Method(modid = "ic2")
+    public int getTier(ItemStack itemStack)
+    {
+        return 2;
+    }
+
+    @Optional.Method(modid = "ic2")
+    public double getMaxCharge(ItemStack itemStack)
+    {
+        return this.getMaxElectricityStored(itemStack) / 4;
+    }
+
+    @Optional.Method(modid = "ic2")
+    public double getTransferLimit(ItemStack itemStack)
+    {
+        return 0;
     }
 
     private boolean hasRecipe(ItemStack item)
@@ -104,7 +334,7 @@ public class ItemMultiBuilder extends Item {
 
         BlockPos hit = rt.getBlockPos();
         EnumFacing look = (Math.abs(vec.z) > Math.abs(vec.x)) ? (vec.z > 0 ? EnumFacing.SOUTH : EnumFacing.NORTH) : (vec.x > 0 ? EnumFacing.EAST : EnumFacing.WEST);
-
+        if(!hasRecipe(mainItem) && !hasRecipe(secondItem)) return null;
         IBlockState state = mc.player.world.getBlockState(hit);
         if (!state.getBlock().isReplaceable(mc.player.world, hit))
         {

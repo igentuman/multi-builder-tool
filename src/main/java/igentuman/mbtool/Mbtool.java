@@ -3,6 +3,7 @@ package igentuman.mbtool;
 import igentuman.mbtool.handler.PlayerEventHandler;
 import igentuman.mbtool.network.GuiProxy;
 import igentuman.mbtool.network.ModPacketHandler;
+import igentuman.mbtool.util.MbtoolHooks;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.config.Config;
 import net.minecraftforge.common.config.ConfigManager;
@@ -13,7 +14,6 @@ import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.common.event.*;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
-import net.minecraftforge.fml.common.registry.GameRegistry;
 import org.apache.logging.log4j.Logger;
 
 @Mod(
@@ -37,10 +37,16 @@ public class Mbtool
 
     public Logger logger;
 
+    public static MbtoolHooks hooks = new MbtoolHooks();
+
+
     @EventHandler
     public void preInit(FMLPreInitializationEvent event) {
+        hooks.hookPreInit();
+
         proxy.preInit(event);
         logger = event.getModLog();
+
         MinecraftForge.EVENT_BUS.register(new RegistryHandler());
         MinecraftForge.EVENT_BUS.register(new PlayerEventHandler());
 
@@ -50,13 +56,18 @@ public class Mbtool
 
     @EventHandler
     public void init(FMLInitializationEvent event)  {
+        hooks.hookInit();
+
         proxy.init(event);
+
         ConfigManager.sync(MODID, Config.Type.INSTANCE);
         NetworkRegistry.INSTANCE.registerGuiHandler(instance, new GuiProxy());
     }
 
     @EventHandler
     public void postInit(FMLPostInitializationEvent event) {
+        hooks.hookPostInit();
+
         proxy.postInit(event);
     }
 
