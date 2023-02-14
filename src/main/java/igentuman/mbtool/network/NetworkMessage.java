@@ -132,11 +132,23 @@ public class NetworkMessage implements IMessage {
                 }
             }
         }
-
-        for(int x = 0; x < recipe.getWidth(); x++) {
-            for(int y = 0; y < recipe.getHeight(); y++) {
+        for(int y = 0; y < recipe.getHeight(); y++) {
+            for(int x = 0; x < recipe.getWidth(); x++) {
                 for(int z = 0; z < recipe.getDepth(); z++) {
-                    BlockPos livePos = pos.add(x, y, z);
+                    BlockPos livePos = pos;
+                    switch (rotation) {
+                        case 0:
+                            livePos = pos.add(x, y, z);
+                            break;
+                        case 1:
+                            livePos = pos.add(recipe.getDepth()-1-z,y,x);
+                            break;
+                        case 2:
+                            livePos = pos.add(recipe.getWidth()-1-x,y,recipe.getDepth()-1-z);
+                            break;
+                        case 3:
+                            livePos = pos.add(z,y,recipe.getWidth()-1-x);
+                    }
                     IBlockState state = recipe.getStateAtBlockPos(new BlockPos(x, y, z));
                     playerEntity.world.setBlockState(livePos, state, 2);
                 }
