@@ -175,16 +175,21 @@ public class NetworkMessage implements IMessage {
                 getPlayerList().getPlayerByUUID(UUID.fromString(player));
         ItemStack mbtool = getMbtool(playerEntity);
         ItemMultiBuilder mbuilder = (ItemMultiBuilder) mbtool.getItem();
+
         //validate xp
-        if(playerEntity.experienceTotal < recipe.getShapeAsBlockPosList().size()*ModConfig.general.xp_per_block) {
-            playerEntity.sendMessage(new TextComponentString("Not enough XP"));
-            return false;
+        if(!playerEntity.isCreative()) {
+            if (playerEntity.experienceTotal < recipe.getShapeAsBlockPosList().size() * ModConfig.general.xp_per_block) {
+                playerEntity.sendMessage(new TextComponentString("Not enough XP"));
+                return false;
+            }
         }
 
         //validate energy
-        if(mbuilder.getElectricityStored(mbtool) < recipe.getShapeAsBlockPosList().size()*ModConfig.general.energy_per_block) {
-            playerEntity.sendMessage(new TextComponentString("Not enough RF"));
-            return false;
+        if(!playerEntity.isCreative()) {
+            if (mbuilder.getElectricityStored(mbtool) < recipe.getShapeAsBlockPosList().size() * ModConfig.general.energy_per_block) {
+                playerEntity.sendMessage(new TextComponentString("Not enough RF"));
+                return false;
+            }
         }
 
         //validate if user has all required items
@@ -251,7 +256,6 @@ public class NetworkMessage implements IMessage {
                         ((ItemMultiBuilder)mbtool.getItem()).setElectricity(mbtool, ((ItemMultiBuilder)mbtool.getItem()).getElectricityStored(mbtool)-ModConfig.general.energy_per_block);
                         removeExperience(ModConfig.general.xp_per_block, playerEntity);
                     }
-                    //playerEntity.inventory.deleteStack(new ItemStack(state.getBlock(), 1, state.getBlock().getMetaFromState(state)));
                     if(!foundStack) {
                         playerEntity.sendMessage(new TextComponentString("Stopped construction on missing: " + new ItemStack(state.getBlock(), 1, state.getBlock().getMetaFromState(state)).getDisplayName()));
                         return false;
@@ -259,6 +263,10 @@ public class NetworkMessage implements IMessage {
                     playerEntity.world.setBlockState(livePos, state, 2);
                 }
             }
+        }
+        if(!playerEntity.isCreative()) {
+            playerEntity.getFoodStats().
+                    setFoodSaturationLevel(playerEntity.getFoodStats().getSaturationLevel()-ModConfig.general.saturation_per_building);
         }
         return true;
     }
