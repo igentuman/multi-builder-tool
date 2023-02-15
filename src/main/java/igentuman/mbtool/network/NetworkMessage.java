@@ -244,23 +244,30 @@ public class NetworkMessage implements IMessage {
                         case 3:
                             livePos = pos.add(z,y,recipe.getWidth()-1-x);
                     }
-                    boolean foundStack = false;
                     IBlockState state = recipe.getStateAtBlockPos(new BlockPos(x, y, z));
-                    if(state.getBlock().equals(Blocks.AIR)) continue;
-                    ItemStack stack = findStack(playerEntity, new ItemStack(state.getBlock(), 1, state.getBlock().getMetaFromState(state)));
-                    if(!stack.equals(ItemStack.EMPTY) && stack.getCount() > 0) {
-                        foundStack = true;
-                    }
-                    stack.shrink(1);
+
                     if(!playerEntity.isCreative()) {
-                        ((ItemMultiBuilder)mbtool.getItem()).setElectricity(mbtool, ((ItemMultiBuilder)mbtool.getItem()).getElectricityStored(mbtool)-ModConfig.general.energy_per_block);
-                        removeExperience(ModConfig.general.xp_per_block, playerEntity);
-                    }
-                    if(!foundStack) {
-                        playerEntity.sendMessage(new TextComponentString("Stopped construction on missing: " + new ItemStack(state.getBlock(), 1, state.getBlock().getMetaFromState(state)).getDisplayName()));
-                        return false;
+                        boolean foundStack = false;
+                        if (state.getBlock().equals(Blocks.AIR)) continue;
+                        ItemStack stack = findStack(playerEntity, new ItemStack(state.getBlock(), 1, state.getBlock().getMetaFromState(state)));
+                        if (!stack.equals(ItemStack.EMPTY) && stack.getCount() > 0) {
+                            foundStack = true;
+                        }
+                        stack.shrink(1);
+                        if (!playerEntity.isCreative()) {
+                            ((ItemMultiBuilder) mbtool.getItem()).setElectricity(mbtool, ((ItemMultiBuilder) mbtool.getItem()).getElectricityStored(mbtool) - ModConfig.general.energy_per_block);
+                            removeExperience(ModConfig.general.xp_per_block, playerEntity);
+                        }
+                        if (!foundStack) {
+                            playerEntity.sendMessage(new TextComponentString("Stopped construction on missing: " + new ItemStack(state.getBlock(), 1, state.getBlock().getMetaFromState(state)).getDisplayName()));
+                            return false;
+                        }
                     }
                     playerEntity.world.setBlockState(livePos, state, 2);
+                    NBTTagCompound tag = recipe.getVariantAtBlockPos(new BlockPos(x, y, z));
+                    if(tag!= null) {
+                        playerEntity.world.getBlockState(livePos).getBlock().createTileEntity(playerEntity.world, state).readFromNBT(tag);
+                    }
                 }
             }
         }

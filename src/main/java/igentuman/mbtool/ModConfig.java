@@ -31,11 +31,5 @@ public class ModConfig {
                 "How much saturation player loose per building"
         })
         public int saturation_per_building = 1;
-
-        @Config.Name("place_block_delay")
-        @Config.Comment({
-                "Delay in (ticks) between each block placement"
-        })
-        public int place_block_delay = 1;
     }
 }

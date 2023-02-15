@@ -12,11 +12,13 @@ import igentuman.mbtool.recipe.MultiblockRecipe;
 import igentuman.mbtool.recipe.MultiblockRecipes;
 import mekanism.api.EnumColor;
 import mekanism.api.energy.IEnergizedItem;
+import net.minecraft.block.properties.IProperty;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.*;
 import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
+import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.creativetab.CreativeTabs;
@@ -24,10 +26,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagDouble;
-import net.minecraft.nbt.NBTTagFloat;
+import net.minecraft.nbt.*;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
@@ -37,6 +36,7 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.text.TextComponentUtils;
+import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.common.MinecraftForge;
@@ -447,15 +447,17 @@ public class ItemMultiBuilder extends Item implements ISpecialElectricItem, IEle
         if((!main && !off) || keyPressDelay > 0) {
             return;
         }
-        keyPressDelay=10;
+
         if(Keyboard.isKeyDown(Keyboard.KEY_LEFT)) {
             if(main) setRotation(-1, mainItem);
             if(off) setRotation(-1, secondItem);
+            keyPressDelay=10;
         }
 
         if(Keyboard.isKeyDown(Keyboard.KEY_RIGHT)) {
             if(main) setRotation(1, mainItem);
             if(off) setRotation(1, secondItem);
+            keyPressDelay=10;
         }
     }
 
@@ -473,9 +475,7 @@ public class ItemMultiBuilder extends Item implements ISpecialElectricItem, IEle
         double py = TileEntityRendererDispatcher.staticPlayerY;
         double pz = TileEntityRendererDispatcher.staticPlayerZ;
         GlStateManager.translate(hit.getX() - px, hit.getY() - py, hit.getZ() - pz);
-        float centerX = (float) Math.floor(-mw >> 1);
-        float centerZ = (float) Math.floor(-ml >> 1);
-        //GlStateManager.translate(centerX+2, 0, centerZ);
+
         GlStateManager.disableLighting();
         if (Minecraft.isAmbientOcclusionEnabled())
             GlStateManager.shadeModel(GL11.GL_SMOOTH);
@@ -518,13 +518,20 @@ public class ItemMultiBuilder extends Item implements ISpecialElectricItem, IEle
 
 
                         IBlockState state = recipe.getStateAtBlockPos(pos);
+                        NBTTagCompound tag = recipe.getVariantAtBlockPos(pos);
                         ItemStack stack = new ItemStack(state.getBlock());
                         BlockPos actualPos = hit.add(xo, h, zo);
                         IBlockState actualState = player.world.getBlockState(actualPos);
+                        if(tag != null) {
+                            IBlockState st = NBTUtil.readBlockState(tag);
+                            st.getPropertyKeys().forEach( (iProperty) -> {
 
+                             //   state.(iProperty, st.getValue(iProperty));
+                            });
+                        }
                         boolean isEmpty = player.world.getBlockState(actualPos).getBlock().isReplaceable(player.world, actualPos);
                         if(isEmpty) {
-                            GlStateManager.translate(xo, h, zo);
+                            GlStateManager.translate(xo, h, zo+1);
                             GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
                             blockRender.renderBlockBrightness(state, 0.2f);
                         }
@@ -539,6 +546,133 @@ public class ItemMultiBuilder extends Item implements ISpecialElectricItem, IEle
         GlStateManager.disableAlpha();
         GlStateManager.disableBlend();
 
+
+        idx = 0;
+        GlStateManager.disableDepth();
+        Tessellator tessellator = Tessellator.getInstance();
+        BufferBuilder buffer = tessellator.getBuffer();
+        for (int h = 0; h < mh; h++) {
+            for (int l = 0; l < ml; l++) {
+                for (int w = 0; w < mw; w++) {
+                    BlockPos pos = new BlockPos(l, h, w);
+                    GlStateManager.pushMatrix();
+
+                    int xo = l;
+                    int zo = w;
+                    int rotation = getRotation();
+                    switch (rotation)
+                    {
+                        case 1:
+                            zo = l;
+                            xo = (mw - w - 1);
+                            break;
+                        case 2:
+                            xo = (ml - l - 1);
+                            zo = (mw - w - 1);
+                            break;
+                        case 3:
+                            zo = (ml - l - 1);
+                            xo = w;
+                            break;
+                    }
+                    BlockPos actualPos = hit.add(xo, h, zo);
+
+                    IBlockState otherState = null;
+                    IBlockState state = recipe.getStateAtBlockPos(pos);
+                    ItemStack stack = new ItemStack(state.getBlock());
+                    IBlockState actualState = player.world.getBlockState(actualPos);
+                    boolean stateEqual = actualState.equals(state);
+                    boolean otherStateEqual = otherState == null ? false : otherState.equals(state);
+
+                    boolean isEmpty = player.world.getBlockState(actualPos).getBlock().isReplaceable(player.world, actualPos);
+                    if(!isEmpty || ((w == 0 || w == mw-1) && (l == 0 || l == ml-1) && (h == 0 || h == mh-1))) {
+
+                        GlStateManager.pushMatrix();
+                        GlStateManager.disableTexture2D();
+                        GlStateManager.enableBlend();
+                        GlStateManager.disableCull();
+                        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+                        float r = isEmpty ? 0 : 1;
+                        float g = isEmpty ? 1 : 0;
+                        float b = 0;
+                        float alpha = .175F;
+
+
+                        buffer.begin(GL11.GL_LINES, DefaultVertexFormats.POSITION_COLOR);
+                        GlStateManager.glLineWidth(5f);
+                        GlStateManager.translate(xo + .5, h + .5, zo + .5);
+                        GlStateManager.scale(1.01, 1.01, 1.01);
+                        if(!isEmpty || h == mh-1) { //top face
+                            if (!isEmpty || w == 0) {
+                                buffer.pos(-.5F, .5F, -.5F).color(r, g, b, alpha).endVertex();
+                                buffer.pos(.5F, .5F, -.5F).color(r, g, b, alpha).endVertex();
+                            }
+                            if (!isEmpty || l == ml - 1) {
+                                buffer.pos(.5F, .5F, -.5F).color(r, g, b, alpha).endVertex();
+                                buffer.pos(.5F, .5F, .5F).color(r, g, b, alpha).endVertex();
+                            }
+                            if (!isEmpty || w == mw - 1) {
+                                buffer.pos(.5F, .5F, .5F).color(r, g, b, alpha).endVertex();
+                                buffer.pos(-.5F, .5F, .5F).color(r, g, b, alpha).endVertex();
+                            }
+                            if(!isEmpty || l == 0) {
+                                buffer.pos(-.5F, .5F, .5F).color(r, g, b, alpha).endVertex();
+                                buffer.pos(-.5F, .5F, -.5F).color(r, g, b, alpha).endVertex();
+                            }
+
+                        }
+                        if(!isEmpty || (w == 0 && l == 0)) {
+                            buffer.pos(-.5F, .5F, -.5F).color(r, g, b, alpha).endVertex();
+                            buffer.pos(-.5F, -.5F, -.5F).color(r, g, b, alpha).endVertex();
+                        }
+                        if(!isEmpty ||(l == ml-1 && w == 0)) {
+                            buffer.pos(.5F, .5F, -.5F).color(r, g, b, alpha).endVertex();
+                            buffer.pos(.5F, -.5F, -.5F).color(r, g, b, alpha).endVertex();
+                        }
+                        if(!isEmpty ||(l == 0 && w == mw-1)) {
+                            buffer.pos(-.5F, .5F, .5F).color(r, g, b, alpha).endVertex();
+                            buffer.pos(-.5F, -.5F, .5F).color(r, g, b, alpha).endVertex();
+                        }
+                        if(!isEmpty || (w == mw-1 && l == ml-1)) {
+                            buffer.pos(.5F, .5F, .5F).color(r, g, b, alpha).endVertex();
+                            buffer.pos(.5F, -.5F, .5F).color(r, g, b, alpha).endVertex();
+                        }
+
+                        if(!isEmpty || h == 0) {
+                            if (!isEmpty || w == 0) {
+                                buffer.pos(-.5F, -.5F, -.5F).color(r, g, b, alpha).endVertex();
+                                buffer.pos(.5F, -.5F, -.5F).color(r, g, b, alpha).endVertex();
+                            }
+                            if (!isEmpty || l == ml - 1) {
+                                buffer.pos(.5F, -.5F, -.5F).color(r, g, b, alpha).endVertex();
+                                buffer.pos(.5F, -.5F, .5F).color(r, g, b, alpha).endVertex();
+                            }
+                            if (!isEmpty || w == mw - 1) {
+                                buffer.pos(.5F, -.5F, .5F).color(r, g, b, alpha).endVertex();
+                                buffer.pos(-.5F, -.5F, .5F).color(r, g, b, alpha).endVertex();
+                            }
+                            if(!isEmpty || l == 0) {
+                                buffer.pos(-.5F, -.5F, .5F).color(r, g, b, alpha).endVertex();
+                                buffer.pos(-.5F, -.5F, -.5F).color(r, g, b, alpha).endVertex();
+                            }
+                        }
+                        tessellator.draw();
+                        GlStateManager.enableCull();
+                        GlStateManager.disableBlend();
+                        GlStateManager.enableTexture2D();
+                        GlStateManager.popMatrix();
+                    }
+
+                    GlStateManager.popMatrix();
+                    idx++;
+                }
+            }
+        }
+        RenderHelper.disableStandardItemLighting();
+        GlStateManager.disableRescaleNormal();
+        GlStateManager.enableBlend();
+
+        GlStateManager.enableDepth();
     }
 
     public ActionResult<ItemStack> onItemRightClick(World worldIn, EntityPlayer playerIn, EnumHand handIn)
@@ -547,6 +681,7 @@ public class ItemMultiBuilder extends Item implements ISpecialElectricItem, IEle
             playerIn.openGui(Mbtool.instance, 0, worldIn, playerIn.getPosition().getX(), playerIn.getPosition().getY(), playerIn.getPosition().getZ());
             return ActionResult.newResult(EnumActionResult.SUCCESS, playerIn.getHeldItem(handIn));
         }
+        if(keyPressDelay > 0) return ActionResult.newResult(EnumActionResult.FAIL, playerIn.getHeldItem(handIn));
         BlockPos hit = getRayTraceHit();
         if(hit == null) return super.onItemRightClick(worldIn, playerIn, handIn);
         Minecraft mc = Minecraft.getMinecraft();
@@ -562,6 +697,7 @@ public class ItemMultiBuilder extends Item implements ISpecialElectricItem, IEle
         } else {
             recipeid = secondItem.getTagCompound().getInteger("recipe");
         }
+        keyPressDelay = 10;
         ModPacketHandler.instance.sendToServer(new NetworkMessage(hit, getRotation(), recipeid, playerIn.getUniqueID().toString()));
 
         return super.onItemRightClick(worldIn, playerIn, handIn);

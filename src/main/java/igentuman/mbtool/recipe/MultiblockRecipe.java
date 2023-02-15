@@ -123,7 +123,8 @@ public class MultiblockRecipe {
 
                     //result.add(new ItemStack(state.getBlock(), count, 0));
 
-                    result.add(new ItemStack(state.getBlock(), count, state.getBlock().getMetaFromState(state)));
+                    ItemStack it = new ItemStack(state.getBlock(), count, state.getBlock().getMetaFromState(state));
+                    result.add(it);
                 }
             }
         }

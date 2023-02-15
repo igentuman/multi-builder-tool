@@ -1,18 +1,28 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": [
+    "PAS",
     "GBG",
-    "GBG",
-    " G "
+    " W "
   ],
   "key": {
-    "G": {
-      "type": "forge:ore_dict",
-      "ore": "gemDiamond"
+    "P": {
+      "item": "minecraft:diamond_pickaxe"
+    },
+    "S": {
+      "item": "minecraft:diamond_shovel"
+    },
+    "A": {
+      "item": "minecraft:beacon"
     },
     "B": {
-      "type": "forge:ore_dict",
-      "ore": "blockDiamond"
+      "item": "minecraft:book"
+    },
+    "W": {
+      "item": "minecraft:stick"
+    },
+    "G": {
+      "item": "minecraft:stone_button"
     }
   },
   "result": {
