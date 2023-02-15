@@ -127,7 +127,6 @@ public class GuiMbtool extends GuiContainer {
     protected void drawGuiContainerForegroundLayer(int mouseX, int mouseY) {
         int w = this.fontRenderer.getStringWidth(I18n.format("container.mbtool"));
         this.fontRenderer.drawString(I18n.format("container.mbtool"), xSize/2-w/2, 6, 4210752);
-        this.fontRenderer.drawString(I18n.format("container.mbtool.energy", container.getEnergyStored()), 8, 154, 4210752);
         buttonList.clear();
         initButtons();
         initRecipes();

@@ -1,5 +1,6 @@
 package igentuman.mbtool.common.container;
 
+import igentuman.mbtool.recipe.MultiblockRecipe;
 import igentuman.mbtool.recipe.MultiblockRecipes;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.Container;
@@ -25,6 +26,14 @@ public class ContainerMbtool extends Container {
     {
         NBTTagCompound nbt = new NBTTagCompound();
         nbt.setInteger("recipe", id);
+        try {
+            MultiblockRecipe recipe = MultiblockRecipes.getAvaliableRecipes().get(id);
+            if(!recipe.allowRotate) {
+                nbt.setInteger("rotate",0);
+            }
+        } catch (NullPointerException ignored) {
+
+        }
         mbtool.setTagCompound(nbt);
     }
 

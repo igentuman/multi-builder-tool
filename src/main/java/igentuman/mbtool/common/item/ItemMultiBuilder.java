@@ -349,6 +349,18 @@ public class ItemMultiBuilder extends Item implements ISpecialElectricItem, IEle
 
     public void setRotation(int dir, ItemStack item)
     {
+        if(hasRecipe(item)) {
+            try {
+                MultiblockRecipe recipe = MultiblockRecipes.getAvaliableRecipes().
+                        get(item.getTagCompound().getInteger("recipe"));
+                if(!recipe.allowRotate) {
+                    item.getTagCompound().setInteger("rotation", 0);
+                    return;
+                }
+            } catch (NullPointerException ignored) {
+
+            }
+        }
         int rot = getRotation();
         rot+=dir;
         if(dir < 0 && rot < 0) {

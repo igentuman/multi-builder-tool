@@ -30,6 +30,10 @@ public class MultiblockRecipeSerializer implements JsonSerializer<MultiblockReci
                 } else {
                     String name = jsonRoot.get("name").getAsString();
                     String label = jsonRoot.get("label").getAsString();
+                    boolean canRotate = true;
+                    if(jsonRoot.has("allow-rotate") ) {
+                        canRotate = jsonRoot.get("allow-rotate").getAsBoolean();
+                    }
                     if (MultiblockRecipes.getRecipeByName(name) != null) {
                         return null;
                     } else if (jsonRoot.has("disabled") && jsonRoot.get("disabled").getAsBoolean()) {
@@ -51,7 +55,8 @@ public class MultiblockRecipeSerializer implements JsonSerializer<MultiblockReci
 
 
                             MultiblockRecipe result = new MultiblockRecipe(name);
-                            result.setTargetStack(targetStack);
+                            result.allowRotate = canRotate;
+                                result.setTargetStack(targetStack);
                             JsonObject jsonReferenceMap = jsonRoot.get("input-types").getAsJsonObject();
                             Iterator var16 = jsonReferenceMap.entrySet().iterator();
 
@@ -67,7 +72,9 @@ public class MultiblockRecipeSerializer implements JsonSerializer<MultiblockReci
                                 ResourceLocation res = new ResourceLocation(blockId);
                                 Block sourceBlock = (Block)Block.REGISTRY.getObject(res);
                                 if (sourceBlock == null || !sourceBlock.getRegistryName().equals(res)) {
-                                    return null;
+                                    if(Item.REGISTRY.getObject(res) == null || !Item.REGISTRY.getObject(res).getRegistryName().equals(res)) {
+                                        return null;
+                                    }
                                 }
 
 

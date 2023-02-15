@@ -24,19 +24,9 @@ import java.util.Map;
 
 public class MultiblockRecipe {
     private String name;
-
+    public boolean allowRotate;
     private MbtoolRecipeCategory category;
-
-    public String getLabel() {
-        return label;
-    }
-
-    public void setLabel(String label) {
-        this.label = label;
-    }
-
     private String label;
-
     private String[][][] variantMap;
     private String[][][] metaMap;
     private String[][][] map;
@@ -55,6 +45,13 @@ public class MultiblockRecipe {
     private BlockPos maxPos;
     private int count;
 
+    public String getLabel() {
+        return label;
+    }
+
+    public void setLabel(String label) {
+        this.label = label;
+    }
     public void setTargetStack(ItemStack targetStack) {
         this.targetStack = targetStack;
     }
@@ -94,14 +91,9 @@ public class MultiblockRecipe {
         this.referenceIgnoresMeta.put(ref, value);
     }
 
-    /*public void setIgnoreNBT(String ref, boolean value) {
-        this.referenceIgnoresNBT.put(ref, value);
-    }*/
-
     public void setReferenceStack(String ref, ItemStack stack) {
         this.referenceStacks.put(ref, stack);
     }
-
 
     public String getName() {
         return name;
@@ -125,8 +117,6 @@ public class MultiblockRecipe {
                     result.add(new ItemStack(state.getBlock(), count, 0));
                 } else {
 
-                    //result.add(new ItemStack(state.getBlock(), count, 0));
-
                     ItemStack it = new ItemStack(state.getBlock(), count, state.getBlock().getMetaFromState(state));
                     result.add(it);
                 }
@@ -143,8 +133,6 @@ public class MultiblockRecipe {
     public void setPositionMap(String[][][] map) {
         this.map = map;
 
-        // Count blocks, we can use this to quickly skip this recipe if the crafting
-        // area is of a different size.
         this.mapAsBlockPos = new ArrayList<>();
         this.count = 0;
         int minY = Integer.MAX_VALUE;
@@ -246,10 +234,6 @@ public class MultiblockRecipe {
 
     public BlockPos getMaxPos() {
         return maxPos;
-    }
-
-    public String getDimensionsString() {
-        return String.format("%dx%dx%d", getWidth(), getHeight(), getDepth());
     }
 
     public int getWidth() {

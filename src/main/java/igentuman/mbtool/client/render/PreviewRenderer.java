@@ -67,6 +67,9 @@ public class PreviewRenderer {
         }
         if(mbtool == null || recipe == null) return null;
         rotation = mbtool.getRotation();
+        if(!recipe.allowRotate) {
+            rotation = 0;
+        }
         int maxSize = Math.max(recipe.getWidth(), recipe.getDepth())-1;
         switch (rt.sideHit) {
             case DOWN:
@@ -271,15 +274,15 @@ public class PreviewRenderer {
 
     private static void renderPreviewBlocks() {
         BlockRendererDispatcher blockRender = mc.getBlockRendererDispatcher();
-
+        int size = Math.max(length, width);
+        int bWidth = length;
         int idx = 0;
         for (int h = 0; h < height; h++) {
-            for (int l = 0; l < length; l++) {
-                for (int w = 0; w < length; w++) {
+            for (int l = 0; l < size; l++) {
+                for (int w = 0; w < size; w++) {
                     GlStateManager.pushMatrix();
                     BlockPos pos = new BlockPos(l, h, w);
                     IBlockState state = recipe.getStateAtBlockPos(pos);
-
                     if(!state.equals(Blocks.AIR.getDefaultState())) {
                         int xo = l;
                         int zo = w;
@@ -302,7 +305,20 @@ public class PreviewRenderer {
                         BlockPos actualPos = hit.add(xo, h, zo);
 
                         boolean isEmpty = world.getBlockState(actualPos).getBlock().isReplaceable(world, actualPos);
+                        int min= Math.min(width,length);
                         if(isEmpty) {
+                            switch (rotation) {
+                                case 1:
+                                    xo -= size-min;
+                                    break;
+                                case 2:
+                                    xo += size-min;
+                                    zo -= size-min;
+                                    break;
+                                case 3:
+                                    zo += size-min;
+                                    break;
+                            }
                             GlStateManager.translate(xo, h, zo + 1);
                             GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
                             blockRender.renderBlockBrightness(state, 0.2f);

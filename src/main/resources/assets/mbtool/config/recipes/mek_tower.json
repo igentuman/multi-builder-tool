@@ -3,6 +3,7 @@
   "label": "Therm. Tower",
   "target-item": "mekanism:basicblock2",
   "target-item-meta": 14,
+  "allow-rotate": false,
 
   "input-types": {
     "a": {

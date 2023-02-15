@@ -2,6 +2,7 @@
   "name": "accelerator",
   "label": "Linear Accelerator",
   "target-item": "qmd:linear_accelerator_controller",
+  "allow-rotate": false,
   "input-types": {
     "a": {
       "id": "qmd:accelerator_casing",
