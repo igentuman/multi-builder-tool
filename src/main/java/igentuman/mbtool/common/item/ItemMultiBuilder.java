@@ -6,6 +6,7 @@ import ic2.api.item.ISpecialElectricItem;
 import igentuman.mbtool.Mbtool;
 import igentuman.mbtool.ModConfig;
 import igentuman.mbtool.RegistryHandler;
+import igentuman.mbtool.client.render.PreviewRenderer;
 import igentuman.mbtool.network.ModPacketHandler;
 import igentuman.mbtool.network.NetworkMessage;
 import igentuman.mbtool.recipe.MultiblockRecipe;
@@ -308,7 +309,7 @@ public class ItemMultiBuilder extends Item implements ISpecialElectricItem, IEle
         return 0;
     }
 
-    private boolean hasRecipe(ItemStack item)
+    public boolean hasRecipe(ItemStack item)
     {
         try {
            return item.getTagCompound().hasKey("recipe");
@@ -317,78 +318,6 @@ public class ItemMultiBuilder extends Item implements ISpecialElectricItem, IEle
         }
     }
 
-    public BlockPos getRayTraceHit()
-    {
-        Minecraft mc = Minecraft.getMinecraft();
-
-        Vec3d vec = mc.player.getLookVec();
-        RayTraceResult rt = mc.player.rayTrace(10, 1f);
-        if(!rt.typeOfHit.equals(RayTraceResult.Type.BLOCK)) {
-            return null;
-        }
-        ItemStack mainItem = mc.player.getHeldItemMainhand();
-        ItemStack secondItem = mc.player.getHeldItemOffhand();
-
-        boolean main = !mainItem.isEmpty() && mainItem.getItem() == RegistryHandler.MBTOOL && hasRecipe(mainItem);
-        boolean off = !secondItem.isEmpty() && secondItem.getItem() == RegistryHandler.MBTOOL && hasRecipe(secondItem);
-
-        BlockPos hit = rt.getBlockPos();
-        EnumFacing look = (Math.abs(vec.z) > Math.abs(vec.x)) ? (vec.z > 0 ? EnumFacing.SOUTH : EnumFacing.NORTH) : (vec.x > 0 ? EnumFacing.EAST : EnumFacing.WEST);
-        if(!hasRecipe(mainItem) && !hasRecipe(secondItem)) return null;
-        IBlockState state = mc.player.world.getBlockState(hit);
-        if (!state.getBlock().isReplaceable(mc.player.world, hit))
-        {
-            hit = hit.add(0, 1, 0);
-        }
-        MultiblockRecipe recipe;
-        if(main) {
-            recipe = MultiblockRecipes.getAvaliableRecipes().get(mainItem.getTagCompound().getInteger("recipe"));
-        } else {
-            recipe = MultiblockRecipes.getAvaliableRecipes().get(secondItem.getTagCompound().getInteger("recipe"));
-        }
-        int rotation = getRotation();
-        hit = hit.add(-recipe.getWidth()/2, 0, -recipe.getDepth()/2+1);
-
-        if(recipe.getWidth() % 2 != 0) {
-            // hit = hit.add(-1, 0, 0);
-        }
-
-        if(recipe.getDepth() % 2 != 0) {
-            //hit = hit.add(0, 0, -1);
-        }
-        return hit;
-    }
-
-    @SideOnly(Side.CLIENT)
-    @SubscribeEvent
-    public void renderLast(RenderWorldLastEvent event)
-    {
-        Minecraft mc = Minecraft.getMinecraft();
-
-        ItemStack mainItem = mc.player.getHeldItemMainhand();
-        ItemStack secondItem = mc.player.getHeldItemOffhand();
-
-        boolean main = !mainItem.isEmpty() && mainItem.getItem() == RegistryHandler.MBTOOL && hasRecipe(mainItem);
-        boolean off = !secondItem.isEmpty() && secondItem.getItem() == RegistryHandler.MBTOOL && hasRecipe(secondItem);
-
-        if(!main && !off) {
-            return;
-        }
-
-
-
-        BlockPos hit = getRayTraceHit();
-        if(hit == null) return;
-        MultiblockRecipe recipe;
-        if(main) {
-            recipe = MultiblockRecipes.getAvaliableRecipes().get(mainItem.getTagCompound().getInteger("recipe"));
-        } else {
-            recipe = MultiblockRecipes.getAvaliableRecipes().get(secondItem.getTagCompound().getInteger("recipe"));
-        }
-        GlStateManager.pushMatrix();
-        renderSchematic(mc.player, hit, event.getPartialTicks(), recipe);
-        GlStateManager.popMatrix();
-    }
 
     public int getRotation()
     {
@@ -461,220 +390,6 @@ public class ItemMultiBuilder extends Item implements ISpecialElectricItem, IEle
         }
     }
 
-    public void renderSchematic(EntityPlayer player, BlockPos hit, float partialTicks, MultiblockRecipe recipe)
-    {
-        Minecraft mc = Minecraft.getMinecraft();
-
-        if(recipe == null) return;
-
-        int mh = recipe.getHeight();
-        int ml = recipe.getDepth();
-        int mw = recipe.getWidth();
-
-        double px = TileEntityRendererDispatcher.staticPlayerX;
-        double py = TileEntityRendererDispatcher.staticPlayerY;
-        double pz = TileEntityRendererDispatcher.staticPlayerZ;
-        GlStateManager.translate(hit.getX() - px, hit.getY() - py, hit.getZ() - pz);
-
-        GlStateManager.disableLighting();
-        if (Minecraft.isAmbientOcclusionEnabled())
-            GlStateManager.shadeModel(GL11.GL_SMOOTH);
-        else
-            GlStateManager.shadeModel(GL11.GL_FLAT);
-
-        GlStateManager.enableBlend();
-        GlStateManager.enableAlpha();
-
-        mc.getTextureManager().bindTexture(TextureMap.LOCATION_BLOCKS_TEXTURE);
-
-        BlockRendererDispatcher blockRender = mc.getBlockRendererDispatcher();
-
-        int idx = 0;
-        for (int h = 0; h < mh; h++) {
-            for (int l = 0; l < ml; l++) {
-                for (int w = 0; w < mw; w++) {
-                    GlStateManager.pushMatrix();
-                    BlockPos pos = new BlockPos(l, h, w);
-                    if(!recipe.getStateAtBlockPos(pos).equals(Blocks.AIR.getDefaultState())) {
-                        int xo = l;
-                        int zo = w;
-                        int rotation = getRotation();
-                        switch (rotation)
-                        {
-                            case 1:
-                                zo = l;
-                                xo = (mw - w - 1);
-                                break;
-                            case 2:
-                                xo = (ml - l - 1);
-                                zo = (mw - w - 1);
-                                break;
-                            case 3:
-                                zo = (ml - l - 1);
-                                xo = w;
-                                break;
-                        }
-
-
-
-                        IBlockState state = recipe.getStateAtBlockPos(pos);
-                        NBTTagCompound tag = recipe.getVariantAtBlockPos(pos);
-                        ItemStack stack = new ItemStack(state.getBlock());
-                        BlockPos actualPos = hit.add(xo, h, zo);
-                        IBlockState actualState = player.world.getBlockState(actualPos);
-                        if(tag != null) {
-                            IBlockState st = NBTUtil.readBlockState(tag);
-                            st.getPropertyKeys().forEach( (iProperty) -> {
-
-                             //   state.(iProperty, st.getValue(iProperty));
-                            });
-                        }
-                        boolean isEmpty = player.world.getBlockState(actualPos).getBlock().isReplaceable(player.world, actualPos);
-                        if(isEmpty) {
-                            GlStateManager.translate(xo, h, zo+1);
-                            GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
-                            blockRender.renderBlockBrightness(state, 0.2f);
-                        }
-
-                    }
-                    GlStateManager.popMatrix();
-
-                    idx++;
-                }
-            }
-        }
-        GlStateManager.disableAlpha();
-        GlStateManager.disableBlend();
-
-
-        idx = 0;
-        GlStateManager.disableDepth();
-        Tessellator tessellator = Tessellator.getInstance();
-        BufferBuilder buffer = tessellator.getBuffer();
-        for (int h = 0; h < mh; h++) {
-            for (int l = 0; l < ml; l++) {
-                for (int w = 0; w < mw; w++) {
-                    BlockPos pos = new BlockPos(l, h, w);
-                    GlStateManager.pushMatrix();
-
-                    int xo = l;
-                    int zo = w;
-                    int rotation = getRotation();
-                    switch (rotation)
-                    {
-                        case 1:
-                            zo = l;
-                            xo = (mw - w - 1);
-                            break;
-                        case 2:
-                            xo = (ml - l - 1);
-                            zo = (mw - w - 1);
-                            break;
-                        case 3:
-                            zo = (ml - l - 1);
-                            xo = w;
-                            break;
-                    }
-                    BlockPos actualPos = hit.add(xo, h, zo);
-
-                    IBlockState otherState = null;
-                    IBlockState state = recipe.getStateAtBlockPos(pos);
-                    ItemStack stack = new ItemStack(state.getBlock());
-                    IBlockState actualState = player.world.getBlockState(actualPos);
-                    boolean stateEqual = actualState.equals(state);
-                    boolean otherStateEqual = otherState == null ? false : otherState.equals(state);
-
-                    boolean isEmpty = player.world.getBlockState(actualPos).getBlock().isReplaceable(player.world, actualPos);
-                    if(!isEmpty || ((w == 0 || w == mw-1) && (l == 0 || l == ml-1) && (h == 0 || h == mh-1))) {
-
-                        GlStateManager.pushMatrix();
-                        GlStateManager.disableTexture2D();
-                        GlStateManager.enableBlend();
-                        GlStateManager.disableCull();
-                        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
-                        float r = isEmpty ? 0 : 1;
-                        float g = isEmpty ? 1 : 0;
-                        float b = 0;
-                        float alpha = .175F;
-
-
-                        buffer.begin(GL11.GL_LINES, DefaultVertexFormats.POSITION_COLOR);
-                        GlStateManager.glLineWidth(5f);
-                        GlStateManager.translate(xo + .5, h + .5, zo + .5);
-                        GlStateManager.scale(1.01, 1.01, 1.01);
-                        if(!isEmpty || h == mh-1) { //top face
-                            if (!isEmpty || w == 0) {
-                                buffer.pos(-.5F, .5F, -.5F).color(r, g, b, alpha).endVertex();
-                                buffer.pos(.5F, .5F, -.5F).color(r, g, b, alpha).endVertex();
-                            }
-                            if (!isEmpty || l == ml - 1) {
-                                buffer.pos(.5F, .5F, -.5F).color(r, g, b, alpha).endVertex();
-                                buffer.pos(.5F, .5F, .5F).color(r, g, b, alpha).endVertex();
-                            }
-                            if (!isEmpty || w == mw - 1) {
-                                buffer.pos(.5F, .5F, .5F).color(r, g, b, alpha).endVertex();
-                                buffer.pos(-.5F, .5F, .5F).color(r, g, b, alpha).endVertex();
-                            }
-                            if(!isEmpty || l == 0) {
-                                buffer.pos(-.5F, .5F, .5F).color(r, g, b, alpha).endVertex();
-                                buffer.pos(-.5F, .5F, -.5F).color(r, g, b, alpha).endVertex();
-                            }
-
-                        }
-                        if(!isEmpty || (w == 0 && l == 0)) {
-                            buffer.pos(-.5F, .5F, -.5F).color(r, g, b, alpha).endVertex();
-                            buffer.pos(-.5F, -.5F, -.5F).color(r, g, b, alpha).endVertex();
-                        }
-                        if(!isEmpty ||(l == ml-1 && w == 0)) {
-                            buffer.pos(.5F, .5F, -.5F).color(r, g, b, alpha).endVertex();
-                            buffer.pos(.5F, -.5F, -.5F).color(r, g, b, alpha).endVertex();
-                        }
-                        if(!isEmpty ||(l == 0 && w == mw-1)) {
-                            buffer.pos(-.5F, .5F, .5F).color(r, g, b, alpha).endVertex();
-                            buffer.pos(-.5F, -.5F, .5F).color(r, g, b, alpha).endVertex();
-                        }
-                        if(!isEmpty || (w == mw-1 && l == ml-1)) {
-                            buffer.pos(.5F, .5F, .5F).color(r, g, b, alpha).endVertex();
-                            buffer.pos(.5F, -.5F, .5F).color(r, g, b, alpha).endVertex();
-                        }
-
-                        if(!isEmpty || h == 0) {
-                            if (!isEmpty || w == 0) {
-                                buffer.pos(-.5F, -.5F, -.5F).color(r, g, b, alpha).endVertex();
-                                buffer.pos(.5F, -.5F, -.5F).color(r, g, b, alpha).endVertex();
-                            }
-                            if (!isEmpty || l == ml - 1) {
-                                buffer.pos(.5F, -.5F, -.5F).color(r, g, b, alpha).endVertex();
-                                buffer.pos(.5F, -.5F, .5F).color(r, g, b, alpha).endVertex();
-                            }
-                            if (!isEmpty || w == mw - 1) {
-                                buffer.pos(.5F, -.5F, .5F).color(r, g, b, alpha).endVertex();
-                                buffer.pos(-.5F, -.5F, .5F).color(r, g, b, alpha).endVertex();
-                            }
-                            if(!isEmpty || l == 0) {
-                                buffer.pos(-.5F, -.5F, .5F).color(r, g, b, alpha).endVertex();
-                                buffer.pos(-.5F, -.5F, -.5F).color(r, g, b, alpha).endVertex();
-                            }
-                        }
-                        tessellator.draw();
-                        GlStateManager.enableCull();
-                        GlStateManager.disableBlend();
-                        GlStateManager.enableTexture2D();
-                        GlStateManager.popMatrix();
-                    }
-
-                    GlStateManager.popMatrix();
-                    idx++;
-                }
-            }
-        }
-        RenderHelper.disableStandardItemLighting();
-        GlStateManager.disableRescaleNormal();
-        GlStateManager.enableBlend();
-
-        GlStateManager.enableDepth();
-    }
-
     public ActionResult<ItemStack> onItemRightClick(World worldIn, EntityPlayer playerIn, EnumHand handIn)
     {
         if(playerIn.isSneaking()) {
@@ -682,7 +397,7 @@ public class ItemMultiBuilder extends Item implements ISpecialElectricItem, IEle
             return ActionResult.newResult(EnumActionResult.SUCCESS, playerIn.getHeldItem(handIn));
         }
         if(keyPressDelay > 0) return ActionResult.newResult(EnumActionResult.FAIL, playerIn.getHeldItem(handIn));
-        BlockPos hit = getRayTraceHit();
+        BlockPos hit = PreviewRenderer.getRayTraceHit();
         if(hit == null) return super.onItemRightClick(worldIn, playerIn, handIn);
         Minecraft mc = Minecraft.getMinecraft();
 

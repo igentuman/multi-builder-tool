@@ -1,25 +1,23 @@
 package igentuman.mbtool.network;
 
+import igentuman.mbtool.Mbtool;
 import igentuman.mbtool.ModConfig;
 import igentuman.mbtool.RegistryHandler;
 import igentuman.mbtool.common.item.ItemMultiBuilder;
 import igentuman.mbtool.recipe.MultiblockRecipe;
 import igentuman.mbtool.recipe.MultiblockRecipes;
+import igentuman.mbtool.util.ProxyWorld;
 import io.netty.buffer.ByteBuf;
+import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.entity.ai.EntityAIBase;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.init.Blocks;
-import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.server.MinecraftServer;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
-import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextComponentString;
-import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
@@ -35,6 +33,7 @@ public class NetworkMessage implements IMessage {
     public int rotation;
     public int recipeId;
     public String player;
+    private ProxyWorld proxyWorld;
 
     public NetworkMessage() {
     }
@@ -249,7 +248,8 @@ public class NetworkMessage implements IMessage {
                     if(!playerEntity.isCreative()) {
                         boolean foundStack = false;
                         if (state.getBlock().equals(Blocks.AIR)) continue;
-                        ItemStack stack = findStack(playerEntity, new ItemStack(state.getBlock(), 1, state.getBlock().getMetaFromState(state)));
+                        ItemStack stack = recipe.getItemStackAtBlockPos(new BlockPos(x, y, z));
+                        stack = findStack(playerEntity, stack);
                         if (!stack.equals(ItemStack.EMPTY) && stack.getCount() > 0) {
                             foundStack = true;
                         }
@@ -265,8 +265,34 @@ public class NetworkMessage implements IMessage {
                     }
                     playerEntity.world.setBlockState(livePos, state, 2);
                     NBTTagCompound tag = recipe.getVariantAtBlockPos(new BlockPos(x, y, z));
-                    if(tag!= null) {
-                        playerEntity.world.getBlockState(livePos).getBlock().createTileEntity(playerEntity.world, state).readFromNBT(tag);
+                    Block block = playerEntity.world.getBlockState(livePos).getBlock();
+                    if(tag!= null && block.hasTileEntity()) {
+
+                        tag.setInteger("x", livePos.getX());
+                        tag.setInteger("y", livePos.getY());
+                        tag.setInteger("z", livePos.getZ());
+
+                        boolean teExisted = true;
+
+                        //trying to get te
+                        TileEntity te = playerEntity.world.getTileEntity(livePos);
+                        if(te == null) { //trying to create tw
+                            teExisted = false;
+                            te = block.createTileEntity(playerEntity.world, state);
+                        }
+                        if(te == null) {
+                            if(Mbtool.hooks.IC2Loaded) {
+                                if(block instanceof ic2.core.block.BlockTileEntity) {//ic2 way
+                                    te = ic2.core.block.TileEntityBlock.create(playerEntity.world, tag);
+                                }
+                            }
+                        }
+                        if(te!=null) {
+                            te.readFromNBT(tag);
+                            if(!teExisted) {
+                                playerEntity.world.setTileEntity(livePos, te);
+                            }
+                        }
                     }
                 }
             }

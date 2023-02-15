@@ -1,124 +1,201 @@
 {
   "name": "mek_tower",
-  "label": "Thermo Tower",
+  "label": "Therm. Tower",
   "target-item": "mekanism:basicblock2",
+  "target-item-meta": 14,
 
   "input-types": {
-    "c": {
+    "a": {
       "id": "mekanism:basicblock2",
       "meta": 0
     },
-    "d": {
+    "b": {
       "id": "mekanism:basicblock",
       "meta": 15
     },
-    "e": {
+    "c": {
       "id": "mekanism:basicblock",
       "meta": 14
     }
   },
   "input-nbt": {
-    "c:A": {
-      "nbt": "{facing:4,Items:[],id:\"mekanism:thermal_evaporation_block\",redstone:0b}"
-    },
-    "c:B": {
-      "nbt": "{facing:2,Items:[],id:\"mekanism:thermal_evaporation_block\",redstone:0b}"
-    },
-    "c:C": {
-      "nbt": "{facing:5,Items:[],id:\"mekanism:thermal_evaporation_block\",redstone:0b}"
-    },
-    "d:A": {
-      "nbt": "{facing:3,Items:[],id:\"mekanism:thermal_evaporation_valve\",redstone:0b}"
-    },
-    "c:D": {
+    "a:A": {
       "nbt": "{facing:3,Items:[],id:\"mekanism:thermal_evaporation_block\",redstone:0b}"
     },
-    "e:A": {
-      "nbt": "{partialWater:0.0d,brineTank:{Empty:\"\"},facing:4,temperature:5.6724463f,Items:[],id:\"mekanism:thermal_evaporation_controller\",waterTank:{Empty:\"\"},redstone:0b,partialBrine:0.0d}"
+    "a:B": {
+      "nbt": "{facing:5,Items:[],id:\"mekanism:thermal_evaporation_block\",redstone:0b}"
     },
-    "d:B": {
+    "a:C": {
+      "nbt": "{facing:4,Items:[],id:\"mekanism:thermal_evaporation_block\",redstone:0b}"
+    },
+    "b:A": {
+      "nbt": "{facing:3,Items:[],id:\"mekanism:thermal_evaporation_valve\",redstone:0b}"
+    },
+    "a:D": {
+      "nbt": "{facing:2,Items:[],id:\"mekanism:thermal_evaporation_block\",redstone:0b}"
+    },
+    "c:A": {
+      "nbt": "{partialWater:0.0d,brineTank:{Empty:\"\"},facing:5,temperature:3.4081888f,Items:[],id:\"mekanism:thermal_evaporation_controller\",waterTank:{Empty:\"\"},redstone:0b,partialBrine:0.0d}"
+    },
+    "b:B": {
       "nbt": "{facing:2,Items:[],id:\"mekanism:thermal_evaporation_valve\",redstone:0b}"
     }
   },
   "shape": [
     [
       [
-        "_", "_", "_", "_", "_", "_"
+        "a:A",
+        "a:A",
+        "a:A",
+        "a:B"
       ],
       [
-        "_", "c:C", "c:C", "c:C", "c:C", "_"
+        "a:C",
+        "_",
+        "_",
+        "a:B"
       ],
       [
-        "_", "c:A", "_", "_", "c:C", "_"
+        "a:C",
+        "_",
+        "_",
+        "a:B"
       ],
       [
-        "_", "c:A", "_", "_", "c:C", "_"
-      ],
-      [
-        "_", "c:A", "c:A", "c:A", "c:A", "_"
-      ],
-      [
-        "_", "_", "_", "_", "_", "_"
+        "a:A",
+        "a:A",
+        "a:A",
+        "a:B"
       ]
     ],
     [
       [
-        "_", "_", "_", "_", "_", "_"
+        "a:B",
+        "a:B",
+        "a:A",
+        "a:A"
       ],
       [
-        "_", "c:B", "c:B", "c:C", "c:C", "_"
+        "a:A",
+        "_",
+        "_",
+        "a:A"
       ],
       [
-        "_", "c:B", "_", "_", "c:C", "_"
+        "a:A",
+        "_",
+        "_",
+        "a:A"
       ],
       [
-        "_", "c:B", "_", "_", "c:C", "_"
-      ],
-      [
-        "_", "c:B", "c:C", "c:C", "c:C", "_"
-      ],
-      [
-        "_", "_", "_", "_", "_", "_"
+        "a:A",
+        "a:A",
+        "a:A",
+        "a:A"
       ]
     ],
     [
       [
-        "_", "_", "_", "_", "_", "_"
+        "a:B",
+        "a:B",
+        "a:B",
+        "a:A"
       ],
       [
-        "_", "c:B", "c:B", "d:B", "c:C", "_"
+        "a:C",
+        "_",
+        "_",
+        "a:B"
       ],
       [
-        "_", "e:A", "_", "_", "c:C", "_"
+        "a:C",
+        "_",
+        "_",
+        "a:A"
       ],
       [
-        "_", "c:A", "_", "_", "c:C", "_"
-      ],
-      [
-        "_", "c:A", "c:A", "d:A", "c:A", "_"
-      ],
-      [
-        "_", "_", "_", "_", "_", "_"
+        "a:A",
+        "a:A",
+        "a:A",
+        "a:A"
       ]
     ],
     [
       [
-        "_", "_", "_", "_", "_", "_"
+        "a:C",
+        "a:D",
+        "a:B",
+        "a:A"
       ],
       [
-        "_", "c:D", "c:D", "c:D", "c:D", "_"
+        "a:C",
+        "_",
+        "_",
+        "a:B"
       ],
       [
-        "_", "c:D", "c:D", "c:D", "c:D", "_"
+        "a:D",
+        "_",
+        "_",
+        "a:B"
       ],
       [
-        "_", "c:D", "c:D", "c:D", "c:D", "_"
+        "a:A",
+        "a:B",
+        "a:B",
+        "a:B"
+      ]
+    ],
+    [
+      [
+        "a:C",
+        "a:D",
+        "b:B",
+        "a:B"
       ],
       [
-        "_", "c:A", "c:A", "c:A", "c:A", "_"
+        "a:C",
+        "_",
+        "_",
+        "a:B"
       ],
       [
-        "_", "_", "_", "_", "_", "_"
+        "a:C",
+        "_",
+        "_",
+        "c:A"
+      ],
+      [
+        "a:A",
+        "a:C",
+        "b:A",
+        "a:B"
+      ]
+    ],
+    [
+      [
+        "a:D",
+        "a:D",
+        "a:D",
+        "a:D"
+      ],
+      [
+        "a:D",
+        "a:D",
+        "a:D",
+        "a:A"
+      ],
+      [
+        "a:C",
+        "a:C",
+        "a:D",
+        "a:A"
+      ],
+      [
+        "a:C",
+        "a:C",
+        "a:C",
+        "a:A"
       ]
     ]
   ]

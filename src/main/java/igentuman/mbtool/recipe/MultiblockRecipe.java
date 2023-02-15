@@ -25,8 +25,6 @@ import java.util.Map;
 public class MultiblockRecipe {
     private String name;
 
-
-
     private MbtoolRecipeCategory category;
 
     public String getLabel() {
@@ -40,6 +38,7 @@ public class MultiblockRecipe {
     private String label;
 
     private String[][][] variantMap;
+    private String[][][] metaMap;
     private String[][][] map;
     private String[][][] map90;
     private String[][][] map180;
@@ -47,6 +46,7 @@ public class MultiblockRecipe {
     private List<BlockPos> mapAsBlockPos;
     private Map<String, IBlockState> reference;
     private Map<String, Integer> referenceCount;
+    private Map<String, Integer> referenceMeta;
     private Map<String, Boolean> referenceIgnoresMeta;
     private Map<String, NBTTagCompound> referenceTags;
     private Map<String, ItemStack> referenceStacks;
@@ -62,6 +62,7 @@ public class MultiblockRecipe {
     public MultiblockRecipe(String name) {
         this.name = name;
         this.reference = new HashMap<>();
+        this.referenceMeta = new HashMap<>();
         this.referenceCount = new HashMap<>();
         this.referenceIgnoresMeta = new HashMap<>();
         this.referenceTags = new HashMap<>();
@@ -80,6 +81,9 @@ public class MultiblockRecipe {
 
     public void addBlockReference(String ref, IBlockState state) {
         this.reference.put(ref, state);
+    }
+    public void addMetaReference(String ref, int meta) {
+        this.referenceMeta.put(ref, meta);
     }
 
     public void addBlockVariation(String ref, NBTTagCompound tag) {
@@ -284,6 +288,27 @@ public class MultiblockRecipe {
         String ref = this.map[pos.getY()][pos.getZ()][pos.getX()];
         return reference.getOrDefault(ref, Blocks.AIR.getDefaultState());
     }
+
+    public ItemStack getItemStackAtBlockPos(BlockPos pos) {
+        if(pos.getY() < 0 || pos.getY() >= levels) {
+            return ItemStack.EMPTY;
+        }
+        if(pos.getZ() < 0 || pos.getZ() >= this.map[pos.getY()].length) {
+            return ItemStack.EMPTY;
+        }
+        if(pos.getX() < 0 || pos.getX() >= this.map[pos.getY()][pos.getZ()].length) {
+            return ItemStack.EMPTY;
+        }
+        return new ItemStack(getStateAtBlockPos(pos).getBlock(), 1, getMetaAtBlockPos(pos));
+    }
+
+    public int getMetaAtBlockPos(BlockPos pos) {
+
+
+        String ref = this.map[pos.getY()][pos.getZ()][pos.getX()];
+        return referenceMeta.getOrDefault(ref, 0);
+    }
+
     public IBlockAccess getBlockAccess(ProxyWorld proxyWorld) {
         return new IBlockAccess() {
             @Nullable

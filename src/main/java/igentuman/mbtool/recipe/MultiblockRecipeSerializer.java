@@ -1,6 +1,7 @@
 package igentuman.mbtool.recipe;
 
 import com.google.gson.*;
+import igentuman.mbtool.Mbtool;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.item.Item;
@@ -69,13 +70,22 @@ public class MultiblockRecipeSerializer implements JsonSerializer<MultiblockReci
                                     return null;
                                 }
 
+
+
                                 int meta = data.has("meta") ? data.get("meta").getAsInt() : 0;
                                 IBlockState state = sourceBlock.getStateFromMeta(meta);
                                 if (state == null) {
                                     state = sourceBlock.getDefaultState();
                                 }
+                                if(Mbtool.hooks.IC2Loaded) {
+                                    if (blockId.equals("ic2:te")) {
+                                        ic2.core.block.ITeBlock te = ic2.core.block.TeBlockRegistry.get(res, meta);
+                                        state = ((ic2.core.block.BlockTileEntity) sourceBlock).getState(te);
+                                    }
+                                }
 
                                 result.addBlockReference((String)entry.getKey(), state);
+                                result.addMetaReference((String)entry.getKey(), meta);
                                 boolean ignoreMeta = false;
                                 if (data.has("ignore-meta")) {
                                     ignoreMeta = data.get("ignore-meta").getAsBoolean();

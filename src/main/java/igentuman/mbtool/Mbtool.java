@@ -1,6 +1,6 @@
 package igentuman.mbtool;
 
-import igentuman.mbtool.handler.PlayerEventHandler;
+import igentuman.mbtool.client.handler.ClientHandler;
 import igentuman.mbtool.network.GuiProxy;
 import igentuman.mbtool.network.ModPacketHandler;
 import igentuman.mbtool.util.MbtoolHooks;
@@ -27,7 +27,7 @@ public class Mbtool
 {
     public static final String MODID = "mbtool";
     public static final String NAME = "Multi Builder Tool";
-    public static final String VERSION = "1.0.0";
+    public static final String VERSION = "1.0.0-alpha";
 
     @Mod.Instance(MODID)
     public static Mbtool instance;
@@ -48,7 +48,7 @@ public class Mbtool
         logger = event.getModLog();
 
         MinecraftForge.EVENT_BUS.register(new RegistryHandler());
-        MinecraftForge.EVENT_BUS.register(new PlayerEventHandler());
+        MinecraftForge.EVENT_BUS.register(new ClientHandler());
 
         MinecraftForge.EVENT_BUS.register(this);
         ModPacketHandler.registerMessages(MODID);

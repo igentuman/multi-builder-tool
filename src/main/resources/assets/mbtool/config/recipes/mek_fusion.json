@@ -1,31 +1,31 @@
 {
   "name": "mek_fusion",
   "label": "Fusion Reactor",
-  "target-item": "mekanism:reactor",
+  "target-item": "mekanismgenerators:reactor",
 
   "input-types": {
     "a": {
-      "id": "mekanism:reactor",
+      "id": "mekanismgenerators:reactor",
       "meta": 1
     },
     "b": {
-      "id": "mekanism:reactorglass",
+      "id": "mekanismgenerators:reactorglass",
       "meta": 0
     },
     "c": {
-      "id": "mekanism:reactor",
+      "id": "mekanismgenerators:reactor",
       "meta": 3
     },
     "d": {
-      "id": "mekanism:reactor",
+      "id": "mekanismgenerators:reactor",
       "meta": 2
     },
     "e": {
-      "id": "mekanism:reactor",
+      "id": "mekanismgenerators:reactor",
       "meta": 0
     },
     "f": {
-      "id": "mekanism:reactorglass",
+      "id": "mekanismgenerators:reactorglass",
       "meta": 1
     }
   },
@@ -116,11 +116,4 @@
       ]
     ]
   ]
-
-
 }
-
-
-
-
-
