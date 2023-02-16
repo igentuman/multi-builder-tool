@@ -1,11 +1,8 @@
 {
   "name": "nc_turbine",
-
   "label": "NC Turbine",
   "target-item": "nuclearcraft:turbine_controller",
-
-
-
+  "allow-rotate": false,
   "input-types": {
     "a": {
       "id": "nuclearcraft:turbine_casing",

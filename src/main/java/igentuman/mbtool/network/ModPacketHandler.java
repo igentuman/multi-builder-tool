@@ -12,5 +12,7 @@ public class ModPacketHandler {
         instance = NetworkRegistry.INSTANCE.newSimpleChannel(channelName);
 
         instance.registerMessage(NetworkMessage.Handler.class, NetworkMessage.class, 1, Side.SERVER);
+
+        instance.registerMessage(BuilderToClient.Handler.class, BuilderToClient.class, 2, Side.CLIENT);
     }
 }

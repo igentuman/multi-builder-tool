@@ -11,35 +11,19 @@ import igentuman.mbtool.network.ModPacketHandler;
 import igentuman.mbtool.network.NetworkMessage;
 import igentuman.mbtool.recipe.MultiblockRecipe;
 import igentuman.mbtool.recipe.MultiblockRecipes;
-import mekanism.api.EnumColor;
 import mekanism.api.energy.IEnergizedItem;
-import net.minecraft.block.properties.IProperty;
-import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.*;
-import net.minecraft.client.renderer.texture.TextureMap;
-import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.*;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.EnumActionResult;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.EnumHand;
+import net.minecraft.util.*;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.RayTraceResult;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.text.TextComponentUtils;
-import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
-import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Optional;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -48,9 +32,10 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.lwjgl.input.Keyboard;
 
-import org.lwjgl.opengl.GL11;
 
 import java.util.List;
+
+import static com.mojang.realmsclient.gui.ChatFormatting.AQUA;
 
 @Optional.InterfaceList(value = {
         @Optional.Interface(iface = "ic2.api.item.ISpecialElectricItem", modid = "ic2"),
@@ -60,7 +45,7 @@ import java.util.List;
 public class ItemMultiBuilder extends Item implements ISpecialElectricItem, IElectricItem, IEnergizedItem {
 
     private static Object itemManagerIC2;
-
+    public int afterPlaceDelay = 0;
     public ItemMultiBuilder() {
         super();
         MinecraftForge.EVENT_BUS.register(this);
@@ -103,8 +88,8 @@ public class ItemMultiBuilder extends Item implements ISpecialElectricItem, IEle
     @SideOnly(Side.CLIENT)
     public void addInformation(ItemStack stack, World worldIn, List<String> tooltip, ITooltipFlag flagIn)
     {
-        tooltip.add(EnumColor.AQUA + "\u00a7o" + I18n.format("tooltip.mbtool.gui_key"));
-        tooltip.add(EnumColor.AQUA + "\u00a7o" + I18n.format("tooltip.mbtool.rotate_keys"));
+        tooltip.add(AQUA + "\u00a7o" + I18n.format("tooltip.mbtool.gui_key"));
+        tooltip.add(AQUA + "\u00a7o" + I18n.format("tooltip.mbtool.rotate_keys"));
 
         String color = "";
         float rf = this.getElectricityStored(stack);
@@ -372,6 +357,8 @@ public class ItemMultiBuilder extends Item implements ISpecialElectricItem, IEle
         item.getTagCompound().setInteger("rotation", rot);
     }
 
+
+
     @SideOnly(Side.CLIENT)
     @SubscribeEvent
     public void handleKeypress(TickEvent.ClientTickEvent event)
@@ -385,6 +372,9 @@ public class ItemMultiBuilder extends Item implements ISpecialElectricItem, IEle
         boolean main = !mainItem.isEmpty() && mainItem.getItem() == RegistryHandler.MBTOOL && hasRecipe(mainItem);
         boolean off = !secondItem.isEmpty() && secondItem.getItem() == RegistryHandler.MBTOOL && hasRecipe(secondItem);
         keyPressDelay--;
+        if(afterPlaceDelay > 0) {
+            afterPlaceDelay--;
+        }
         if((!main && !off) || keyPressDelay > 0) {
             return;
         }
@@ -425,6 +415,7 @@ public class ItemMultiBuilder extends Item implements ISpecialElectricItem, IEle
             recipeid = secondItem.getTagCompound().getInteger("recipe");
         }
         keyPressDelay = 10;
+        afterPlaceDelay = 40;
         ModPacketHandler.instance.sendToServer(new NetworkMessage(hit, getRotation(), recipeid, playerIn.getUniqueID().toString()));
 
         return super.onItemRightClick(worldIn, playerIn, handIn);

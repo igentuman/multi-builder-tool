@@ -2,6 +2,7 @@
   "name": "nucleo_synth",
   "label": "Nucleo Chamber",
   "target-item": "qmd:nucleosynthesis_chamber_controller",
+  "allow-rotate": false,
   "input-types": {
     "a": {
       "id": "qmd:containment_casing",

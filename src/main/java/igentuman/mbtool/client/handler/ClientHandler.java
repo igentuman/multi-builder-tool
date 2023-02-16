@@ -38,6 +38,8 @@ public class ClientHandler
 		if(!main && !off) {
 			return;
 		}
+		if(main && ((ItemMultiBuilder)mainItem.getItem()).afterPlaceDelay > 0) return;
+		if(off && ((ItemMultiBuilder)secondItem.getItem()).afterPlaceDelay > 0) return;
 
 		PreviewRenderer.renderPreview();
 	}

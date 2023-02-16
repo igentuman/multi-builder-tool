@@ -11,6 +11,7 @@ import io.netty.buffer.ByteBuf;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -19,6 +20,7 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.common.network.NetworkRegistry;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
@@ -33,7 +35,7 @@ public class NetworkMessage implements IMessage {
     public int rotation;
     public int recipeId;
     public String player;
-    private ProxyWorld proxyWorld;
+    private EntityPlayerMP playerEntity;
 
     public NetworkMessage() {
     }
@@ -120,7 +122,11 @@ public class NetworkMessage implements IMessage {
 
     public void buildPacket(MessageContext ctx)
     {
-        build();
+        if(build()) {
+            ModPacketHandler.instance.sendToAllAround(
+                    new BuilderToClient(pos, true, recipeId, player),
+                    new NetworkRegistry.TargetPoint(playerEntity.dimension, pos.getX(), pos.getY(), pos.getZ(), 20));
+        }
     }
 
     public static void removeExperience(int amount, EntityPlayer player){
@@ -170,7 +176,7 @@ public class NetworkMessage implements IMessage {
     public boolean build()
     {
         MultiblockRecipe recipe = MultiblockRecipes.getAvaliableRecipes().get(recipeId);
-        EntityPlayer playerEntity = FMLCommonHandler.instance().getMinecraftServerInstance().
+        playerEntity = FMLCommonHandler.instance().getMinecraftServerInstance().
                 getPlayerList().getPlayerByUUID(UUID.fromString(player));
         ItemStack mbtool = getMbtool(playerEntity);
         ItemMultiBuilder mbuilder = (ItemMultiBuilder) mbtool.getItem();
