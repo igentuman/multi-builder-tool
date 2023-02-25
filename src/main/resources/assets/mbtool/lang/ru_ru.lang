@@ -1,1 +1,6 @@
-item.mbtool.name=Мульти строитель
+item.mbtool.name=Мультистроительный инструмент
+mbtool.mek_boiler=Бойлер
+container.mbtool=Мультистроительный инструмент
+container.mbtool.energy=Накоплено энергии: %s RF
+tooltip.mbtool.gui_key=SHIFT+ЛКМ — открыть графический интерфейс.
+tooltip.mbtool.rotate_keys=Клавиши со стрелками — вращать
