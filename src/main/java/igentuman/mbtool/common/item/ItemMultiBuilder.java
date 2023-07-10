@@ -49,8 +49,6 @@ public class ItemMultiBuilder extends Item implements ISpecialElectricItem, IEle
     public ItemMultiBuilder() {
         super();
         MinecraftForge.EVENT_BUS.register(this);
-        setMaxDamage(ModConfig.general.mbtool_energy_capacity);
-        this.setNoRepair();
         if(Mbtool.hooks.IC2Loaded) {
             itemManagerIC2 = new IC2ElectricManager();
         }
@@ -74,9 +72,6 @@ public class ItemMultiBuilder extends Item implements ISpecialElectricItem, IEle
          return EnumActionResult.FAIL;
     }
 
-    int xd = 0;
-    int zd = 0;
-
     public static String getEnergyDisplayRF(float energyVal)
     {
         String val = String.valueOf(MathHelper.floor(energyVal));
@@ -94,10 +89,10 @@ public class ItemMultiBuilder extends Item implements ISpecialElectricItem, IEle
         String color = "";
         float rf = this.getElectricityStored(stack);
 
-        if (rf <= this.getMaxElectricityStored(stack) / 3)
+        if (rf <= (float) this.getMaxElectricityStored(stack) / 3)
         {
             color = "\u00a74";
-        } else if (rf > this.getMaxElectricityStored(stack) * 2 / 3)
+        } else if (rf > (float) (this.getMaxElectricityStored(stack) * 2) / 3)
         {
             color = "\u00a72";
         } else
@@ -106,27 +101,12 @@ public class ItemMultiBuilder extends Item implements ISpecialElectricItem, IEle
         }
 
         tooltip.add(color + getEnergyDisplayRF(rf) + "/" + getEnergyDisplayRF(this.getMaxElectricityStored(stack)));
-
-    }
-    /**
-     * Makes sure the item is uncharged when it is crafted and not charged.
-     * Change this if you do not want this to happen!
-     */
-    @Override
-    public void onCreated(ItemStack itemStack, World par2World, EntityPlayer par3EntityPlayer)
-    {
-        this.setElectricity(itemStack, 0);
     }
 
     public float recharge(ItemStack itemStack, float energy, boolean doReceive)
     {
         float rejectedElectricity = Math.max(this.getElectricityStored(itemStack) + energy - this.getMaxElectricityStored(itemStack), 0);
-        float energyToReceive = energy - rejectedElectricity;
-        if (energyToReceive > ModConfig.general.mbtool_energy_capacity/10)
-        {
-            rejectedElectricity += energyToReceive - ModConfig.general.mbtool_energy_capacity/10;
-            energyToReceive  =ModConfig.general.mbtool_energy_capacity/10;
-        }
+        float energyToReceive = Math.round(Math.min(energy - rejectedElectricity, ((float)ModConfig.general.mbtool_energy_capacity)/10));
 
         if (doReceive)
         {
@@ -139,7 +119,7 @@ public class ItemMultiBuilder extends Item implements ISpecialElectricItem, IEle
     public float discharge(ItemStack itemStack, float energy, boolean doTransfer)
     {
         float thisEnergy = this.getElectricityStored(itemStack);
-        float energyToTransfer = Math.min(Math.min(thisEnergy, energy), ModConfig.general.mbtool_energy_capacity/10);
+        float energyToTransfer = Math.min(Math.min(thisEnergy, energy), ((float)ModConfig.general.mbtool_energy_capacity)/10);
 
         if (doTransfer)
         {
@@ -161,24 +141,23 @@ public class ItemMultiBuilder extends Item implements ISpecialElectricItem, IEle
             itemStack.setTagCompound(new NBTTagCompound());
         }
 
-        float electricityStored = Math.max(Math.min(rf, this.getMaxElectricityStored(itemStack)), 0);
-        if (rf > 0F || itemStack.getTagCompound().hasKey("electricity"))
-        {
-            itemStack.getTagCompound().setFloat("electricity", electricityStored);
+        if(!itemStack.getTagCompound().hasKey("electricity")) {
+            itemStack.getTagCompound().setInteger("electricity", 0);
         }
 
-        itemStack.setItemDamage(ModConfig.general.mbtool_energy_capacity - (int) (electricityStored / this.getMaxElectricityStored(itemStack) * ModConfig.general.mbtool_energy_capacity));
+        int electricityStored = (int) Math.max(Math.min(rf, this.getMaxElectricityStored(itemStack)), 0);
+        itemStack.getTagCompound().setInteger("electricity", electricityStored);
     }
 
 
     public int receiveEnergy(ItemStack container, int maxReceive, boolean simulate)
     {
-        return (int) (this.recharge(container, ModConfig.general.mbtool_energy_capacity/10, !simulate));
+        return (int) (this.recharge(container, ((float)ModConfig.general.mbtool_energy_capacity)/10, !simulate));
     }
 
     public int extractEnergy(ItemStack container, int maxExtract, boolean simulate)
     {
-        return (int) (this.discharge(container, ModConfig.general.mbtool_energy_capacity/10, !simulate));
+        return (int) (this.discharge(container, ((float)ModConfig.general.mbtool_energy_capacity)/10, !simulate));
     }
 
     public int getEnergyStored(ItemStack container)
@@ -202,7 +181,8 @@ public class ItemMultiBuilder extends Item implements ISpecialElectricItem, IEle
     @Optional.Method(modid = "mekanism")
     public void setEnergy(ItemStack itemStack, double amount)
     {
-        this.setElectricity(itemStack, (float) ((float) amount *  0.1));
+        float electricityStored = Math.max(Math.min((float) ((float) amount *  0.1)+getElectricityStored(itemStack), this.getMaxElectricityStored(itemStack)), 0);
+        this.setElectricity(itemStack, electricityStored);
     }
 
     @Optional.Method(modid = "mekanism")
@@ -240,22 +220,16 @@ public class ItemMultiBuilder extends Item implements ISpecialElectricItem, IEle
             NBTBase obj = itemStack.getTagCompound().getTag("electricity");
             if (obj instanceof NBTTagDouble)
             {
-                energyStored = ((NBTTagDouble) obj).getFloat();
+                energyStored = (float) ((NBTTagDouble) obj).getDouble();
             } else if (obj instanceof NBTTagFloat)
             {
                 energyStored = ((NBTTagFloat) obj).getFloat();
             }
-        } else
-        {
-            if (itemStack.getItemDamage() == ModConfig.general.mbtool_energy_capacity)
-                return 0F;
-
-            energyStored = this.getMaxElectricityStored(itemStack) * (ModConfig.general.mbtool_energy_capacity - itemStack.getItemDamage()) / ModConfig.general.mbtool_energy_capacity;
-            itemStack.getTagCompound().setFloat("electricity", energyStored);
+            else if (obj instanceof NBTTagInt)
+            {
+                energyStored = ((NBTTagInt) obj).getInt();
+            }
         }
-
-        /** Sets the damage as a percentage to render the bar properly. */
-        itemStack.setItemDamage(ModConfig.general.mbtool_energy_capacity - (int) (energyStored / this.getMaxElectricityStored(itemStack) * ModConfig.general.mbtool_energy_capacity));
         return energyStored;
     }
 
@@ -285,7 +259,7 @@ public class ItemMultiBuilder extends Item implements ISpecialElectricItem, IEle
     @Optional.Method(modid = "ic2")
     public double getMaxCharge(ItemStack itemStack)
     {
-        return this.getMaxElectricityStored(itemStack) / 4;
+        return (double) this.getMaxElectricityStored(itemStack) / 4;
     }
 
     @Optional.Method(modid = "ic2")
@@ -409,10 +383,14 @@ public class ItemMultiBuilder extends Item implements ISpecialElectricItem, IEle
         boolean main = !mainItem.isEmpty() && mainItem.getItem() == RegistryHandler.MBTOOL && hasRecipe(mainItem);
         boolean off = !secondItem.isEmpty() && secondItem.getItem() == RegistryHandler.MBTOOL && hasRecipe(secondItem);
         int recipeid;
-        if(main) {
-            recipeid = mainItem.getTagCompound().getInteger("recipe");
-        } else {
-            recipeid = secondItem.getTagCompound().getInteger("recipe");
+        try {
+            if (main) {
+                recipeid = mainItem.getTagCompound().getInteger("recipe");
+            } else {
+                recipeid = secondItem.getTagCompound().getInteger("recipe");
+            }
+        } catch (NullPointerException ignored) {
+            return super.onItemRightClick(worldIn, playerIn, handIn);
         }
         keyPressDelay = 10;
         afterPlaceDelay = 40;

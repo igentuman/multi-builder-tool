@@ -140,7 +140,7 @@ public class MbtoolRecipeCategory implements IRecipeCategory<MbtoolRecipeCategor
         String last = tooltip.get(tooltip.size()-1);
         tooltip.remove(tooltip.size()-1);
         if(slotIndex >= 0 && slotIndex <= 17) {
-            tooltip.add(TextFormatting.YELLOW + I18n.format("tooltip.compactmachines3.jei.shape"));
+            tooltip.add(TextFormatting.YELLOW + I18n.format("tooltip.mbtool.jei.shape"));
         }
         tooltip.add(last);
     }
