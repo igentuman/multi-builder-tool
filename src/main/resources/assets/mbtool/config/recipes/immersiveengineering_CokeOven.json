@@ -1,12 +1,12 @@
 {
-  "name": "blast",
-  "label": "Blast Furnace",
+  "name": "immersiveengineering_CokeOven",
+  "label": "Coke Oven",
   "target-item": "immersiveengineering:tool",
 
   "input-types": {
     "a": {
       "id": "immersiveengineering:stone_decoration",
-      "meta": 1
+      "meta": 0
     }
   },
   "shape": [
@@ -44,7 +44,6 @@
       ]
     ]
   ]
-
 }
 
 

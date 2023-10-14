@@ -1,6 +1,6 @@
 {
-  "name": "press",
-  "label": "Press",
+  "name": "immersiveengineering_MetalPress",
+  "label": "Metal Press",
   "target-item": "immersiveengineering:tool",
 
   "input-types": {

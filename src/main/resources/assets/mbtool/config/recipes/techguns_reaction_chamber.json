@@ -1,0 +1,41 @@
+{
+  "name": "techguns_reaction_chamber",
+  "label": "Reaction Chamber",
+  "target-item": "techguns:multiblockmachine",
+  "target-item-meta": 5,
+  "input-types": {
+    "a": {
+      "id": "techguns:multiblockmachine",
+      "meta": 3
+    },
+    "b": {
+      "id": "techguns:multiblockmachine",
+      "meta": 4
+    },
+    "c": {
+      "id": "techguns:multiblockmachine",
+      "meta": 5
+    }
+  },
+  "shape": [
+	[
+	["a", "a", "a"],
+	["a", "a", "a"],
+	["a", "a", "a"]
+	],
+	[
+	["b", "b", "b"],
+	["b", "b", "b"],
+	["b", "b", "b"]
+	],
+	[
+	["b", "b", "b"],
+	["b", "b", "b"],
+	["b", "b", "b"]
+	],
+	[
+	["a", "a", "a"],
+	["a", "a", "a"],
+	["a", "c", "a"]
+	]
+]}
