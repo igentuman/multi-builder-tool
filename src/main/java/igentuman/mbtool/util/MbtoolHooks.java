@@ -9,6 +9,9 @@ public final class MbtoolHooks {
     public boolean OCLoaded = false;
     public boolean ExtraPlanetsLoaded = false;
     public boolean IELoaded = false;
+    public boolean IPLoaded = false;
+    public boolean RTLoaded = false;
+    public boolean AlchemLoaded = false;
     public boolean AE2Loaded = false;
     public boolean IC2Loaded = false;
 
@@ -18,6 +21,9 @@ public final class MbtoolHooks {
         OCLoaded = Loader.isModLoaded("opencomputers");
         ExtraPlanetsLoaded = Loader.isModLoaded("extraplanets");
         IELoaded = Loader.isModLoaded("immersiveengineering");
+        IPLoaded = Loader.isModLoaded("immersivepetroleum");
+        RTLoaded = Loader.isModLoaded("randomthings");
+        AlchemLoaded = Loader.isModLoaded("alchemistry");
         AE2Loaded = Loader.isModLoaded("appliedenergistics2");
         IC2Loaded = Loader.isModLoaded("ic2");
 

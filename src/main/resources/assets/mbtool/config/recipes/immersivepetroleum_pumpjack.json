@@ -1,0 +1,61 @@
+{
+  "name": "immersivepetroleum_pumpjack",
+  "label": "Pumpjack",
+  "target-item": "immersiveengineering:tool",
+  
+  "input-types": {
+    "a": {
+      "id": "immersiveengineering:metal_decoration1",
+      "meta": 1
+    },
+    "b": {
+      "id": "immersiveengineering:wooden_decoration",
+      "meta": 0
+    },
+    "c": {
+      "id": "immersiveengineering:sheetmetal",
+      "meta": 8
+    },
+    "d": {
+      "id": "immersiveengineering:metal_device1",
+      "meta": 6
+    },
+    "e": {
+      "id": "immersiveengineering:storage",
+      "meta": 8
+    },
+    "f": {
+      "id": "immersiveengineering:metal_decoration0",
+      "meta": 5
+    },
+    "g": {
+      "id": "immersiveengineering:metal_decoration0",
+      "meta": 4
+    },
+    "h": {
+      "id": "immersiveengineering:metal_decoration0",
+      "meta": 3
+    }
+  },
+  "shape": [
+	[
+	["_", "_", "b", "_", "_", "_"],
+	["e", "c", "c", "c", "c", "_"],
+	["_", "_", "b", "_", "_", "_"]
+	],
+	[
+	["_", "_", "b", "_", "_", "_"],
+	["e", "_", "_", "_", "f", "_"],
+	["_", "_", "b", "_", "_", "_"]
+	],
+	[
+	["_", "_", "b", "_", "_", "h"],
+	["_", "_", "_", "_", "f", "_"],
+	["_", "_", "b", "_", "_", "g"]
+	],
+	[
+	["_", "a", "d", "a", "a", "a"],
+	["a", "d", "d", "a", "a", "a"],
+	["_", "a", "d", "a", "a", "g"]
+	]
+]}
