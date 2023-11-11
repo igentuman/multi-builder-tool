@@ -29,7 +29,7 @@ repositories {
 
 apply plugin: 'net.minecraftforge.gradle.forge'
 
-version = "1.0.1"
+version = "1.0.2"
 group = "igentuman.mbtool"
 archivesBaseName = "MultiBuilderTool"
 
@@ -70,7 +70,7 @@ configurations {
     compile.extendsFrom(shade)
 }
 dependencies {
-    shade "com.github.MJaroslav.Reflectors:library:v4"
+    implementation 'org.projectlombok:lombok:1.18.28'
     compileOnly "org.jetbrains:annotations:17.0.0"
     deobfCompile "net.industrial-craft:industrialcraft-2:${ic2_version}"
     deobfCompile "curse.maven:immersive-engineering-231951:2974106"
@@ -106,9 +106,6 @@ processResources {
 }
 
 jar {
-    configurations.shade.each { dep ->
-        from project.zipTree(dep)
-    }
     manifest {
         attributes([
                 "Specification-Title": "mbtool",

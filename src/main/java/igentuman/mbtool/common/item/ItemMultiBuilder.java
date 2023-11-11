@@ -1,5 +1,6 @@
 package igentuman.mbtool.common.item;
 
+import blusunrize.immersiveengineering.api.energy.immersiveflux.IFluxContainerItem;
 import ic2.api.item.IElectricItem;
 import ic2.api.item.IElectricItemManager;
 import ic2.api.item.ISpecialElectricItem;
@@ -40,9 +41,11 @@ import static com.mojang.realmsclient.gui.ChatFormatting.AQUA;
 @Optional.InterfaceList(value = {
         @Optional.Interface(iface = "ic2.api.item.ISpecialElectricItem", modid = "ic2"),
         @Optional.Interface(iface = "ic2.api.item.IElectricItem", modid = "ic2"),
-        @Optional.Interface(iface = "mekanism.api.energy.IEnergizedItem", modid = "mekanism")
+        @Optional.Interface(iface = "mekanism.api.energy.IEnergizedItem", modid = "mekanism"),
+        @Optional.Interface(iface = "blusunrize.immersiveengineering.api.energy.immersiveflux.IFluxContainerItem", modid = "immersiveengineering")
 })
-public class ItemMultiBuilder extends Item implements ISpecialElectricItem, IElectricItem, IEnergizedItem {
+
+public class ItemMultiBuilder extends Item implements ISpecialElectricItem, IElectricItem, IEnergizedItem, IFluxContainerItem {
 
     private static Object itemManagerIC2;
     public int afterPlaceDelay = 0;
