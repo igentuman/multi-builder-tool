@@ -1,6 +1,6 @@
 {
-  "name": "arc",
-  "label": "Arc Smeltery",
+  "name": "immersiveengineering_ArcFurnace",
+  "label": "Arc Furnace",
   "target-item": "immersiveengineering:tool",
   "input-types": {
     "a": {
