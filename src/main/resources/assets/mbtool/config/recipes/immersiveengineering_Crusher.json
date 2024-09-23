@@ -1,7 +1,8 @@
 {
-  "name": "immersiveengineering_Crusher",
+  "name": "ie_crusher",
   "label": "Crusher",
-  "target-item": "immersiveengineering:tool",
+  "target-item": "immersiveengineering:metal_multiblock",
+  "target-item-meta": 1,
 
   "input-types": {
     "a": {

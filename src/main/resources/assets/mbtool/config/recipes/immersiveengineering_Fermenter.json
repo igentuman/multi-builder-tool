@@ -1,8 +1,8 @@
 {
-  "name": "immersiveengineering_Fermenter",
+  "name": "ie_fermenter",
   "label": "Fermenter",
-
-  "target-item": "immersiveengineering:tool",
+  "target-item": "immersiveengineering:metal_multiblock",
+  "target-item-meta": 8,
 
   "input-types": {
     "a": {

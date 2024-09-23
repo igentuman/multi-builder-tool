@@ -1,7 +1,8 @@
 {
-  "name": "immersivepetroleum_distillation_tower",
+  "name": "ip_distillation_tower",
   "label": "Distillation Tower",
-  "target-item": "immersiveengineering:tool",
+	"target-item": "immersivepetroleum:metal_multiblock",
+	"target-item-meta": 1,
   
   "input-types": {
     "a": {

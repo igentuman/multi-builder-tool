@@ -45,8 +45,25 @@ public class MultiblockRecipe {
     private BlockPos maxPos;
     private int count;
 
+    public static boolean isClassAvailable(String className) {
+        try {
+            Class.forName(className);
+            return true;
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
+    }
+
     public String getLabel() {
-        return label;
+        if (!isClassAvailable("net.minecraft.client.resources.I18n")) {
+            return label;
+        }
+        String key = "mbtool."+name;
+        String translation = net.minecraft.client.resources.I18n.format(key);
+        if(translation.equals(key)) {
+            return label;
+        }
+        return translation;
     }
 
     public void setLabel(String label) {

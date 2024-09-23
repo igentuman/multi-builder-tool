@@ -22,12 +22,12 @@ public class GuiMbtool extends GuiContainer {
     );
 
     private int curPage = 0;
-    private int pageSize = 12;
+    private int pageSize = 36;
     private final ContainerMbtool container;
 
     private GuiButton nextPageBtn;
     private GuiButton prevPageBtn;
-    private List<GuiButton> recipeBtns = new ArrayList<>();
+    private List<ImgButton> recipeBtns = new ArrayList<>();
 
     public GuiMbtool(ContainerMbtool inventorySlotsIn) {
         super(inventorySlotsIn);
@@ -81,22 +81,22 @@ public class GuiMbtool extends GuiContainer {
     {
         recipeBtns.clear();
         List<MultiblockRecipe> recipes = MultiblockRecipes.getAvaliableRecipes();
-        int x = guiLeft+21;
-        int y = guiTop+15;
+        int x = guiLeft+22;
+        int y = guiTop+20;
         int counter = 0;
-        int btnWidth = 90;
+        int xShift = 0;
         for(int i = curPage*pageSize+2; i < curPage*pageSize+pageSize+2;i++) {
             try {
-                GuiButton btn = new GuiButton(i, x, y, btnWidth, 20, fontRenderer.trimStringToWidth(recipes.get(i - 2).getLabel(), btnWidth - 3));
+                ImgButton btn = new ImgButton(i, x, y, recipes.get(i - 2).getLabel(), recipes.get(i - 2).getTargetStack());
                 counter++;
                 if (container.getCurrentRecipe()+2 == i) {
                     btn.enabled = false;
                 }
-                x += btnWidth + 3;
-                if (counter > 1) {
-                    x = guiLeft + 21;
-                    y += 23;
-                    counter = 0;
+                y += 24;
+                x = xShift * 28 + guiLeft+22;
+                if (counter % 6 == 0) {
+                    xShift++;
+                    y = guiTop+20;
                 }
                 recipeBtns.add(btn);
                 this.buttonList.add(btn);
@@ -130,5 +130,11 @@ public class GuiMbtool extends GuiContainer {
         buttonList.clear();
         initButtons();
         initRecipes();
+        for(ImgButton btn : recipeBtns) {
+            if(mouseX > btn.x && mouseX < btn.x + 24 && mouseY > btn.y && mouseY < btn.y + 20) {
+                drawHoveringText(btn.displayString, mouseX+2-guiLeft, mouseY+2-guiTop);
+                break;
+            }
+        }
     }
 }

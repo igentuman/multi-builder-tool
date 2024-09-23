@@ -1,7 +1,7 @@
 {
-  "name": "immersiveengineering_CokeOven",
+  "name": "ie_coke_oven",
   "label": "Coke Oven",
-  "target-item": "immersiveengineering:tool",
+  "target-item": "immersiveengineering:stone_device",
 
   "input-types": {
     "a": {

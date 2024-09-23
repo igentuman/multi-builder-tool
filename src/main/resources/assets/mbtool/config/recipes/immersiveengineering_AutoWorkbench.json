@@ -1,7 +1,8 @@
 {
-  "name": "immersiveengineering_AutoWorkbench",
+  "name": "ie_auto_workbench",
   "label": "Auto Workbench",
-  "target-item": "immersiveengineering:blueprint",
+  "target-item": "immersiveengineering:metal_multiblock",
+  "target-item-meta": 5,
 
   "input-types": {
     "a": {

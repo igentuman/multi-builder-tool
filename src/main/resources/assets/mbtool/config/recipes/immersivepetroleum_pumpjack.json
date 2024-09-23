@@ -1,7 +1,8 @@
 {
-  "name": "immersivepetroleum_pumpjack",
+  "name": "ip_pumpjack",
   "label": "Pumpjack",
-  "target-item": "immersiveengineering:tool",
+  "target-item": "immersivepetroleum:metal_multiblock",
+  "target-item-meta": 3,
   
   "input-types": {
     "a": {

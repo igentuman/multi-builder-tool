@@ -1,7 +1,8 @@
 {
-  "name": "immersiveengineering_BlastFurnace",
+  "name": "ie_blast_furnace",
   "label": "Blast Furnace",
-  "target-item": "immersiveengineering:tool",
+  "target-item": "immersiveengineering:stone_device",
+  "target-item-meta": 1,
 
   "input-types": {
     "a": {

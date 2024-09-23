@@ -1,7 +1,7 @@
 {
-  "name": "immersiveengineering_MetalPress",
+  "name": "ie_metal_press",
   "label": "Metal Press",
-  "target-item": "immersiveengineering:tool",
+  "target-item": "immersiveengineering:metal_multiblock",
 
   "input-types": {
     "a": {

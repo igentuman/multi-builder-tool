@@ -1,6 +1,6 @@
 {
   "name": "alchemistry_fission",
-  "label": "Fission Multiblock",
+  "label": "Alchemistry Fission",
   "target-item": "alchemistry:fission_controller",
   "input-types": {
     "a": {

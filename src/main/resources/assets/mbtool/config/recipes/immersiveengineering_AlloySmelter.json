@@ -1,7 +1,8 @@
 {
-  "name": "immersiveengineering_AlloySmelter",
+  "name": "ie_smelter",
   "label": "Kiln",
-  "target-item": "immersiveengineering:tool",
+  "target-item": "immersiveengineering:stone_device",
+  "target-item-meta": 7,
 
   "input-types": {
     "a": {

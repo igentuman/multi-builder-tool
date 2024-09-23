@@ -1,7 +1,8 @@
 {
-  "name": "immersiveengineering_Squeezer",
+  "name": "ie_squeezer",
   "label": "Squeezer",
-  "target-item": "immersiveengineering:tool",
+  "target-item": "immersiveengineering:metal_multiblock",
+  "target-item-meta": 7,
 
   "input-types": {
     "a": {

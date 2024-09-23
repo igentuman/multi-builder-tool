@@ -1,8 +1,9 @@
 {
-  "name": "immersiveengineering_Refinery",
+  "name": "ie_refinery",
 
   "label": "Refinery",
-  "target-item": "immersiveengineering:tool",
+  "target-item": "immersiveengineering:metal_multiblock",
+  "target-item-meta": 9,
 
   "input-types": {
     "a": {

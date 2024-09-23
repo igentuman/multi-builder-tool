@@ -1,0 +1,39 @@
+{
+  "name": "blood_altar2",
+  "label": "Blood Altar 2 LVL",
+  "target-item": "bloodmagic:altar",
+
+  "input-types": {
+    "a": {
+      "id": "bloodmagic:blood_rune",
+      "meta": 0
+    },
+    "b": {
+      "id": "bloodmagic:altar",
+      "meta": 0
+    }
+  },
+    "shape": [
+    [
+      [
+        "_",        "_",        "_"      ],
+      [
+        "_",        "b",        "_"      ],
+      [
+        "_",        "_",        "_"      ]
+    ],
+    [
+      [
+        "a",        "a",        "a"      ],
+      [
+        "a",        "_",        "a"      ],
+      [
+        "a",        "a",        "a"      ]
+    ]
+  ]
+
+
+
+}
+
+

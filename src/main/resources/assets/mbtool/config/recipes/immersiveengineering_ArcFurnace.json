@@ -1,7 +1,8 @@
 {
-  "name": "immersiveengineering_ArcFurnace",
+  "name": "ie_arc_furnace",
   "label": "Arc Furnace",
-  "target-item": "immersiveengineering:tool",
+  "target-item": "immersiveengineering:metal_multiblock",
+  "target-item-meta": 13,
   "input-types": {
     "a": {
       "id": "immersiveengineering:storage",
