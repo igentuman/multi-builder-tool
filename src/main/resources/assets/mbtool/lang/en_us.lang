@@ -13,6 +13,7 @@ mbtool.collision_chamber=Collision Chamber
 mbtool.decay_chamber=Decay Chamber
 mbtool.diverter=Beam Diverter
 mbtool.draconic_reactor=Draconic Reactor
+mbtool.ie_generator=Diesel Generator
 mbtool.extreme_reactor=Extreme Reactor
 mbtool.fission=Fission Reactor
 mbtool.fusion=BFR Reactor

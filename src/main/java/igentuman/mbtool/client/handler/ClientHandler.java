@@ -34,7 +34,7 @@ public class ClientHandler
 
 	public void renderRays(float partialTicks)
 	{
-/*		EntityPlayer player = Minecraft.getMinecraft().player;
+		EntityPlayer player = Minecraft.getMinecraft().player;
 
 		double playerX = player.lastTickPosX + (player.posX - player.lastTickPosX) * partialTicks;
 		double playerY = player.lastTickPosY + (player.posY - player.lastTickPosY) * partialTicks;
@@ -46,7 +46,7 @@ public class ClientHandler
 		if (rayTraceResult != null && rayTraceResult.typeOfHit == RayTraceResult.Type.BLOCK) {
 			BlockPos blockPos = rayTraceResult.getBlockPos();
 			renderRay(playerPos, new Vec3d(blockPos.getX() + 0.5, blockPos.getY() + 0.5, blockPos.getZ() + 0.5), Color.RED, partialTicks);
-		}*/
+		}
 	}
 
 	public void renderRay(Vec3d start, Vec3d end, Color color, float partialTicks) {
@@ -86,6 +86,6 @@ public class ClientHandler
 		if(main && ((ItemMultiBuilder)mainItem.getItem()).afterPlaceDelay > 0) return;
 		if(off && ((ItemMultiBuilder)secondItem.getItem()).afterPlaceDelay > 0) return;
 		renderRays(event.getPartialTicks());
-		PreviewRenderer.renderPreview();
+		PreviewRenderer.renderPreview(event.getPartialTicks());
 	}
 }

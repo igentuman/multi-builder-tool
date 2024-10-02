@@ -1,10 +1,9 @@
 {
   "name": "mek_tower",
-  "label": "Therm. Tower",
-  "target-item": "mekanism:basicblock2",
+  "label": "Испарительная колонна",
+  "target-item": "mekanism:basicblock",
   "target-item-meta": 14,
   "allow-rotate": false,
-
   "input-types": {
     "a": {
       "id": "mekanism:basicblock2",

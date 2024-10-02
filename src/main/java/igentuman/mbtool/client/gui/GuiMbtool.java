@@ -22,7 +22,7 @@ public class GuiMbtool extends GuiContainer {
     );
 
     private int curPage = 0;
-    private int pageSize = 36;
+    private int pageSize = 12;
     private final ContainerMbtool container;
 
     private GuiButton nextPageBtn;
@@ -81,8 +81,8 @@ public class GuiMbtool extends GuiContainer {
     {
         recipeBtns.clear();
         List<MultiblockRecipe> recipes = MultiblockRecipes.getAvaliableRecipes();
-        int x = guiLeft+22;
-        int y = guiTop+20;
+        int x = guiLeft+24;
+        int y = guiTop+22;
         int counter = 0;
         int xShift = 0;
         for(int i = curPage*pageSize+2; i < curPage*pageSize+pageSize+2;i++) {
@@ -92,11 +92,11 @@ public class GuiMbtool extends GuiContainer {
                 if (container.getCurrentRecipe()+2 == i) {
                     btn.enabled = false;
                 }
-                y += 24;
-                x = xShift * 28 + guiLeft+22;
-                if (counter % 6 == 0) {
+                y += 47;
+                x = xShift * 46 + guiLeft+24;
+                if (counter % 3 == 0) {
                     xShift++;
-                    y = guiTop+20;
+                    y = guiTop+22;
                 }
                 recipeBtns.add(btn);
                 this.buttonList.add(btn);

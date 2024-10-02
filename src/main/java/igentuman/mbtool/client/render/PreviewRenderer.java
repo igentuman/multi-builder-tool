@@ -1,6 +1,5 @@
 package igentuman.mbtool.client.render;
 
-import com.google.common.base.MoreObjects;
 import igentuman.mbtool.RegistryHandler;
 import igentuman.mbtool.client.handler.ClientHandler;
 import igentuman.mbtool.common.item.ItemMultiBuilder;
@@ -17,6 +16,7 @@ import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
@@ -24,6 +24,9 @@ import org.lwjgl.opengl.GL11;
 
 public class PreviewRenderer {
 
+
+    // Interpolate alpha based on partialTicks
+    private static float interpolatedAlpha = 0.5F;
     public static ItemMultiBuilder mbtool;
     public static MultiblockRecipe recipe = null;
     public static Minecraft mc = Minecraft.getMinecraft();
@@ -110,7 +113,7 @@ public class PreviewRenderer {
         return hit;
     }
 
-    public static boolean renderPreview()
+    public static boolean renderPreview(float partialTicks)
     {
         BlockPos hit = getRayTraceHit();
         if(hit == null) return false;
@@ -133,13 +136,12 @@ public class PreviewRenderer {
         else
             GlStateManager.shadeModel(GL11.GL_FLAT);
 
-        GlStateManager.enableBlend();
-        GlStateManager.enableAlpha();
+
 
         mc.getTextureManager().bindTexture(TextureMap.LOCATION_BLOCKS_TEXTURE);
 
-
-        renderPreviewBlocks();
+        GlStateManager.enableBlend();
+        renderPreviewBlocks(partialTicks);
 
 
         renderBoundaries();
@@ -196,7 +198,7 @@ public class PreviewRenderer {
                         float r = isEmpty ? 0 : 1;
                         float g = isEmpty ? 1 : 0;
                         float b = 0;
-                        float alpha = .175F;
+                        float alpha = 0.2F;
 
 
                         buffer.begin(GL11.GL_LINES, DefaultVertexFormats.POSITION_COLOR);
@@ -205,58 +207,36 @@ public class PreviewRenderer {
                         GlStateManager.scale(1.01, 1.01, 1.01);
 
                         if(!isEmpty || h == height-1) { //top face
-                            if (!isEmpty || true) {
-                                buffer.pos(-.5F, .5F, -.5F).color(r, g, b, alpha).endVertex();
-                                buffer.pos(.5F, .5F, -.5F).color(r, g, b, alpha).endVertex();
-                            }
-                            if (!isEmpty || true) {
-                                buffer.pos(.5F, .5F, -.5F).color(r, g, b, alpha).endVertex();
-                                buffer.pos(.5F, .5F, .5F).color(r, g, b, alpha).endVertex();
-                            }
-                            if (!isEmpty || true) {
-                                buffer.pos(.5F, .5F, .5F).color(r, g, b, alpha).endVertex();
-                                buffer.pos(-.5F, .5F, .5F).color(r, g, b, alpha).endVertex();
-                            }
-                            if(!isEmpty || true) {
-                                buffer.pos(-.5F, .5F, .5F).color(r, g, b, alpha).endVertex();
-                                buffer.pos(-.5F, .5F, -.5F).color(r, g, b, alpha).endVertex();
-                            }
+                            buffer.pos(-.5F, .5F, -.5F).color(r, g, b, alpha).endVertex();
+                            buffer.pos(.5F, .5F, -.5F).color(r, g, b, alpha).endVertex();
+                            buffer.pos(.5F, .5F, -.5F).color(r, g, b, alpha).endVertex();
+                            buffer.pos(.5F, .5F, .5F).color(r, g, b, alpha).endVertex();
+                            buffer.pos(.5F, .5F, .5F).color(r, g, b, alpha).endVertex();
+                            buffer.pos(-.5F, .5F, .5F).color(r, g, b, alpha).endVertex();
+                            buffer.pos(-.5F, .5F, .5F).color(r, g, b, alpha).endVertex();
+                            buffer.pos(-.5F, .5F, -.5F).color(r, g, b, alpha).endVertex();
 
                         }
                         if(!isEmpty) {
                             buffer.pos(-.5F, .5F, -.5F).color(r, g, b, alpha).endVertex();
                             buffer.pos(-.5F, -.5F, -.5F).color(r, g, b, alpha).endVertex();
-                        }
-                        if(!isEmpty) {
                             buffer.pos(.5F, .5F, -.5F).color(r, g, b, alpha).endVertex();
                             buffer.pos(.5F, -.5F, -.5F).color(r, g, b, alpha).endVertex();
-                        }
-                        if(!isEmpty) {
                             buffer.pos(-.5F, .5F, .5F).color(r, g, b, alpha).endVertex();
                             buffer.pos(-.5F, -.5F, .5F).color(r, g, b, alpha).endVertex();
-                        }
-                        if(!isEmpty) {
                             buffer.pos(.5F, .5F, .5F).color(r, g, b, alpha).endVertex();
                             buffer.pos(.5F, -.5F, .5F).color(r, g, b, alpha).endVertex();
                         }
 
                         if(!isEmpty || h == 0) {
-                            if (!isEmpty || true) {
-                                buffer.pos(-.5F, -.5F, -.5F).color(r, g, b, alpha).endVertex();
-                                buffer.pos(.5F, -.5F, -.5F).color(r, g, b, alpha).endVertex();
-                            }
-                            if (!isEmpty || true) {
-                                buffer.pos(.5F, -.5F, -.5F).color(r, g, b, alpha).endVertex();
-                                buffer.pos(.5F, -.5F, .5F).color(r, g, b, alpha).endVertex();
-                            }
-                            if (!isEmpty || true) {
-                                buffer.pos(.5F, -.5F, .5F).color(r, g, b, alpha).endVertex();
-                                buffer.pos(-.5F, -.5F, .5F).color(r, g, b, alpha).endVertex();
-                            }
-                            if(!isEmpty || true) {
-                                buffer.pos(-.5F, -.5F, .5F).color(r, g, b, alpha).endVertex();
-                                buffer.pos(-.5F, -.5F, -.5F).color(r, g, b, alpha).endVertex();
-                            }
+                            buffer.pos(-.5F, -.5F, -.5F).color(r, g, b, alpha).endVertex();
+                            buffer.pos(.5F, -.5F, -.5F).color(r, g, b, alpha).endVertex();
+                            buffer.pos(.5F, -.5F, -.5F).color(r, g, b, alpha).endVertex();
+                            buffer.pos(.5F, -.5F, .5F).color(r, g, b, alpha).endVertex();
+                            buffer.pos(.5F, -.5F, .5F).color(r, g, b, alpha).endVertex();
+                            buffer.pos(-.5F, -.5F, .5F).color(r, g, b, alpha).endVertex();
+                            buffer.pos(-.5F, -.5F, .5F).color(r, g, b, alpha).endVertex();
+                            buffer.pos(-.5F, -.5F, -.5F).color(r, g, b, alpha).endVertex();
                         }
                         tessellator.draw();
                         GlStateManager.enableCull();
@@ -271,9 +251,19 @@ public class PreviewRenderer {
             }
         }
     }
+    private static float dir = 0.005f;
 
-    private static void renderPreviewBlocks() {
+    private static void renderPreviewBlocks(float partialTicks) {
         BlockRendererDispatcher blockRender = mc.getBlockRendererDispatcher();
+        GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
+        GlStateManager.color(1.0f, 1.0f, 1.0f, 0.1f);
+        interpolatedAlpha = interpolatedAlpha + partialTicks*dir;
+        if(interpolatedAlpha >= 0.8f) {
+            dir = -0.005f;
+        }
+        if(interpolatedAlpha <= 0.2f) {
+            dir = 0.005f;
+        }
         int size = Math.max(length, width);
         int bWidth = length;
         int idx = 0;
@@ -320,8 +310,8 @@ public class PreviewRenderer {
                                     break;
                             }
                             GlStateManager.translate(xo, h, zo + 1);
-                            GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
-                            blockRender.renderBlockBrightness(state, 0.2f);
+
+                            blockRender.renderBlockBrightness(state, interpolatedAlpha);
                         }
                     }
                     GlStateManager.popMatrix();
@@ -329,7 +319,8 @@ public class PreviewRenderer {
                 }
             }
         }
-        GlStateManager.disableAlpha();
+        GlStateManager.depthMask(true);
+
         GlStateManager.disableBlend();
     }
 

@@ -25,6 +25,9 @@ public class ContainerMbtool extends Container {
     public void setCurrentRecipe(int id)
     {
         NBTTagCompound nbt = new NBTTagCompound();
+        if(mbtool.hasTagCompound()) {
+            nbt = mbtool.getTagCompound();
+        }
         nbt.setInteger("recipe", id);
         try {
             MultiblockRecipe recipe = MultiblockRecipes.getAvaliableRecipes().get(id);

@@ -11,6 +11,7 @@ mbtool.beam_splitter=Разделитель Лучей
 mbtool.collision_chamber=Камера Столкновений
 mbtool.decay_chamber=Камера Распада
 mbtool.diverter=Отклонитель Лучей
+mbtool.ie_generator=Дизельный генератор
 mbtool.draconic_reactor=Драконий Реактор
 mbtool.extreme_reactor=Экстремальный Реактор
 mbtool.fission=Реактор Деления

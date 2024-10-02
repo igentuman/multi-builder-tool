@@ -1,7 +1,8 @@
 {
   "name": "mek_tank",
-  "label": "Dynamic Tank",
-
+  "label": "Динамический Резервуар",
+  "target-item": "mekanism:basicblock",
+  "target-item-meta": 9,
   "input-types": {
     "a": {
       "id": "mekanism:basicblock",
