@@ -1,29 +1,8 @@
 package igentuman.mbtool.client.render;
 
-import igentuman.mbtool.RegistryHandler;
-import igentuman.mbtool.client.handler.ClientHandler;
-import igentuman.mbtool.common.item.ItemMultiBuilder;
-import igentuman.mbtool.recipe.MultiblockRecipe;
-import igentuman.mbtool.recipe.MultiblockRecipes;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.*;
-import net.minecraft.client.renderer.texture.TextureMap;
-import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Blocks;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.RayTraceResult;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.World;
-import org.lwjgl.opengl.GL11;
-
 public class PreviewRenderer {
 
+/*
 
     // Interpolate alpha based on partialTicks
     private static float interpolatedAlpha = 0.5F;
@@ -323,5 +302,6 @@ public class PreviewRenderer {
 
         GlStateManager.disableBlend();
     }
+*/
 
 }
