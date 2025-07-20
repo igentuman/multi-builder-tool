@@ -1,125 +1,266 @@
-buildscript {
-    repositories {
-        jcenter()
-        maven { url = "http://files.minecraftforge.net/maven" }
-    }
-    dependencies {
-        classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
-    }
+plugins {
+    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+    id 'org.parchmentmc.librarian.forgegradle' version '1.+'
+    id 'org.spongepowered.mixin' version '0.7.+'
+    id 'com.github.johnrengelman.shadow' version '7.0.0'
+    id 'idea'
 }
 
-repositories {
-    maven {
-        name = "CurseForge"
-        url = "https://minecraft.curseforge.com/api/maven/"
-    }
-    maven {
-        name = "Progwml6 maven"
-        url = "https://dvs1.progwml6.com/files/maven/"
-    }
-    maven {
-        name = "ModMaven"
-        url = "https://modmaven.k-4u.nl"
-    }
-    maven {
-        name = "CurseForge"
-        url = "https://www.cursemaven.com"
-    }
-}
+version = "${mod_version}"
+group = 'igentuman.mbtool'
+archivesBaseName = "MultiBuilderTool-${mc_version}"
 
-apply plugin: 'net.minecraftforge.gradle.forge'
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
-version = "1.0.5"
-group = "igentuman.mbtool"
-archivesBaseName = "MultiBuilderTool"
-
-sourceCompatibility = targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
-compileJava {
-    sourceCompatibility = targetCompatibility = '1.8'
-}
-repositories {
-    mavenLocal()
-    mavenCentral()
-    maven {
-        url 'https://minecraft.curseforge.com/api/maven/'
-    }
-    maven {url "http://maven.blamejared.com"}
-    maven {url "http://dvs1.progwml6.com/files/maven"}
-    maven {
-        url 'https://jitpack.io'
-    }
-    maven {
-        url = "https://www.cursemaven.com"
-    }
-    maven {
-        name = "mcmoddev"
-        url = "https://maven.mcmoddev.com"
-    }
-    maven {
-        name = "ModMaven"
-        url = "https://modmaven.dev/"
+println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
+idea {
+    module {
+        downloadJavadoc = true
+        downloadSources = true
     }
 }
 minecraft {
-    version = "1.12.2-14.23.5.2847"
-    runDir = "run"
-    mappings = "stable_39"
+    mappings channel: 'parchment', version: "${mappings_version}-${mc_version}"
+     accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
+
+    runs {
+        client {
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
+            property 'forge.enabledGameTestNamespaces', 'mbtool'
+            args '--width', '1920', '--height', '1080'
+            mods {
+                mbtool {
+                    source sourceSets.main
+                }
+            }
+        }
+
+        server {
+            workingDirectory project.file('server')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
+            property 'forge.enabledGameTestNamespaces', 'mbtool'
+
+            mods {
+                mbtool {
+                    source sourceSets.main
+                }
+            }
+        }
+
+        data {
+            workingDirectory project.file('run')
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+            args '--mod', 'mbtool', '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
+            mods {
+                mbtool {
+                    source sourceSets.main
+                }
+            }
+        }
+    }
 }
-configurations {
-    shade
-    compile.extendsFrom(shade)
+
+sourceSets.main.resources { srcDir 'src/generated/resources' }
+
+repositories {
+    maven { url "https://minecraft.curseforge.com/api/maven/" }
+    maven { url "https://maven.blamejared.com" }
+    maven { url "https://jitpack.io" }
+    maven { url "https://www.cursemaven.com" }
+    maven { url "https://squiddev.cc/maven/" }
+    maven { url "https://maven.tterrag.com/" }
+    maven { url "https://modmaven.dev/" }
+    maven { url "https://maven.firstdarkdev.xyz/snapshots/" }
+    maven { url "https://maven.architectury.dev" }
+    maven { url "https://maven.saps.dev/minecraft" }
+    maven {
+        url "https://maven.latvian.dev/releases"
+        content {
+            includeGroup "dev.latvian.mods"
+            includeGroup "dev.latvian.apps"
+        }
+    }
+
+    maven {
+        url 'https://jitpack.io'
+        content {
+            includeGroup "com.github.rtyley"
+        }
+    }
+
+    maven {
+        name = 'GTCEu Maven'
+        url = 'https://maven.gtceu.com'
+        content {
+            includeGroup 'com.gregtechceu.gtceu'
+        }
+    }
 }
+
 dependencies {
-    implementation 'org.projectlombok:lombok:1.18.28'
-    compileOnly "org.jetbrains:annotations:17.0.0"
-    deobfCompile "net.industrial-craft:industrialcraft-2:${ic2_version}"
-    deobfCompile "curse.maven:immersive-engineering-231951:2974106"
-    deobfCompile "mekanism:Mekanism:${mekanism_version}"
-    deobfCompile "mekanism-generators:MekanismGenerators:${mekanism_version}"
-    deobfCompile "CraftTweaker2:CraftTweaker2-MC1120-Main:${crafttweaker_version}"
-    deobfCompile "base:base:${b_a_s_e_version}"
-    deobfCompile "contenttweaker:ContentTweaker:${contenttweaker_version}"
-    deobfProvided "mezz.jei:jei_1.12.2:${jei_version}:api"
-    implementation "mezz.jei:jei_1.12.2:${jei_version}"
-    runtime "mezz.jei:jei_1.12.2:${jei_version}"
-}
-
-processResources {
-    inputs.property "version", project.version
-    inputs.property "mcversion", project.minecraft.version
-    from(sourceSets.main.resources.srcDirs) {
-        include 'mcmod.info'
-        expand 'version':project.version, 'mcversion':project.minecraft.version
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+    minecraft "net.minecraftforge:forge:${mc_version}-${forge_version}"
+    implementation fg.deobf("com.gregtechceu.gtceu:gtceu-${mc_version}:${gtm_version}"){
+        transitive = false
     }
-    from(sourceSets.main.resources.srcDirs) {
-        exclude 'mcmod.info'
+    //compileOnly fg.deobf("curse.maven:mantle-74924:6603205")
+    //compileOnly fg.deobf("curse.maven:tinkers-construct-74072:6603344")
+    runtimeOnly fg.deobf("curse.maven:construction-wand-399558:4684054")
+    runtimeOnly fg.deobf("curse.maven:spark-361579:4738952")
+/*    implementation fg.deobf("com.lowdragmc.ldlib:ldlib-forge-${mc_version}:${ldlib_version}") {
+        transitive = false
     }
-}
-extractAnnotationsJar.enabled = false
+    implementation fg.deobf("com.tterrag.registrate:Registrate:${registrate_version}") {
+        transitive = false
+    }*/
+    runtimeOnly fg.deobf("curse.maven:ctm-267602:5983309")
+    compileOnly fg.deobf("curse.maven:immersive-engineering-231951:5224387")
 
+    runtimeOnly fg.deobf("curse.maven:the-lost-cities-269024:6174986")
+    compileOnly fg.deobf("mezz.jei:jei-${mc_version}-common-api:${jei_version}")
+    compileOnly fg.deobf("mezz.jei:jei-${mc_version}-forge-api:${jei_version}")
+    implementation fg.deobf("mezz.jei:jei-${mc_version}-forge:${jei_version}")
 
-processResources {
-    inputs.property "version", project.version
-    inputs.property "mc_version", "1.12.2"
+    //runtimeOnly fg.deobf("curse.maven:ctm-267602:4393695")
 
-    rename '(.+_at.cfg)', 'META-INF/$1'
+    compileOnly fg.deobf("mcjty.theoneprobe:theoneprobe:${top_version}:api") {
+        transitive = false
+    }
+    runtimeOnly fg.deobf("mcjty.theoneprobe:theoneprobe:${top_version}") {
+        transitive = false
+    }
+
+    compileOnly fg.deobf("dev.latvian.mods:kubejs-forge:${kubejs_version}"){
+        transitive = false
+    }
+
+    compileOnly fg.deobf("dev.latvian.mods:rhino-forge:${rhino_version}"){
+        transitive = false
+    }
+    compileOnly fg.deobf("dev.architectury:architectury-forge:${architectury_version}")
+    //implementation fg.deobf("curse.maven:ftb-library-forge-404465:5282375")
+    //implementation fg.deobf("curse.maven:ftb-teams-forge-404468:5267190")
+    //implementation fg.deobf("curse.maven:ftb-chunks-forge-314906:5267364")
+
+    //runtimeOnly fg.deobf("curse.maven:nbtedit-reborn-678133:4420565")
+    //runtimeOnly fg.deobf("com.blamejared.crafttweaker:CraftTweaker-forge-${mc_version}:${ct_version}")
+
+    compileOnly fg.deobf("curse.maven:emi-580555:5872526")
+/*    runtimeOnly fg.deobf("curse.maven:large-ore-deposits-318833:6251845") {
+        transitive = false
+    }
+    runtimeOnly fg.deobf("curse.maven:forgeendertech-244844:6030567"){
+        transitive = false
+    }*/
+    implementation fg.deobf("mekanism:Mekanism:${mc_version}-${mekanism_version}")
+    implementation fg.deobf("mekanism:Mekanism:${mc_version}-${mekanism_version}:generators")
+    //compileOnly fg.deobf("mekanism:Mekanism:${mc_version}-${mekanism_version}:api")
+
+    compileOnly("cc.tweaked:cc-tweaked-${mc_version}-core-api:${cc_version}")
+    compileOnly(fg.deobf("cc.tweaked:cc-tweaked-${mc_version}-forge-api:${cc_version}"))
+    implementation fg.deobf("cc.tweaked:cc-tweaked-${mc_version}-forge:${cc_version}")
+
+    compileOnly fg.deobf("curse.maven:sedna-511276:${sedna_version}")
+    compileOnly fg.deobf("curse.maven:markdownmanual-502485:${md_version}")
+    compileOnly fg.deobf("curse.maven:oc2r-1037738:${oc2_version}")
+
+    compileOnly fg.deobf("vazkii.patchouli:Patchouli:${mc_version}-${patchouli_version}:api")
+    runtimeOnly fg.deobf("vazkii.patchouli:Patchouli:${mc_version}-${patchouli_version}")
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.2'
+
+// Mockito dependencies
+    testImplementation 'org.mockito:mockito-core:5.3.1'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.3.1'
 }
 
 jar {
     manifest {
         attributes([
-                "Specification-Title": "mbtool",
-                "Specification-Vendor": "igentuman",
-                "Specification-Version": "1",
-                "Implementation-Title": project.name,
-                "Implementation-Version": "${version}",
-                "Implementation-Vendor" : "igentuman",
-                "FMLAT": "dveins_at.cfg",
-                "FMLCorePlugin": "igentuman.mbtool.reflection.ReflectorsPlugin",
-                "FMLCorePluginContainsFMLMod": "true",
+                "Specification-Title"     : "mbtool",
+                "Specification-Vendor"    : "mbtoolsareus",
+                "Specification-Version"   : "1",
+                "Implementation-Title"    : project.name,
+                "Implementation-Version"  : project.jar.archiveVersion,
+                "Implementation-Vendor"   : "mbtoolsareus",
                 "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
         ])
     }
 }
 
-jar.finalizedBy('reobfJar')
+mixin {
+    add sourceSets.main, "mbtool.refmap.json"
+    config "mbtool.mixins.json"
+}
+
+jar.enabled = false
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
+}
+
+configurations {
+    shaded {
+        transitive = false
+    }
+}
+
+test {
+    useJUnitPlatform()
+}
+
+tasks.named('processResources', ProcessResources).configure {
+    var replaceProperties = [
+            'version': version,
+    ]
+    inputs.properties replaceProperties
+
+    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
+        expand replaceProperties + [project: project]
+    }
+}
+
+shadowJar {
+    finalizedBy 'reobfShadowJar'
+
+    from sourceSets.main.output.classesDirs
+    from sourceSets.main.output.resourcesDir
+
+    manifest {
+        attributes([
+                "Specification-Title"   : "NuclearCraft",
+                "Specification-Vendor"  : "igentuman",
+                "Specification-Version" : "${project.version}",
+                "Implementation-Title"  : "${project.name}",
+                "Implementation-Version": "${version}",
+                "Implementation-Vendor" : "igentuman",
+                "MixinConfigs"          : "mbtool.mixins.json"
+        ])
+    }
+
+    configurations = [project.configurations.shaded]
+    archiveClassifier = null
+}
+
+
+
+reobf {
+    shadowJar {}
+}
+
+afterEvaluate {
+    tasks.reobfJar.enabled = false
+}
+
+tasks.assemble.dependsOn reobfShadowJar

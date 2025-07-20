@@ -1,0 +1,21 @@
+{
+  "required": true,
+  "package": "igentuman.nc.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "nuclearcraft.refmap.json",
+  "mixins": [
+    "KubeJSRecipesEventJSMixin",
+    "LightningRodBlockMixin",
+    "MekRadiationManager",
+    "TagLoaderMixin",
+    "TemplatePoolAccess",
+    "OverworldBiomeBuilderInvoker",
+    "OverworldBiomeBuilderMixin"
+  ],
+  "server": [
+  ],
+  "client": [
+
+  ],
+  "minVersion": "0.8"
+}

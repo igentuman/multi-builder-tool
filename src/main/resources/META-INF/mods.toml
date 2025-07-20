@@ -1,0 +1,26 @@
+modLoader="javafml"
+loaderVersion="[43.3.10,)"
+license="MIT"
+[[mods]] 
+modId="mbtool"
+version="${version}"
+displayName="Multibuilder Tool"
+logoFile="logo.png"
+credits=""
+authors="igentuman"
+description='''
+Build multiblocks in one click!
+'''
+
+[[dependencies.mbtool]]
+modId="forge" 
+mandatory=true 
+versionRange="[43.3.10,)"
+ordering="NONE"
+side="BOTH"
+[[dependencies.mbtool]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1,)"
+ordering="NONE"
+side="BOTH"
