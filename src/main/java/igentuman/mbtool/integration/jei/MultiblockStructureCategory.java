@@ -29,9 +29,9 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.Map;
 
+import static igentuman.mbtool.Mbtool.MBTOOL;
 import static igentuman.mbtool.Mbtool.MODID;
 import static igentuman.mbtool.util.TextUtils.__;
-import static net.minecraft.world.item.Items.STICK;
 
 
 @SuppressWarnings("removal")
@@ -53,7 +53,7 @@ public class MultiblockStructureCategory implements IRecipeCategory<MultiblockSt
 
     public MultiblockStructureCategory(IGuiHelper guiHelper) {
         this.background = guiHelper.createBlankDrawable(160, 120);
-        this.icon = guiHelper.createDrawableIngredient(VanillaTypes.ITEM_STACK, new ItemStack(STICK));
+        this.icon = guiHelper.createDrawableIngredient(VanillaTypes.ITEM_STACK, new ItemStack(MBTOOL.get()));
         this.title = Component.translatable("jei.category." + MODID + ".multiblock_structure");
         this.renderer = new MultiblockRenderer();
     }

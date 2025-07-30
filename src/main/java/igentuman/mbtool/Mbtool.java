@@ -10,8 +10,11 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraftforge.common.extensions.IForgeMenuType;
+import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
@@ -21,6 +24,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 
 @Mod(
        igentuman.mbtool.Mbtool.MODID
@@ -40,6 +44,7 @@ public class Mbtool
     public static final RegistryObject<MenuType<MultibuilderSelectStructureContainer>> MULTIBUILDER_STRUCTURE_CONTAINER = CONTAINERS.register("mbtool_structure_container",
             () -> IForgeMenuType.create((windowId, inv, data) -> new MultibuilderSelectStructureContainer(windowId, data.readBlockPos(), inv, data.readInt())));
 
+
     public Mbtool() {
         this(FMLJavaModLoadingContext.get());
     }
@@ -49,6 +54,7 @@ public class Mbtool
         CONTAINERS.register(context.getModEventBus());
         context.getModEventBus().addListener(this::commonSetup);
         context.getModEventBus().addListener(Mbtool::init);
+        context.getModEventBus().addListener(this::addCreative);
     }
     
     private void commonSetup(FMLCommonSetupEvent event) {
@@ -61,6 +67,12 @@ public class Mbtool
                 (MultibuilderSelectStructureContainer container, Inventory inventory, Component title) -> 
                     new MultibuilderSelectStructureScreen(container, inventory, title));
         });
+    }
+
+    private void addCreative(BuildCreativeModeTabContentsEvent event) {
+        if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
+            event.accept(MBTOOL);
+        }
     }
 
     public static ResourceLocation rlFromString(String name) {

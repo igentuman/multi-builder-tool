@@ -4,6 +4,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -17,10 +18,14 @@ import static net.minecraft.world.level.block.state.StateHolder.PROPERTIES_TAG;
 
 public class MultiblockStructure {
     private final Map<BlockPos, BlockState> blocks = new HashMap<>();
+    private CompoundTag nbt;
+    private String name;
     private int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE;
     private int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
-    
+    private ResourceLocation location;
+
     public MultiblockStructure(CompoundTag nbt) {
+        this.nbt = nbt;
         if (nbt.contains("blocks", Tag.TAG_LIST)) {
             ListTag blocksList = nbt.getList("blocks", Tag.TAG_COMPOUND);
             ListTag palette = nbt.getList("palette", Tag.TAG_COMPOUND);
@@ -76,6 +81,12 @@ public class MultiblockStructure {
         }
     }
 
+    public MultiblockStructure(ResourceLocation rl, CompoundTag nbt, String file) {
+        this(nbt);
+        location = rl;
+        name = file;
+    }
+
     @SuppressWarnings("unchecked")
     private static <S extends BlockState, T extends Comparable<T>> S setPropertyValue(S blockState,
           net.minecraft.world.level.block.state.properties.Property<T> property, Object value) {
@@ -112,4 +123,16 @@ public class MultiblockStructure {
     public int getMaxX() { return maxX; }
     public int getMaxY() { return maxY; }
     public int getMaxZ() { return maxZ; }
+
+    public ResourceLocation getId() {
+        return location;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public CompoundTag getStructureNbt() {
+        return nbt;
+    }
 }
