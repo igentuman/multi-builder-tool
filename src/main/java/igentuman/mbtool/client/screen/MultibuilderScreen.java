@@ -59,7 +59,8 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
             MultibuilderSelectStructureScreen newScreen = new MultibuilderSelectStructureScreen(
                 container,
                 player.getInventory(),
-                Component.translatable("gui.mbtool.select_structure")
+                Component.translatable("gui.mbtool.select_structure"),
+                this
             );
             
             this.minecraft.setScreen(newScreen);

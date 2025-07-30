@@ -6,7 +6,9 @@ import igentuman.mbtool.container.MultibuilderContainer;
 import igentuman.mbtool.container.MultibuilderSelectStructureContainer;
 import igentuman.mbtool.item.MultibuilderItem;
 import net.minecraft.client.gui.screens.MenuScreens;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.Item;
 import net.minecraftforge.common.extensions.IForgeMenuType;
@@ -55,7 +57,9 @@ public class Mbtool
     public static void init(FMLClientSetupEvent event) {
         event.enqueueWork(() -> {
             MenuScreens.register(MULTIBUILDER_CONTAINER.get(), MultibuilderScreen::new);
-            MenuScreens.register(MULTIBUILDER_STRUCTURE_CONTAINER.get(), MultibuilderSelectStructureScreen::new);
+            MenuScreens.register(MULTIBUILDER_STRUCTURE_CONTAINER.get(), 
+                (MultibuilderSelectStructureContainer container, Inventory inventory, Component title) -> 
+                    new MultibuilderSelectStructureScreen(container, inventory, title));
         });
     }
 

@@ -3,6 +3,7 @@ package igentuman.mbtool.client.screen;
 import igentuman.mbtool.container.MultibuilderContainer;
 import igentuman.mbtool.container.MultibuilderSelectStructureContainer;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -12,12 +13,18 @@ import org.jetbrains.annotations.NotNull;
 import static igentuman.mbtool.Mbtool.rl;
 
 public class MultibuilderSelectStructureScreen extends AbstractContainerScreen<MultibuilderSelectStructureContainer> {
-    private static final ResourceLocation TEXTURE = rl("textures/gui/container/mbtool_inventory.png");
+    private static final ResourceLocation TEXTURE = rl("textures/gui/container/mbtool.png");
+    private final Screen previousScreen;
 
     public MultibuilderSelectStructureScreen(MultibuilderSelectStructureContainer pMenu, Inventory pPlayerInventory, Component pTitle) {
+        this(pMenu, pPlayerInventory, pTitle, null);
+    }
+
+    public MultibuilderSelectStructureScreen(MultibuilderSelectStructureContainer pMenu, Inventory pPlayerInventory, Component pTitle, Screen previousScreen) {
         super(pMenu, pPlayerInventory, pTitle);
         this.imageWidth = 186;
         this.imageHeight = 186;
+        this.previousScreen = previousScreen;
     }
 
     @Override
@@ -36,6 +43,14 @@ public class MultibuilderSelectStructureScreen extends AbstractContainerScreen<M
     @Override
     protected void renderLabels(@NotNull GuiGraphics graphics, int mouseX, int mouseY) {
         graphics.drawString(this.font, this.title, this.inventoryLabelX, 3, 4210752, false);
-        graphics.drawString(this.font, this.playerInventoryTitle, this.inventoryLabelX, 85, 4210752, false);
+    }
+
+    @Override
+    public void onClose() {
+        if (this.previousScreen != null && this.minecraft != null) {
+            this.minecraft.setScreen(this.previousScreen);
+        } else {
+            super.onClose();
+        }
     }
 }
