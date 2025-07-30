@@ -1,20 +1,69 @@
 package igentuman.mbtool.client.screen;
 
-import igentuman.mbtool.Mbtool;
 import igentuman.mbtool.container.MultibuilderContainer;
+import igentuman.mbtool.container.MultibuilderSelectStructureContainer;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import org.jetbrains.annotations.NotNull;
 
-public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderContainer<?>> {
-    private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(Mbtool.MODID, "textures/gui/container/mbtool.png");
+import static igentuman.mbtool.Mbtool.rl;
+
+public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderContainer> {
+    private static final ResourceLocation TEXTURE = rl("textures/gui/container/mbtool_inventory.png");
+    private Button chooseButton;
     
-    public MultibuilderScreen(MultibuilderContainer<?> pMenu, Inventory pPlayerInventory, Component pTitle) {
+    public MultibuilderScreen(MultibuilderContainer pMenu, Inventory pPlayerInventory, Component pTitle) {
         super(pMenu, pPlayerInventory, pTitle);
-        this.imageWidth = 176;
-        this.imageHeight = 166;
+        this.imageWidth = 186;
+        this.imageHeight = 186;
+    }
+
+    @Override
+    protected void init() {
+        super.init();
+        
+        // Position the button in the GUI
+        int x = this.leftPos + 119;
+        int y = this.topPos + 67;
+        int buttonWidth = 57;
+        int buttonHeight = 17;
+        
+        this.chooseButton = Button.builder(
+                Component.translatable("gui.mbtool.choose"),
+            this::onChooseButtonClick
+        ).bounds(x, y, buttonWidth, buttonHeight)
+                .tooltip(Tooltip.create(Component.translatable("gui.mbtool.select_structure")))
+                .build();
+        
+        this.addRenderableWidget(this.chooseButton);
+    }
+    
+    private void onChooseButtonClick(Button button) {
+        if (this.minecraft != null && this.minecraft.player != null) {
+            Player player = this.minecraft.player;
+            int slot = player.getInventory().selected;
+            
+            MultibuilderSelectStructureContainer container = new MultibuilderSelectStructureContainer(
+                0,
+                player.blockPosition(),
+                player.getInventory(),
+                slot
+            );
+            
+            MultibuilderSelectStructureScreen newScreen = new MultibuilderSelectStructureScreen(
+                container,
+                player.getInventory(),
+                Component.translatable("gui.mbtool.select_structure")
+            );
+            
+            this.minecraft.setScreen(newScreen);
+        }
     }
 
     @Override
@@ -29,5 +78,10 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
         this.renderBackground(pGuiGraphics);
         super.render(pGuiGraphics, pMouseX, pMouseY, pPartialTick);
         this.renderTooltip(pGuiGraphics, pMouseX, pMouseY);
+    }
+    @Override
+    protected void renderLabels(@NotNull GuiGraphics graphics, int mouseX, int mouseY) {
+        graphics.drawString(this.font, this.title, this.inventoryLabelX, 3, 4210752, false);
+        graphics.drawString(this.font, this.playerInventoryTitle, this.inventoryLabelX, 85, 4210752, false);
     }
 }

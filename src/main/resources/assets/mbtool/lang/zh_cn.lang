@@ -1,6 +1,0 @@
-item.mbtool.name=多方块构建工具
-mbtool.mek_boiler=锅炉
-container.mbtool=多方块构建工具
-container.mbtool.energy=能量存储：%s RF
-tooltip.mbtool.gui_key=SHIFT+右击以打开 GUI
-tooltip.mbtool.rotate_keys=使用方向键以旋转

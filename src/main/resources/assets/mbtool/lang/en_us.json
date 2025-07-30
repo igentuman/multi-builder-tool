@@ -1,3 +1,5 @@
 {
-  "gui.mbtool.multibuilder": "Multibuilder Tool"
+  "gui.mbtool.multibuilder": "Multibuilder Tool",
+  "gui.mbtool.select_structure": "Select Structure",
+  "gui.mbtool.choose": "Choose"
 }

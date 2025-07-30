@@ -13,12 +13,12 @@ import org.jetbrains.annotations.Nullable;
 import static igentuman.mbtool.Mbtool.MBTOOL;
 import static igentuman.mbtool.Mbtool.MULTIBUILDER_CONTAINER;
 
-public class MultibuilderContainer extends AbstractContainerMenu {
-    public MultibuilderContainer(@Nullable MenuType<?> pMenuType, int pContainerId) {
+public class MultibuilderSelectStructureContainer extends AbstractContainerMenu {
+    public MultibuilderSelectStructureContainer(@Nullable MenuType<?> pMenuType, int pContainerId) {
         super(pMenuType, pContainerId);
     }
 
-    public MultibuilderContainer(int pContainerId, BlockPos pos, Inventory pPlayerInventory, int slot) {
+    public MultibuilderSelectStructureContainer(int pContainerId, BlockPos pos, Inventory pPlayerInventory, int slot) {
         super(MULTIBUILDER_CONTAINER.get(), pContainerId);
         
         // Add player inventory slots

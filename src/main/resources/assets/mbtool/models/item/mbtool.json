@@ -2,8 +2,8 @@
 	"credit": "Made with Blockbench",
 	"texture_size": [32, 32],
 	"textures": {
-		"0": "mbtool:items/mbtool",
-		"particle": "mbtool:items/mbtool"
+		"0": "mbtool:item/mbtool",
+		"particle": "mbtool:item/mbtool"
 	},
 	"elements": [
 		{
