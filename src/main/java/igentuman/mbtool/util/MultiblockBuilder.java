@@ -73,9 +73,6 @@ public class MultiblockBuilder {
             }
         }
         
-        // Check if the area is clear and we can place blocks
-        BlockPos structureCenter = structure.getCenter();
-        
         for (Map.Entry<BlockPos, BlockState> entry : structure.getBlocks().entrySet()) {
             BlockPos relativePos = entry.getKey();
             BlockPos worldPos = centerPos.offset(relativePos);

@@ -9,11 +9,15 @@ import igentuman.mbtool.item.MultibuilderItem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
+import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -23,7 +27,10 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import org.joml.Matrix3f;
 import org.joml.Matrix4f;
+
+import java.util.List;
 
 import java.util.Map;
 
@@ -148,7 +155,10 @@ public class PreviewRenderer {
         RenderSystem.defaultBlendFunc();
         RenderSystem.disableDepthTest();
         
+        // Render blocks first (they use translucent render type)
         renderPreviewBlocks(poseStack, partialTicks);
+        
+        // Then render boundaries on top
         renderBoundaries(poseStack);
 
         RenderSystem.enableDepthTest();
@@ -265,13 +275,13 @@ public class PreviewRenderer {
         if (interpolatedAlpha >= 0.8f) {
             dir = -0.005f;
         }
-        if (interpolatedAlpha <= 0.2f) {
+        if (interpolatedAlpha <= 0.3f) {
             dir = 0.005f;
         }
         
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
-        RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, interpolatedAlpha);
+        RenderSystem.disableDepthTest();
         
         // Get the buffer source for rendering
         var bufferSource = mc.renderBuffers().bufferSource();
@@ -315,8 +325,8 @@ public class PreviewRenderer {
                 poseStack.translate(rotatedX, yo, rotatedZ);
                 
                 try {
-                    // Render the block with full brightness
-                    blockRenderer.renderSingleBlock(blockState, poseStack, bufferSource, 15728880, OverlayTexture.NO_OVERLAY);
+                    // Render the block with transparency using translucent render type
+                    renderTranslucentBlock(blockState, poseStack, bufferSource, interpolatedAlpha);
                 } catch (Exception e) {
                     // Fallback: render a simple colored cube if block rendering fails
                     renderSimpleCube(poseStack, bufferSource);
@@ -329,8 +339,72 @@ public class PreviewRenderer {
         // Flush the buffer to ensure all blocks are rendered
         bufferSource.endBatch();
         
-        RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
+        RenderSystem.enableDepthTest();
         RenderSystem.disableBlend();
+    }
+    
+    private static void renderTranslucentBlock(BlockState blockState, PoseStack poseStack, 
+                                             net.minecraft.client.renderer.MultiBufferSource bufferSource, 
+                                             float alpha) {
+        BlockRenderDispatcher blockRenderer = mc.getBlockRenderer();
+        BakedModel model = blockRenderer.getBlockModel(blockState);
+        RandomSource random = RandomSource.create(42L);
+        
+        // Get translucent buffer for transparency
+        VertexConsumer buffer = bufferSource.getBuffer(RenderType.translucent());
+        
+        // Render all faces of the block model with custom alpha
+        for (Direction direction : Direction.values()) {
+            List<BakedQuad> quads = model.getQuads(blockState, direction, random);
+            renderQuadsWithAlpha(poseStack, buffer, quads, alpha, 15728880, OverlayTexture.NO_OVERLAY);
+        }
+        
+        // Render quads without specific direction (general quads)
+        List<BakedQuad> generalQuads = model.getQuads(blockState, null, random);
+        renderQuadsWithAlpha(poseStack, buffer, generalQuads, alpha, 15728880, OverlayTexture.NO_OVERLAY);
+    }
+    
+    private static void renderQuadsWithAlpha(PoseStack poseStack, VertexConsumer buffer, 
+                                           List<BakedQuad> quads, float alpha, 
+                                           int light, int overlay) {
+        Matrix4f pose = poseStack.last().pose();
+        Matrix3f normal = poseStack.last().normal();
+        
+        for (BakedQuad quad : quads) {
+            int[] vertices = quad.getVertices();
+            Vec3 quadNormal = new Vec3(quad.getDirection().getNormal().getX(), 
+                                     quad.getDirection().getNormal().getY(), 
+                                     quad.getDirection().getNormal().getZ());
+            
+            // Process each vertex (4 vertices per quad)
+            for (int i = 0; i < 4; i++) {
+                int vertexIndex = i * 8; // Each vertex has 8 integers of data
+                
+                // Extract position
+                float x = Float.intBitsToFloat(vertices[vertexIndex]);
+                float y = Float.intBitsToFloat(vertices[vertexIndex + 1]);
+                float z = Float.intBitsToFloat(vertices[vertexIndex + 2]);
+                
+                // Extract color (if available)
+                int color = vertices[vertexIndex + 3];
+                float r = ((color >> 16) & 0xFF) / 255.0f;
+                float g = ((color >> 8) & 0xFF) / 255.0f;
+                float b = (color & 0xFF) / 255.0f;
+                
+                // Extract UV coordinates
+                float u = Float.intBitsToFloat(vertices[vertexIndex + 4]);
+                float v = Float.intBitsToFloat(vertices[vertexIndex + 5]);
+                
+                // Add vertex with custom alpha
+                buffer.vertex(pose, x, y, z)
+                      .color(r, g, b, alpha)
+                      .uv(u, v)
+                      .overlayCoords(overlay)
+                      .uv2(light)
+                      .normal(normal, (float)quadNormal.x, (float)quadNormal.y, (float)quadNormal.z)
+                      .endVertex();
+            }
+        }
     }
     
     private static void renderSimpleCube(PoseStack poseStack, net.minecraft.client.renderer.MultiBufferSource bufferSource) {
