@@ -65,7 +65,7 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
                 if (recipeIndex >= 0) {
                     // Ensure structures are loaded
                     if (MultiblocksProvider.structures.isEmpty()) {
-                        MultiblocksProvider.loadMultiblockStructures();
+                        MultiblocksProvider.getStructures();
                     }
                     
                     if (recipeIndex < MultiblocksProvider.structures.size()) {
@@ -105,7 +105,7 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
         int y = (this.height - this.imageHeight) / 2;
         pGuiGraphics.blit(TEXTURE, x, y, 0, 0, this.imageWidth, this.imageHeight);
         if(selectedStructure > -1) {
-            List<MultiblockStructure> allStructures = MultiblocksProvider.loadMultiblockStructures();
+            List<MultiblockStructure> allStructures = MultiblocksProvider.getStructures();
 
             // Render the selected structure
             MultiblockRenderer.render(

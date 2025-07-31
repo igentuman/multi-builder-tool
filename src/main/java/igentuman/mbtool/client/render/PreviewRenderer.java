@@ -85,7 +85,7 @@ public class PreviewRenderer {
         
         // Ensure structures are loaded
         if (MultiblocksProvider.structures.isEmpty()) {
-            MultiblocksProvider.loadMultiblockStructures();
+            MultiblocksProvider.getStructures();
         }
         
         if (recipeIndex < 0 || recipeIndex >= MultiblocksProvider.structures.size()) {

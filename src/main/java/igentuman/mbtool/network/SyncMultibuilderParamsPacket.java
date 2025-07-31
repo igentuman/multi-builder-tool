@@ -58,7 +58,7 @@ public class SyncMultibuilderParamsPacket {
             
             // Ensure structures are loaded on server
             if (MultiblocksProvider.structures.isEmpty()) {
-                MultiblocksProvider.loadMultiblockStructures();
+                MultiblocksProvider.getStructures();
             }
             
             // Validate recipe index

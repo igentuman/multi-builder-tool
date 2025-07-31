@@ -84,7 +84,7 @@ public class MultibuilderItem extends Item {
                     
                     // Ensure structures are loaded on client
                     if (MultiblocksProvider.structures.isEmpty()) {
-                        MultiblocksProvider.loadMultiblockStructures();
+                        MultiblocksProvider.getStructures();
                     }
                     
                     // Validate recipe index on client
@@ -309,7 +309,7 @@ public class MultibuilderItem extends Item {
             
             // Ensure structures are loaded
             if (MultiblocksProvider.structures.isEmpty()) {
-                MultiblocksProvider.loadMultiblockStructures();
+                MultiblocksProvider.getStructures();
             }
             
             int recipeIndex = stack.getOrCreateTag().getInt("recipe");
@@ -380,7 +380,7 @@ public class MultibuilderItem extends Item {
         
         // Ensure structures are loaded
         if (MultiblocksProvider.structures.isEmpty()) {
-            MultiblocksProvider.loadMultiblockStructures();
+            MultiblocksProvider.getStructures();
         }
         
         if (recipeIndex < 0 || recipeIndex >= MultiblocksProvider.structures.size()) {

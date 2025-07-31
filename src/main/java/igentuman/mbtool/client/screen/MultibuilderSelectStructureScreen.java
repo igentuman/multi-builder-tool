@@ -240,7 +240,7 @@ public class MultibuilderSelectStructureScreen extends AbstractContainerScreen<M
      * Load structures from MultiblocksProvider and calculate pagination
      */
     private void loadStructures() {
-        allStructures = MultiblocksProvider.loadMultiblockStructures();
+        allStructures = MultiblocksProvider.getStructures();
         filteredStructures = new ArrayList<>(allStructures);
         
         // Calculate number of pages needed

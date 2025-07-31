@@ -31,7 +31,7 @@ public class JEIPlugin implements IModPlugin {
     }
 
     private List<MultiblockStructureRecipe> loadMultiblockStructures() {
-        return MultiblocksProvider.loadMultiblockStructures()
+        return MultiblocksProvider.getStructures()
                 .stream()
                 .map(structure -> new MultiblockStructureRecipe(
                         structure.getId(),

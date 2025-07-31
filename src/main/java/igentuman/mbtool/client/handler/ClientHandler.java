@@ -14,7 +14,7 @@ public class ClientHandler
 			
 			// Ensure structures are loaded
 			if (MultiblocksProvider.structures.isEmpty()) {
-				MultiblocksProvider.loadMultiblockStructures();
+				MultiblocksProvider.getStructures();
 			}
 			
 			int recipeIndex = item.getOrCreateTag().getInt("recipe");
