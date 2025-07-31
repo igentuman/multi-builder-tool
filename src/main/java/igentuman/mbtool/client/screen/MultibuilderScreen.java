@@ -1,7 +1,10 @@
 package igentuman.mbtool.client.screen;
 
+import igentuman.mbtool.client.render.MultiblockRenderer;
+import igentuman.mbtool.common.MultiblocksProvider;
 import igentuman.mbtool.container.MultibuilderContainer;
 import igentuman.mbtool.container.MultibuilderSelectStructureContainer;
+import igentuman.mbtool.integration.jei.MultiblockStructure;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
@@ -12,11 +15,14 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.List;
+
 import static igentuman.mbtool.Mbtool.rl;
 
 public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderContainer> {
     private static final ResourceLocation TEXTURE = rl("textures/gui/container/mbtool_inventory.png");
     private Button chooseButton;
+    public int selectedStructure = -1;
     
     public MultibuilderScreen(MultibuilderContainer pMenu, Inventory pPlayerInventory, Component pTitle) {
         super(pMenu, pPlayerInventory, pTitle);
@@ -72,6 +78,16 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
         int x = (this.width - this.imageWidth) / 2;
         int y = (this.height - this.imageHeight) / 2;
         pGuiGraphics.blit(TEXTURE, x, y, 0, 0, this.imageWidth, this.imageHeight);
+        if(selectedStructure > -1) {
+            List<MultiblockStructure> allStructures = MultiblocksProvider.loadMultiblockStructures();
+
+            // Render the selected structure
+            MultiblockRenderer.render(
+                allStructures.get(selectedStructure),
+                pGuiGraphics.pose(),
+                x + 118, y + 9, 60, 60
+            );
+        }
     }
 
     @Override

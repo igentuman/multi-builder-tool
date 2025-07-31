@@ -1,5 +1,8 @@
 {
   "gui.mbtool.multibuilder": "Multibuilder Tool",
   "gui.mbtool.select_structure": "Select Structure",
-  "gui.mbtool.choose": "Choose"
+  "gui.mbtool.choose": "Choose",
+  "item.mbtool.mbtool": "Multibuilder Tool",
+  "tooltip.mbtool.energy_stored": "Energy Stored: %s",
+  "jei.category.mbtool.multiblock_structure": "Multiblock Structure"
 }

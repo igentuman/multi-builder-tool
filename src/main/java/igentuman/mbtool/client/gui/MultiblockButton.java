@@ -100,8 +100,7 @@ public class MultiblockButton extends AbstractButton {
             
             try {
                 // Enable scissor test to clip rendering to button bounds
-                // Get the current GUI scale
-                double guiScale = guiGraphics.pose().last().pose().m00();
+                double guiScale = Minecraft.getInstance().getWindow().getGuiScale();
                 int scaledX = (int) (this.getX() * guiScale);
                 int scaledY = (int) (this.getY() * guiScale);
                 int scaledWidth = (int) (this.width * guiScale);
@@ -126,6 +125,8 @@ public class MultiblockButton extends AbstractButton {
             } catch (Exception e) {
                 // If rendering fails, just continue without the structure
                 // This prevents crashes if there are issues with the multiblock data
+                System.err.println("Failed to render multiblock structure: " + e.getMessage());
+                e.printStackTrace();
             } finally {
                 RenderSystem.disableScissor();
                 guiGraphics.pose().popPose();

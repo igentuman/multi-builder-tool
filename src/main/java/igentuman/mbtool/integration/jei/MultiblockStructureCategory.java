@@ -80,6 +80,8 @@ public class MultiblockStructureCategory implements IRecipeCategory<MultiblockSt
     
     @Override
     public void setRecipe(IRecipeLayoutBuilder builder, MultiblockStructureRecipe recipe, IFocusGroup focuses) {
+        builder.addInvisibleIngredients(RecipeIngredientRole.CATALYST).addItemLike(MBTOOL.get());
+        builder.addInvisibleIngredients(RecipeIngredientRole.OUTPUT).addItemLike(MBTOOL.get());
         builder.addInvisibleIngredients(RecipeIngredientRole.OUTPUT).addIngredients(recipe.getIngredients());
         builder.addInvisibleIngredients(RecipeIngredientRole.INPUT).addIngredients(recipe.getIngredients());
     }

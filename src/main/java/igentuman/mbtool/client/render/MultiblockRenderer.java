@@ -36,73 +36,88 @@ public class MultiblockRenderer {
             return;
         }
 
-        Minecraft minecraft = Minecraft.getInstance();
-        BlockRenderDispatcher blockRenderer = minecraft.getBlockRenderer();
-        Vec3i size = getSize(structure);
-        int width = size.getX();
-        int height = size.getY();
-        int depth = size.getZ();
-
-        // Calculate appropriate scale to fit within the provided dimensions
-        float maxDimension = Math.max(Math.max(width, height), depth);
-        float scaleFactor = 0.8f; // Allow some margin around the structure
-        float scale = (scaleFactor * Math.min(w, h)) / maxDimension;
-
         stack.pushPose();
         
-        // Center within the provided x, y, w, h bounds
-        stack.translate(x + w / 2.0f, y + h / 2.0f, 100);
+        // Set up proper GUI rendering state
+        RenderSystem.enableDepthTest();
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
         
+        // Center within the provided x, y, w, h bounds with proper Z positioning for GUI
+        stack.translate(x + w / 2.0f, y + h / 2.0f, 100.0f);
+        
+        // Calculate appropriate scale to fit within the provided dimensions
+        float maxDimension = Math.max(Math.max(structure.getWidth(), structure.getHeight()), structure.getDepth());
+        float baseScale = Math.min(w, h) * 0.9f; // Use 90% of available space
+        float scale = baseScale / maxDimension;
+        stack.scale(scale, -scale, scale); // Negative Y scale to match GUI coordinates
+
         // Apply isometric-style rotation for better viewing angle
         stack.mulPose(new Quaternionf().rotationX((float) Math.toRadians(30)));
-        stack.mulPose(new Quaternionf().rotationY((float) Math.toRadians(-135)));
+        stack.mulPose(new Quaternionf().rotationY((float) Math.toRadians(-45)));
 
-        // Scale to fit within bounds
+        // Use the correct implementation from JEI category
+        renderStructure(structure, stack);
+
+        // Restore render state
+        RenderSystem.disableBlend();
+
+        stack.popPose();
+    }
+
+    private static void renderStructure(MultiblockStructure structure, PoseStack stack) {
+        Minecraft minecraft = Minecraft.getInstance();
+        BlockRenderDispatcher blockRenderer = minecraft.getBlockRenderer();
+
+        // Get all blocks and calculate structure center for better positioning
+        Map<BlockPos, BlockState> blocks = structure.getBlocks();
+        if (blocks.isEmpty()) return;
+
+        // Calculate structure dimensions for scaling
+        int width = structure.getWidth();
+        int height = structure.getHeight();
+        int depth = structure.getDepth();
+        float scale = (float) (1.2f / (Math.log10(Math.max(Math.max(width, height), depth)+105)));
+
+        // Apply scaling to fit the structure in view
         stack.scale(scale, scale, scale);
 
-        // Center the structure based on its actual bounds
-        stack.translate(-width / 2.0f, -height / 2.0f, -depth / 2.0f);
+        // Center the structure
+        float centerX = structure.getMinX() + width / 2.0f;
+        float centerY = structure.getMinY() + height / 2.0f;
+        float centerZ = structure.getMinZ() + depth / 2.0f;
+        stack.translate(-centerX, -centerY, -centerZ);
 
-        // Enable depth testing for proper 3D rendering
-        RenderSystem.enableDepthTest();
-        RenderSystem.enableCull();
-
+        // Set up rendering
         MultiBufferSource.BufferSource bufferSource = minecraft.renderBuffers().bufferSource();
-        
-        // Get the minimum coordinates to normalize positions
-        int minX = structure.getMinX();
-        int minY = structure.getMinY();
-        int minZ = structure.getMinZ();
 
-        for (Map.Entry<BlockPos, BlockState> entry : structure.getBlocks().entrySet()) {
+        // Render each block
+        for (Map.Entry<BlockPos, BlockState> entry : blocks.entrySet()) {
             BlockPos pos = entry.getKey();
             BlockState state = entry.getValue();
 
             stack.pushPose();
-            
-            // Translate to the block's position relative to the structure's minimum bounds
-            stack.translate(
-                pos.getX() - minX,
-                pos.getY() - minY,
-                pos.getZ() - minZ
-            );
-            
-            // Render the block with full brightness and no overlay
-            blockRenderer.renderSingleBlock(
-                    state,
-                    stack,
-                    bufferSource,
-                    15728880, // Full brightness
-                    OverlayTexture.NO_OVERLAY,
-                    ModelData.EMPTY,
-                    null
-            );
-            
+            stack.translate(pos.getX(), pos.getY(), pos.getZ());
+
+            try {
+                blockRenderer.renderSingleBlock(
+                        state,
+                        stack,
+                        bufferSource,
+                        15728880,
+                        OverlayTexture.NO_OVERLAY,
+                        ModelData.EMPTY,
+                        null
+                );
+            } catch (Exception e) {
+                // Skip problematic blocks to prevent crashes
+            }
+
             stack.popPose();
         }
-        
+
+        // Finish rendering
         bufferSource.endBatch();
-        stack.popPose();
     }
 
 }

@@ -29,7 +29,7 @@ public class MultiblocksProvider {
         ResourceManager resourceManager = Minecraft.getInstance().getResourceManager();
 
         // Get all .nbt files from the structures directory
-        Map<ResourceLocation, Resource> structureFiles = resourceManager.listResources("structures",
+        Map<ResourceLocation, Resource> structureFiles = resourceManager.listResources("mbtool_structures",
                 location -> location.getPath().endsWith(".nbt"));
 
         for (Map.Entry<ResourceLocation, Resource> entry : structureFiles.entrySet()) {
