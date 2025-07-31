@@ -3,6 +3,8 @@ package igentuman.mbtool.item;
 import igentuman.mbtool.common.MultiblocksProvider;
 import igentuman.mbtool.container.MultibuilderContainer;
 import igentuman.mbtool.integration.jei.MultiblockStructure;
+import igentuman.mbtool.network.NetworkHandler;
+import igentuman.mbtool.network.SyncMultibuilderParamsPacket;
 import igentuman.mbtool.util.*;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -53,59 +55,61 @@ public class MultibuilderItem extends Item {
     
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
-        if(level.isClientSide) return InteractionResultHolder.pass(player.getItemInHand(hand));
         ItemStack itemStack = player.getItemInHand(hand);
-
         int slot = hand == InteractionHand.MAIN_HAND ? player.getInventory().selected : 40; // 40 is offhand slot
+        
         if(player.isSteppingCarefully()) {
-            // Open GUI when sneaking
-            NetworkHooks.openScreen((ServerPlayer) player, new MenuProvider() {
-                @Override
-                public Component getDisplayName() {
-                    return Component.translatable("gui.mbtool.multibuilder");
-                }
+            // Open GUI when sneaking - only on server side
+            if (!level.isClientSide) {
+                NetworkHooks.openScreen((ServerPlayer) player, new MenuProvider() {
+                    @Override
+                    public Component getDisplayName() {
+                        return Component.translatable("gui.mbtool.multibuilder");
+                    }
 
-                @Override
-                public AbstractContainerMenu createMenu(int containerId, Inventory playerInventory, Player player) {
-                    return new MultibuilderContainer(containerId, player.blockPosition(), playerInventory, slot);
-                }
-            }, buf -> {
-                buf.writeBlockPos(player.blockPosition());
-                buf.writeInt(slot);
-            });
+                    @Override
+                    public AbstractContainerMenu createMenu(int containerId, Inventory playerInventory, Player player) {
+                        return new MultibuilderContainer(containerId, player.blockPosition(), playerInventory, slot);
+                    }
+                }, buf -> {
+                    buf.writeBlockPos(player.blockPosition());
+                    buf.writeInt(slot);
+                });
+            }
+            return InteractionResultHolder.success(itemStack);
         } else {
             // Build multiblock when not sneaking
-            if(hasRecipe(itemStack)) {
-                MultiblockStructure structure = getSelectedStructure(itemStack);
-                if (structure != null) {
-                    BlockPos buildPos = getBuildPosition(player);
-                    if (buildPos != null) {
-                        int rotation = getRotation(itemStack);
-                        MultiblockBuilder.BuildResult result = MultiblockBuilder.buildMultiblock(
-                            level, player, itemStack, structure, buildPos, rotation);
-                        
-                        // Send result message to player
-                        player.sendSystemMessage(result.getMessage());
-                        
-                        if (result.isSuccess()) {
-                            return InteractionResultHolder.success(itemStack);
-                        } else {
-                            return InteractionResultHolder.fail(itemStack);
-                        }
+            if (level.isClientSide) {
+                // Client side: validate and send packet to server
+                if(hasRecipe(itemStack)) {
+                    int recipeIndex = itemStack.getOrCreateTag().getInt("recipe");
+                    int rotation = getRotation(itemStack);
+                    
+                    // Ensure structures are loaded on client
+                    if (MultiblocksProvider.structures.isEmpty()) {
+                        MultiblocksProvider.loadMultiblockStructures();
+                    }
+                    
+                    // Validate recipe index on client
+                    if (recipeIndex >= 0 && recipeIndex < MultiblocksProvider.structures.size()) {
+                        // Send packet to server with current parameters
+                        NetworkHandler.INSTANCE.sendToServer(
+                            new SyncMultibuilderParamsPacket(recipeIndex, rotation, hand));
+                        return InteractionResultHolder.success(itemStack);
                     } else {
-                        player.sendSystemMessage(Component.translatable("message.mbtool.no_build_position"));
+                        player.sendSystemMessage(Component.translatable("message.mbtool.invalid_recipe"));
                         return InteractionResultHolder.fail(itemStack);
                     }
                 } else {
-                    player.sendSystemMessage(Component.translatable("message.mbtool.invalid_recipe"));
+                    player.sendSystemMessage(Component.translatable("message.mbtool.no_recipe"));
                     return InteractionResultHolder.fail(itemStack);
                 }
             } else {
-                player.sendSystemMessage(Component.translatable("message.mbtool.no_recipe"));
-                return InteractionResultHolder.fail(itemStack);
+                // Server side: packet handling will take care of building
+                // This should not be reached in normal operation since client sends packet
+                return InteractionResultHolder.pass(itemStack);
             }
         }
-        return InteractionResultHolder.success(player.getItemInHand(hand));
     }
     
     @Override

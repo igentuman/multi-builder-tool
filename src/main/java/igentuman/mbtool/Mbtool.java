@@ -5,6 +5,7 @@ import igentuman.mbtool.client.screen.MultibuilderSelectStructureScreen;
 import igentuman.mbtool.container.MultibuilderContainer;
 import igentuman.mbtool.container.MultibuilderSelectStructureContainer;
 import igentuman.mbtool.item.MultibuilderItem;
+import igentuman.mbtool.network.NetworkHandler;
 import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -58,6 +59,9 @@ public class Mbtool
     }
     
     private void commonSetup(FMLCommonSetupEvent event) {
+        event.enqueueWork(() -> {
+            NetworkHandler.registerPackets();
+        });
     }
 
     public static void init(FMLClientSetupEvent event) {

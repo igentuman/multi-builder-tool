@@ -145,7 +145,7 @@ dependencies {
 
     //runtimeOnly fg.deobf("curse.maven:nbtedit-reborn-678133:4420565")
     //runtimeOnly fg.deobf("com.blamejared.crafttweaker:CraftTweaker-forge-${mc_version}:${ct_version}")
-
+    runtimeOnly fg.deobf("curse.maven:construction-wand-399558:4684054")
     compileOnly fg.deobf("curse.maven:emi-580555:5872526")
 
     implementation fg.deobf("mekanism:Mekanism:${mc_version}-${mekanism_version}")
