@@ -21,7 +21,7 @@ public class MultiblockStructureRecipe {
     public MultiblockStructureRecipe(ResourceLocation id, CompoundTag structureNbt, String name) {
         this.id = id;
         this.structureNbt = structureNbt;
-        this.name = "jei.recipe.nc." + name.replace(".nbt", "");
+        this.name =  name;
         this.structure = new MultiblockStructure(structureNbt);
         this.currentLayer = structure.getMaxY();
         List<Block> blocks = new ArrayList<>();
