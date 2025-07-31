@@ -3,6 +3,15 @@
   "gui.mbtool.select_structure": "Select Structure",
   "gui.mbtool.choose": "Choose",
   "item.mbtool.mbtool": "Multibuilder Tool",
-  "tooltip.mbtool.energy_stored": "Energy Stored: %s",
-  "jei.category.mbtool.multiblock_structure": "Multiblock Structure"
+  "tooltip.mbtool.energy_stored": "Energy Stored: %s / %s",
+  "tooltip.mbtool.inventory_slots": "Inventory: %d / %d slots used",
+  "jei.category.mbtool.multiblock_structure": "Multiblock Structure",
+  "message.mbtool.insufficient_energy": "Insufficient energy! Need %s",
+  "message.mbtool.no_inventory": "No inventory available",
+  "message.mbtool.insufficient_blocks": "Insufficient blocks! Need %d more %s",
+  "message.mbtool.cannot_place_at": "Cannot place block at %d, %d, %d",
+  "message.mbtool.multiblock_built": "Successfully built multiblock! Placed %d blocks from %s",
+  "message.mbtool.no_build_position": "Cannot determine build position",
+  "message.mbtool.invalid_recipe": "Invalid recipe selected",
+  "message.mbtool.no_recipe": "No recipe selected. Use GUI to select a structure first"
 }

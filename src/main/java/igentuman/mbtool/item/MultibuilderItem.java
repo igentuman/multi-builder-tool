@@ -3,8 +3,11 @@ package igentuman.mbtool.item;
 import igentuman.mbtool.client.handler.ClientHandler;
 import igentuman.mbtool.common.MultiblocksProvider;
 import igentuman.mbtool.container.MultibuilderContainer;
+import igentuman.mbtool.integration.jei.MultiblockStructure;
 import igentuman.mbtool.util.*;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -21,6 +24,10 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.items.IItemHandler;
@@ -30,6 +37,7 @@ import javax.annotation.Nonnull;
 import java.util.List;
 
 import static igentuman.mbtool.Mbtool.MULTIBUILDER_CONTAINER;
+import static igentuman.mbtool.Mbtool.MBTOOL;
 
 public class MultibuilderItem extends Item {
     
@@ -52,6 +60,7 @@ public class MultibuilderItem extends Item {
 
         int slot = hand == InteractionHand.MAIN_HAND ? player.getInventory().selected : 40; // 40 is offhand slot
         if(player.isSteppingCarefully()) {
+            // Open GUI when sneaking
             NetworkHooks.openScreen((ServerPlayer) player, new MenuProvider() {
                 @Override
                 public Component getDisplayName() {
@@ -67,9 +76,34 @@ public class MultibuilderItem extends Item {
                 buf.writeInt(slot);
             });
         } else {
-            if(ClientHandler.hasRecipe(itemStack)) {
-                //build multiblock
-
+            // Build multiblock when not sneaking
+            if(hasRecipe(itemStack)) {
+                MultiblockStructure structure = getSelectedStructure(itemStack);
+                if (structure != null) {
+                    BlockPos buildPos = getBuildPosition(player);
+                    if (buildPos != null) {
+                        MultiblockBuilder.BuildResult result = MultiblockBuilder.buildMultiblock(
+                            level, player, itemStack, structure, buildPos);
+                        
+                        // Send result message to player
+                        player.sendSystemMessage(result.getMessage());
+                        
+                        if (result.isSuccess()) {
+                            return InteractionResultHolder.success(itemStack);
+                        } else {
+                            return InteractionResultHolder.fail(itemStack);
+                        }
+                    } else {
+                        player.sendSystemMessage(Component.translatable("message.mbtool.no_build_position"));
+                        return InteractionResultHolder.fail(itemStack);
+                    }
+                } else {
+                    player.sendSystemMessage(Component.translatable("message.mbtool.invalid_recipe"));
+                    return InteractionResultHolder.fail(itemStack);
+                }
+            } else {
+                player.sendSystemMessage(Component.translatable("message.mbtool.no_recipe"));
+                return InteractionResultHolder.fail(itemStack);
             }
         }
         return InteractionResultHolder.success(player.getItemInHand(hand));
@@ -231,6 +265,138 @@ public class MultibuilderItem extends Item {
             return inventory.extractItem(slot, amount, simulate);
         }
         return ItemStack.EMPTY;
+    }
+    
+    /**
+     * Check if the item has a recipe stored
+     */
+    public boolean hasRecipe(ItemStack stack) {
+        try {
+            if (!stack.getOrCreateTag().contains("recipe")) {
+                return false;
+            }
+            
+            // Ensure structures are loaded
+            if (MultiblocksProvider.structures.isEmpty()) {
+                MultiblocksProvider.loadMultiblockStructures();
+            }
+            
+            int recipeIndex = stack.getOrCreateTag().getInt("recipe");
+            return recipeIndex >= 0 && recipeIndex < MultiblocksProvider.structures.size();
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+    
+    /**
+     * Get the selected multiblock structure from the item
+     */
+    public MultiblockStructure getSelectedStructure(ItemStack stack) {
+        try {
+            if (!hasRecipe(stack)) {
+                return null;
+            }
+            
+            int recipeIndex = stack.getOrCreateTag().getInt("recipe");
+            if (recipeIndex >= 0 && recipeIndex < MultiblocksProvider.structures.size()) {
+                return MultiblocksProvider.structures.get(recipeIndex);
+            }
+        } catch (Exception ignored) {
+            // Fall through to return null
+        }
+        return null;
+    }
+    
+    /**
+     * Get the build position based on player's look direction
+     * Uses the same logic as PreviewRenderer#getRayTraceHit
+     */
+    private BlockPos getBuildPosition(Player player) {
+        Level world = player.level();
+        
+        if (player == null || world == null) return null;
+        
+        // Perform raycast for 20 blocks
+        Vec3 eyePos = player.getEyePosition(1.0f);
+        Vec3 lookVec = player.getViewVector(1.0f);
+        Vec3 endPos = eyePos.add(lookVec.scale(20.0));
+        
+        BlockHitResult rayTrace = world.clip(new net.minecraft.world.level.ClipContext(
+            eyePos, endPos, 
+            net.minecraft.world.level.ClipContext.Block.OUTLINE, 
+            net.minecraft.world.level.ClipContext.Fluid.NONE, 
+            player
+        ));
+
+        if (rayTrace.getType() != HitResult.Type.BLOCK) {
+            return null;
+        }
+
+        ItemStack mainItem = player.getItemInHand(InteractionHand.MAIN_HAND);
+        ItemStack offItem = player.getItemInHand(InteractionHand.OFF_HAND);
+
+        boolean main = !mainItem.isEmpty() && mainItem.is(MBTOOL.get()) && hasRecipe(mainItem);
+        boolean off = !offItem.isEmpty() && offItem.is(MBTOOL.get()) && hasRecipe(offItem);
+
+        if (!main && !off) return null;
+
+        BlockPos hit = rayTrace.getBlockPos();
+        BlockState state = world.getBlockState(hit);
+
+        // Get the selected structure
+        ItemStack multibuilderStack = main ? mainItem : offItem;
+        int recipeIndex = multibuilderStack.getOrCreateTag().getInt("recipe");
+        
+        // Ensure structures are loaded
+        if (MultiblocksProvider.structures.isEmpty()) {
+            MultiblocksProvider.loadMultiblockStructures();
+        }
+        
+        if (recipeIndex < 0 || recipeIndex >= MultiblocksProvider.structures.size()) {
+            return null;
+        }
+        
+        MultiblockStructure structure = MultiblocksProvider.structures.get(recipeIndex);
+        if (structure == null) return null;
+        
+        // Get rotation from item (if supported in the future)
+        int rotation = multibuilderStack.getOrCreateTag().getInt("rotation");
+
+        // Calculate placement position based on hit side
+        Direction hitSide = rayTrace.getDirection();
+        int maxSize = Math.max(structure.getWidth(), structure.getDepth()) - 1;
+        
+        switch (hitSide) {
+            case DOWN:
+                hit = hit.offset(0, -structure.getHeight(), 0);
+                break;
+            case UP:
+                if (!state.canBeReplaced()) {
+                    hit = hit.offset(0, 1, 0);
+                }
+                break;
+            case EAST:
+                hit = hit.offset(maxSize, 0, 0);
+                break;
+            case WEST:
+                hit = hit.offset(-maxSize, 0, 0);
+                break;
+            case NORTH:
+                hit = hit.offset(0, 0, -maxSize);
+                break;
+            case SOUTH:
+                hit = hit.offset(0, 0, maxSize);
+                break;
+        }
+        
+        // Center the structure
+        if (rotation == 0 || rotation == 2) {
+            hit = hit.offset(-structure.getWidth() / 2, 0, -structure.getDepth() / 2);
+        } else {
+            hit = hit.offset(-structure.getDepth() / 2, 0, -structure.getWidth() / 2);
+        }
+
+        return hit;
     }
     
 }
