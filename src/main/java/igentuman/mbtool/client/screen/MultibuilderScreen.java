@@ -13,11 +13,13 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
 import static igentuman.mbtool.Mbtool.rl;
+import static igentuman.mbtool.Mbtool.MBTOOL;
 
 public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderContainer> {
     private static final ResourceLocation TEXTURE = rl("textures/gui/container/mbtool_inventory.png");
@@ -34,6 +36,9 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
     protected void init() {
         super.init();
         
+        // Load selected structure from item NBT
+        loadSelectedStructure();
+        
         // Position the button in the GUI
         int x = this.leftPos + 119;
         int y = this.topPos + 67;
@@ -48,6 +53,27 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
                 .build();
         
         this.addRenderableWidget(this.chooseButton);
+    }
+    
+    private void loadSelectedStructure() {
+        if (this.minecraft != null && this.minecraft.player != null) {
+            Player player = this.minecraft.player;
+            ItemStack multibuilderStack = player.getInventory().getItem(player.getInventory().selected);
+            
+            if (multibuilderStack.is(MBTOOL.get()) && multibuilderStack.hasTag()) {
+                int recipeIndex = multibuilderStack.getOrCreateTag().getInt("recipe");
+                if (recipeIndex >= 0) {
+                    // Ensure structures are loaded
+                    if (MultiblocksProvider.structures.isEmpty()) {
+                        MultiblocksProvider.loadMultiblockStructures();
+                    }
+                    
+                    if (recipeIndex < MultiblocksProvider.structures.size()) {
+                        selectedStructure = recipeIndex;
+                    }
+                }
+            }
+        }
     }
     
     private void onChooseButtonClick(Button button) {

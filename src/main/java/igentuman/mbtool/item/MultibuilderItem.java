@@ -1,5 +1,7 @@
 package igentuman.mbtool.item;
 
+import igentuman.mbtool.client.handler.ClientHandler;
+import igentuman.mbtool.common.MultiblocksProvider;
 import igentuman.mbtool.container.MultibuilderContainer;
 import igentuman.mbtool.util.*;
 import net.minecraft.ChatFormatting;
@@ -49,22 +51,27 @@ public class MultibuilderItem extends Item {
         ItemStack itemStack = player.getItemInHand(hand);
 
         int slot = hand == InteractionHand.MAIN_HAND ? player.getInventory().selected : 40; // 40 is offhand slot
-        
-        NetworkHooks.openScreen((ServerPlayer) player, new MenuProvider() {
-            @Override
-            public Component getDisplayName() {
-                return Component.translatable("gui.mbtool.multibuilder");
-            }
+        if(player.isSteppingCarefully()) {
+            NetworkHooks.openScreen((ServerPlayer) player, new MenuProvider() {
+                @Override
+                public Component getDisplayName() {
+                    return Component.translatable("gui.mbtool.multibuilder");
+                }
 
-            @Override
-            public AbstractContainerMenu createMenu(int containerId, Inventory playerInventory, Player player) {
-                return new MultibuilderContainer(containerId, player.blockPosition(), playerInventory, slot);
+                @Override
+                public AbstractContainerMenu createMenu(int containerId, Inventory playerInventory, Player player) {
+                    return new MultibuilderContainer(containerId, player.blockPosition(), playerInventory, slot);
+                }
+            }, buf -> {
+                buf.writeBlockPos(player.blockPosition());
+                buf.writeInt(slot);
+            });
+        } else {
+            if(ClientHandler.hasRecipe(itemStack)) {
+                //build multiblock
+
             }
-        }, buf -> {
-            buf.writeBlockPos(player.blockPosition());
-            buf.writeInt(slot);
-        });
-        
+        }
         return InteractionResultHolder.success(player.getItemInHand(hand));
     }
     

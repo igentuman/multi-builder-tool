@@ -14,6 +14,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -21,6 +22,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static igentuman.mbtool.Mbtool.rl;
+import static igentuman.mbtool.Mbtool.MBTOOL;
 
 public class MultibuilderSelectStructureScreen extends AbstractContainerScreen<MultibuilderSelectStructureContainer> {
     private static final ResourceLocation TEXTURE = rl("textures/gui/container/mbtool.png");
@@ -317,10 +319,30 @@ public class MultibuilderSelectStructureScreen extends AbstractContainerScreen<M
      */
     private void onMultiblockButtonPressed(MultiblockButton button) {
         MultiblockStructure structure = button.getStructure();
-        if (structure != null) {
+        if (structure != null && minecraft != null && minecraft.player != null) {
             // Find the index in the original allStructures list
             int originalIndex = allStructures.indexOf(structure);
-            ((MultibuilderScreen)previousScreen).selectedStructure = originalIndex;
+            
+            // Save to the item's NBT
+            int slot = menu.getPlayerSlot();
+            if (slot >= 0) {
+                ItemStack multibuilderStack;
+                if (slot == 40) { // Offhand
+                    multibuilderStack = minecraft.player.getOffhandItem();
+                } else {
+                    multibuilderStack = minecraft.player.getInventory().getItem(slot);
+                }
+                
+                if (multibuilderStack.is(MBTOOL.get())) {
+                    multibuilderStack.getOrCreateTag().putInt("recipe", originalIndex);
+                }
+            }
+            
+            // Update the previous screen if it exists
+            if (previousScreen instanceof MultibuilderScreen) {
+                ((MultibuilderScreen)previousScreen).selectedStructure = originalIndex;
+            }
+            
             onClose();
         }
     }

@@ -13,13 +13,27 @@ import static igentuman.mbtool.Mbtool.MBTOOL;
 import static igentuman.mbtool.Mbtool.MULTIBUILDER_CONTAINER;
 
 public class MultibuilderSelectStructureContainer extends AbstractContainerMenu {
+    private final int playerSlot;
+    private final Inventory playerInventory;
+    
     public MultibuilderSelectStructureContainer(@Nullable MenuType<?> pMenuType, int pContainerId) {
         super(pMenuType, pContainerId);
+        this.playerSlot = -1;
+        this.playerInventory = null;
     }
 
     public MultibuilderSelectStructureContainer(int pContainerId, BlockPos pos, Inventory pPlayerInventory, int slot) {
         super(MULTIBUILDER_CONTAINER.get(), pContainerId);
-        
+        this.playerSlot = slot;
+        this.playerInventory = pPlayerInventory;
+    }
+    
+    public int getPlayerSlot() {
+        return playerSlot;
+    }
+    
+    public Inventory getPlayerInventory() {
+        return playerInventory;
     }
 
     @Override
