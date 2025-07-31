@@ -1,6 +1,5 @@
 package igentuman.mbtool.item;
 
-import igentuman.mbtool.client.handler.ClientHandler;
 import igentuman.mbtool.common.MultiblocksProvider;
 import igentuman.mbtool.container.MultibuilderContainer;
 import igentuman.mbtool.integration.jei.MultiblockStructure;
@@ -36,7 +35,6 @@ import net.minecraftforge.network.NetworkHooks;
 import javax.annotation.Nonnull;
 import java.util.List;
 
-import static igentuman.mbtool.Mbtool.MULTIBUILDER_CONTAINER;
 import static igentuman.mbtool.Mbtool.MBTOOL;
 
 public class MultibuilderItem extends Item {
@@ -82,8 +80,9 @@ public class MultibuilderItem extends Item {
                 if (structure != null) {
                     BlockPos buildPos = getBuildPosition(player);
                     if (buildPos != null) {
+                        int rotation = getRotation(itemStack);
                         MultiblockBuilder.BuildResult result = MultiblockBuilder.buildMultiblock(
-                            level, player, itemStack, structure, buildPos);
+                            level, player, itemStack, structure, buildPos, rotation);
                         
                         // Send result message to player
                         player.sendSystemMessage(result.getMessage());
@@ -265,6 +264,37 @@ public class MultibuilderItem extends Item {
             return inventory.extractItem(slot, amount, simulate);
         }
         return ItemStack.EMPTY;
+    }
+
+    /**
+     * 0 = no rotation, 1 = 90 degrees, 2 = 180 degrees, 3 = 270 degrees
+     * @param stack
+     * @return
+     */
+    public int getRotation(ItemStack stack) {
+        try {
+            if (!stack.getOrCreateTag().contains("rotation")) {
+                return 0;
+            }
+
+            return stack.getOrCreateTag().getInt("rotation");
+        } catch (Exception ignored) {
+            return 0;
+        }
+    }
+
+    public void rotate(ItemStack stack, int dir) {
+        try {
+            CompoundTag tag = stack.getOrCreateTag();
+            int rotation = getRotation(stack);
+            if(rotation + dir < 0) {
+                rotation = 3;
+            } else {
+                rotation = (rotation + dir) % 4;
+            }
+            tag.putInt("rotation", rotation);
+        } catch (Exception ignored) {
+        }
     }
     
     /**

@@ -2,6 +2,7 @@ package igentuman.mbtool.util;
 
 import igentuman.mbtool.integration.jei.MultiblockStructure;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -9,6 +10,8 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.DirectionProperty;
+import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraftforge.items.IItemHandler;
 
 import java.util.HashMap;
@@ -26,10 +29,11 @@ public class MultiblockBuilder {
      * @param multibuilderStack The multibuilder item stack
      * @param structure The structure to build
      * @param centerPos The center position where to build the structure
+     * @param rotation The rotation (0-3, representing 90-degree increments)
      * @return BuildResult containing success status and message
      */
     public static BuildResult buildMultiblock(Level level, Player player, ItemStack multibuilderStack, 
-                                            MultiblockStructure structure, BlockPos centerPos) {
+                                            MultiblockStructure structure, BlockPos centerPos, int rotation) {
         
         if (level.isClientSide) {
             return new BuildResult(false, Component.literal("Cannot build on client side"));
@@ -75,13 +79,17 @@ public class MultiblockBuilder {
         
         for (Map.Entry<BlockPos, BlockState> entry : structure.getBlocks().entrySet()) {
             BlockPos relativePos = entry.getKey();
-            BlockPos worldPos = centerPos.offset(relativePos);
-            BlockState currentState = level.getBlockState(worldPos);
+            BlockState blockState = entry.getValue();
             
             // Skip air blocks in the structure
-            if (entry.getValue().isAir()) {
+            if (blockState.isAir()) {
                 continue;
             }
+            
+            // Apply rotation to position and block state
+            BlockPos rotatedRelativePos = rotateBlockPos(relativePos, structure, rotation);
+            BlockPos worldPos = centerPos.offset(rotatedRelativePos);
+            BlockState currentState = level.getBlockState(worldPos);
             
             // Check if we can place the block here
             if (!currentState.canBeReplaced()) {
@@ -116,19 +124,23 @@ public class MultiblockBuilder {
         for (Map.Entry<BlockPos, BlockState> entry : structure.getBlocks().entrySet()) {
             BlockPos relativePos = entry.getKey();
             BlockState blockState = entry.getValue();
-            BlockPos worldPos = centerPos.offset(relativePos);
             
             // Skip air blocks
             if (blockState.isAir()) {
                 continue;
             }
             
+            // Apply rotation to position and block state
+            BlockPos rotatedRelativePos = rotateBlockPos(relativePos, structure, rotation);
+            BlockPos worldPos = centerPos.offset(rotatedRelativePos);
+            BlockState rotatedBlockState = rotateBlockState(blockState, rotation);
+            
             // Place the block
-            if (level.setBlock(worldPos, blockState, 3)) {
+            if (level.setBlock(worldPos, rotatedBlockState, 3)) {
                 blocksPlaced++;
                 
                 // Update block entity if needed
-                if (blockState.hasBlockEntity()) {
+                if (rotatedBlockState.hasBlockEntity()) {
                     level.getBlockEntity(worldPos);
                 }
             }
@@ -144,6 +156,105 @@ public class MultiblockBuilder {
         
         return new BuildResult(true, Component.translatable("message.mbtool.multiblock_built", 
             blocksPlaced, structure.getName()));
+    }
+    
+    /**
+     * Rotates a block state's directional properties based on the given rotation (0-3, representing 90-degree increments)
+     */
+    private static BlockState rotateBlockState(BlockState blockState, int rotation) {
+        if (rotation == 0) return blockState;
+        
+        BlockState rotatedState = blockState;
+        
+        // Check all properties of the block state
+        for (Property<?> property : blockState.getProperties()) {
+            if (property instanceof DirectionProperty) {
+                DirectionProperty dirProperty = (DirectionProperty) property;
+                Direction currentDirection = blockState.getValue(dirProperty);
+                Direction rotatedDirection = rotateDirection(currentDirection, rotation, dirProperty);
+                
+                // Only update if the rotated direction is valid for this property
+                if (dirProperty.getPossibleValues().contains(rotatedDirection)) {
+                    rotatedState = rotatedState.setValue(dirProperty, rotatedDirection);
+                }
+            }
+        }
+        
+        return rotatedState;
+    }
+    
+    /**
+     * Rotates a direction based on the rotation amount and property constraints
+     */
+    private static Direction rotateDirection(Direction direction, int rotation, DirectionProperty property) {
+        // Normalize rotation to 0-3 range
+        rotation = ((rotation % 4) + 4) % 4;
+        
+        // For horizontal-only properties, only rotate around Y-axis
+        boolean isHorizontalOnly = property.getPossibleValues().stream()
+            .allMatch(dir -> dir.getAxis() != Direction.Axis.Y);
+        
+        if (isHorizontalOnly && (direction == Direction.UP || direction == Direction.DOWN)) {
+            return direction; // Don't rotate vertical directions for horizontal-only properties
+        }
+        
+        Direction result = direction;
+        for (int i = 0; i < rotation; i++) {
+            result = rotateDirectionClockwise(result, isHorizontalOnly);
+        }
+        
+        return result;
+    }
+    
+    /**
+     * Rotates a direction 90 degrees clockwise around the Y-axis
+     */
+    private static Direction rotateDirectionClockwise(Direction direction, boolean horizontalOnly) {
+        switch (direction) {
+            case NORTH: return Direction.EAST;
+            case EAST: return Direction.SOUTH;
+            case SOUTH: return Direction.WEST;
+            case WEST: return Direction.NORTH;
+            case UP: return horizontalOnly ? Direction.UP : Direction.UP; // Keep UP as UP for horizontal-only
+            case DOWN: return horizontalOnly ? Direction.DOWN : Direction.DOWN; // Keep DOWN as DOWN for horizontal-only
+            default: return direction;
+        }
+    }
+    
+    /**
+     * Applies rotation to a block position relative to structure origin
+     */
+    private static BlockPos rotateBlockPos(BlockPos relativePos, MultiblockStructure structure, int rotation) {
+        if (rotation == 0) return relativePos;
+        
+        // Convert to structure-relative coordinates (same as PreviewRenderer)
+        int xo = relativePos.getX() - structure.getMinX();
+        int yo = relativePos.getY() - structure.getMinY();
+        int zo = relativePos.getZ() - structure.getMinZ();
+        
+        // Apply rotation (matching boundary rendering coordinate system)
+        int rotatedX = xo;
+        int rotatedZ = zo;
+        int bWidth = structure.getDepth();   // same as boundary rendering
+        int bLength = structure.getWidth();  // same as boundary rendering
+        
+        switch (rotation) {
+            case 1:
+                rotatedZ = xo;
+                rotatedX = (bWidth - zo - 1);
+                break;
+            case 2:
+                rotatedX = (bLength - xo - 1);
+                rotatedZ = (bWidth - zo - 1);
+                break;
+            case 3:
+                rotatedZ = (bLength - xo - 1);
+                rotatedX = zo;
+                break;
+        }
+        
+        // Return the rotated offset (add back the structure's min coordinates to match original relative position format) format)
+        return new BlockPos(rotatedX + structure.getMinX(), yo + structure.getMinY(), rotatedZ + structure.getMinZ());
     }
     
     /**

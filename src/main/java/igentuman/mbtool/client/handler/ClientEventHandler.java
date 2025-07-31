@@ -7,6 +7,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -42,5 +43,42 @@ public class ClientEventHandler {
         // For now, we'll render the preview immediately
         
         PreviewRenderer.renderPreview(event.getPoseStack(), event.getPartialTick());
+    }
+
+    @SubscribeEvent
+    public static void onMouseScroll(InputEvent.MouseScrollingEvent event) {
+        Minecraft mc = Minecraft.getInstance();
+        Player player = mc.player;
+        
+        if (player == null) return;
+        
+        // Check if shift is pressed
+        if (!mc.options.keyShift.isDown()) return;
+        
+        // Check if player is holding a MultibuilderItem
+        ItemStack mainItem = player.getItemInHand(InteractionHand.MAIN_HAND);
+        
+        ItemStack multibuilderStack = null;
+        if (!mainItem.isEmpty() && mainItem.is(MBTOOL.get())) {
+            multibuilderStack = mainItem;
+        }
+        
+        if (multibuilderStack == null) return;
+        
+        // Get the MultibuilderItem instance
+        if (multibuilderStack.getItem() instanceof MultibuilderItem multibuilderItem) {
+            double scrollDelta = event.getScrollDelta();
+            
+            if (scrollDelta > 0) {
+                // Scroll up - rotate clockwise
+                multibuilderItem.rotate(multibuilderStack, 1);
+            } else if (scrollDelta < 0) {
+                // Scroll down - rotate counter-clockwise
+                multibuilderItem.rotate(multibuilderStack, -1);
+            }
+            
+            // Cancel the event to prevent inventory scrolling
+            event.setCanceled(true);
+        }
     }
 }

@@ -5,10 +5,8 @@ import com.mojang.blaze3d.vertex.*;
 import igentuman.mbtool.client.handler.ClientHandler;
 import igentuman.mbtool.common.MultiblocksProvider;
 import igentuman.mbtool.integration.jei.MultiblockStructure;
-import igentuman.mbtool.item.MultibuilderItem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
 import net.minecraft.client.renderer.block.model.BakedQuad;
@@ -16,14 +14,14 @@ import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.DirectionProperty;
+import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
@@ -31,7 +29,6 @@ import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 
 import java.util.List;
-
 import java.util.Map;
 
 import static igentuman.mbtool.Mbtool.MBTOOL;
@@ -275,7 +272,7 @@ public class PreviewRenderer {
         if (interpolatedAlpha >= 0.8f) {
             dir = -0.005f;
         }
-        if (interpolatedAlpha <= 0.3f) {
+        if (interpolatedAlpha <= 0.5f) {
             dir = 0.005f;
         }
         
@@ -324,9 +321,12 @@ public class PreviewRenderer {
                 poseStack.pushPose();
                 poseStack.translate(rotatedX, yo, rotatedZ);
                 
+                // Apply rotation to block state's directional properties
+                BlockState rotatedBlockState = rotateBlockState(blockState, rotation);
+                
                 try {
                     // Render the block with transparency using translucent render type
-                    renderTranslucentBlock(blockState, poseStack, bufferSource, interpolatedAlpha);
+                    renderTranslucentBlock(rotatedBlockState, poseStack, bufferSource, interpolatedAlpha);
                 } catch (Exception e) {
                     // Fallback: render a simple colored cube if block rendering fails
                     renderSimpleCube(poseStack, bufferSource);
@@ -407,6 +407,71 @@ public class PreviewRenderer {
         }
     }
     
+    /**
+     * Rotates a block state's directional properties based on the given rotation (0-3, representing 90-degree increments)
+     */
+    private static BlockState rotateBlockState(BlockState blockState, int rotation) {
+        if (rotation == 0) return blockState;
+        
+        BlockState rotatedState = blockState;
+        boolean hasDirectionalProperty = false;
+        
+        // Check all properties of the block state
+        for (Property<?> property : blockState.getProperties()) {
+            if (property instanceof DirectionProperty) {
+                hasDirectionalProperty = true;
+                DirectionProperty dirProperty = (DirectionProperty) property;
+                Direction currentDirection = blockState.getValue(dirProperty);
+                Direction rotatedDirection = rotateDirection(currentDirection, rotation, dirProperty);
+                
+                // Only update if the rotated direction is valid for this property
+                if (dirProperty.getPossibleValues().contains(rotatedDirection)) {
+                    rotatedState = rotatedState.setValue(dirProperty, rotatedDirection);
+                }
+            }
+        }
+        
+        return rotatedState;
+    }
+    
+    /**
+     * Rotates a direction based on the rotation amount and property constraints
+     */
+    private static Direction rotateDirection(Direction direction, int rotation, DirectionProperty property) {
+        // Normalize rotation to 0-3 range
+        rotation = ((rotation % 4) + 4) % 4;
+        
+        // For horizontal-only properties, only rotate around Y-axis
+        boolean isHorizontalOnly = property.getPossibleValues().stream()
+            .allMatch(dir -> dir.getAxis() != Direction.Axis.Y);
+        
+        if (isHorizontalOnly && (direction == Direction.UP || direction == Direction.DOWN)) {
+            return direction; // Don't rotate vertical directions for horizontal-only properties
+        }
+        
+        Direction result = direction;
+        for (int i = 0; i < rotation; i++) {
+            result = rotateDirectionClockwise(result, isHorizontalOnly);
+        }
+        
+        return result;
+    }
+    
+    /**
+     * Rotates a direction 90 degrees clockwise around the Y-axis
+     */
+    private static Direction rotateDirectionClockwise(Direction direction, boolean horizontalOnly) {
+        switch (direction) {
+            case NORTH: return Direction.EAST;
+            case EAST: return Direction.SOUTH;
+            case SOUTH: return Direction.WEST;
+            case WEST: return Direction.NORTH;
+            case UP: return horizontalOnly ? Direction.UP : Direction.UP; // Keep UP as UP for horizontal-only
+            case DOWN: return horizontalOnly ? Direction.DOWN : Direction.DOWN; // Keep DOWN as DOWN for horizontal-only
+            default: return direction;
+        }
+    }
+
     private static void renderSimpleCube(PoseStack poseStack, net.minecraft.client.renderer.MultiBufferSource bufferSource) {
         // Fallback method to render a simple translucent cube
         Tesselator tessellator = Tesselator.getInstance();
