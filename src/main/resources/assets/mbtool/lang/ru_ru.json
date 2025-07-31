@@ -28,6 +28,8 @@
   "mbtool.structure.ie_alloy_smelter": "Плавильня сплавов IE",
   "mbtool.structure.ie_arcfurnace": "Дуговая печь IE",
   "mbtool.structure.ie_assembler": "Сборщик IE",
+  "mbtool.structure.ie_metal_press": "Металлический пресс IE",
+  "mbtool.structure.ie_mixer": "Смеситель IE",
   "mbtool.structure.ie_auto_workbench": "Автоматический верстак IE",
   "mbtool.structure.ie_blast_furnace": "Доменная печь IE",
   "mbtool.structure.ie_bottling_machine": "Разливочная машина IE",

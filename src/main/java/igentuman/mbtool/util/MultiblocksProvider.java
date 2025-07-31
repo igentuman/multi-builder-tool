@@ -34,6 +34,15 @@ public class MultiblocksProvider implements PreparableReloadListener {
     public static List<MultiblockStructure> getStructures() {
         return structures;
     }
+    
+    /**
+     * Sets the structures list. Used for client-side synchronization.
+     * @param newStructures The new structures to set
+     */
+    public static void setStructures(List<MultiblockStructure> newStructures) {
+        structures.clear();
+        structures.addAll(newStructures);
+    }
 
     @Override
     public CompletableFuture<Void> reload(PreparationBarrier preparationBarrier, ResourceManager resourceManager, 

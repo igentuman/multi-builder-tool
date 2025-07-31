@@ -28,6 +28,8 @@
   "mbtool.structure.ie_alloy_smelter": "Fondoir d'alliage IE",
   "mbtool.structure.ie_arcfurnace": "Four à arc IE",
   "mbtool.structure.ie_assembler": "Assembleur IE",
+  "mbtool.structure.ie_metal_press": "Presse à métaux IE",
+  "mbtool.structure.ie_mixer": "Mélangeur IE",
   "mbtool.structure.ie_auto_workbench": "Établi automatique IE",
   "mbtool.structure.ie_blast_furnace": "Haut fourneau IE",
   "mbtool.structure.ie_bottling_machine": "Machine d'embouteillage IE",

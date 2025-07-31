@@ -28,6 +28,8 @@
   "mbtool.structure.ie_alloy_smelter": "Hutnik stopów IE",
   "mbtool.structure.ie_arcfurnace": "Piec łukowy IE",
   "mbtool.structure.ie_assembler": "Montownik IE",
+  "mbtool.structure.ie_metal_press": "Prasa do metalu IE",
+  "mbtool.structure.ie_mixer": "Mieszalnik IE",
   "mbtool.structure.ie_auto_workbench": "Automatyczny stół rzemieślniczy IE",
   "mbtool.structure.ie_blast_furnace": "Wielki piec IE",
   "mbtool.structure.ie_bottling_machine": "Maszyna do butelkowania IE",

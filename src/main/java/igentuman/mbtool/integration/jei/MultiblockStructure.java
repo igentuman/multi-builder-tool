@@ -131,7 +131,10 @@ public class MultiblockStructure {
 
     public String getName() {
         if(name != null && !name.isEmpty()) {
-            return "mbtool.structure."+name.replace(".nbt", "");
+            if(!name.contains("mbtool")) {
+                return "mbtool.structure." + name.replace(".nbt", "");
+            }
+            return name.replace(".nbt", "");
         }
         return name;
     }

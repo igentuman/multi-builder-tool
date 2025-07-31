@@ -28,6 +28,8 @@
   "mbtool.structure.ie_alloy_smelter": "IE Legierungsschmelzer",
   "mbtool.structure.ie_arcfurnace": "IE Lichtbogenofen",
   "mbtool.structure.ie_assembler": "IE Monteur",
+  "mbtool.structure.ie_metal_press": "IE Metallpresse",
+  "mbtool.structure.ie_mixer": "IE Mischer",
   "mbtool.structure.ie_auto_workbench": "IE Automatische Werkbank",
   "mbtool.structure.ie_blast_furnace": "IE Hochofen",
   "mbtool.structure.ie_bottling_machine": "IE Abfüllmaschine",

@@ -23,5 +23,11 @@ public class NetworkHandler {
             .decoder(SyncMultibuilderParamsPacket::decode)
             .consumerMainThread(SyncMultibuilderParamsPacket::handle)
             .add();
+            
+        INSTANCE.messageBuilder(SyncStructuresPacket.class, packetId++)
+            .encoder(SyncStructuresPacket::encode)
+            .decoder(SyncStructuresPacket::decode)
+            .consumerMainThread(SyncStructuresPacket::handle)
+            .add();
     }
 }

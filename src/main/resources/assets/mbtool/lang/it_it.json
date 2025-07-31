@@ -28,6 +28,8 @@
   "mbtool.structure.ie_alloy_smelter": "Fonditore di leghe IE",
   "mbtool.structure.ie_arcfurnace": "Forno ad arco IE",
   "mbtool.structure.ie_assembler": "Assemblatore IE",
+  "mbtool.structure.ie_metal_press": "Pressa per metalli IE",
+  "mbtool.structure.ie_mixer": "Miscelatore IE",
   "mbtool.structure.ie_auto_workbench": "Banco da lavoro automatico IE",
   "mbtool.structure.ie_blast_furnace": "Altoforno IE",
   "mbtool.structure.ie_bottling_machine": "Macchina imbottigliatrice IE",
