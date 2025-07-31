@@ -1,4 +1,4 @@
-package igentuman.mbtool.common;
+package igentuman.mbtool.util;
 
 import igentuman.mbtool.integration.jei.MultiblockStructure;
 import net.minecraft.client.Minecraft;
@@ -80,7 +80,7 @@ public class MultiblocksProvider {
                 ResourceLocation blockLocation = rlFromString(blockId);
                 Block block = ForgeRegistries.BLOCKS.getValue(blockLocation);
 
-                if (block == null) {
+                if (block == null || !blockLocation.getPath().equals(block.asItem().toString())) {
                     System.out.println("Missing block in structure: " + blockId);
                     return false;
                 }

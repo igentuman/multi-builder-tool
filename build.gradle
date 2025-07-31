@@ -114,11 +114,11 @@ dependencies {
         transitive = false
     }
     implementation fg.deobf("curse.maven:nuclearcraft-neoteric-840010:6825786")
-    //compileOnly fg.deobf("curse.maven:mantle-74924:6603205")
-    //compileOnly fg.deobf("curse.maven:tinkers-construct-74072:6603344")
+    //runtimeOnly fg.deobf("curse.maven:mantle-74924:6603205")
+    //runtimeOnly fg.deobf("curse.maven:tinkers-construct-74072:6603344")
 
     runtimeOnly fg.deobf("curse.maven:ctm-267602:5983309")
-    compileOnly fg.deobf("curse.maven:immersive-engineering-231951:5224387")
+    runtimeOnly fg.deobf("curse.maven:immersive-engineering-231951:5224387")
 
     compileOnly fg.deobf("mezz.jei:jei-${mc_version}-common-api:${jei_version}")
     compileOnly fg.deobf("mezz.jei:jei-${mc_version}-forge-api:${jei_version}")

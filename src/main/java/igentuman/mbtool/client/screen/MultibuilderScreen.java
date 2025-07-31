@@ -1,7 +1,7 @@
 package igentuman.mbtool.client.screen;
 
 import igentuman.mbtool.client.render.MultiblockRenderer;
-import igentuman.mbtool.common.MultiblocksProvider;
+import igentuman.mbtool.util.MultiblocksProvider;
 import igentuman.mbtool.container.MultibuilderContainer;
 import igentuman.mbtool.container.MultibuilderSelectStructureContainer;
 import igentuman.mbtool.integration.jei.MultiblockStructure;

@@ -1,6 +1,7 @@
 package igentuman.mbtool.item;
 
-import igentuman.mbtool.common.MultiblocksProvider;
+import igentuman.mbtool.util.MultiblocksProvider;
+import igentuman.mbtool.config.MbtoolConfig;
 import igentuman.mbtool.container.MultibuilderContainer;
 import igentuman.mbtool.integration.jei.MultiblockStructure;
 import igentuman.mbtool.network.NetworkHandler;
@@ -40,10 +41,6 @@ import java.util.List;
 import static igentuman.mbtool.Mbtool.MBTOOL;
 
 public class MultibuilderItem extends Item {
-    
-    // Energy configuration - you can adjust these values as needed
-    private static final int ENERGY_CAPACITY = 100000; // 100k FE
-    private static final int ENERGY_TRANSFER_RATE = 1000; // 1k FE/t
     
     // Inventory configuration
     private static final int INVENTORY_SIZE = 24; // 24 slots
@@ -132,11 +129,11 @@ public class MultibuilderItem extends Item {
     }
 
     protected int getEnergyMaxStorage() {
-        return ENERGY_CAPACITY;
+        return MbtoolConfig.getMaxEnergy();
     }
     
     protected int getEnergyTransferRate() {
-        return ENERGY_TRANSFER_RATE;
+        return MbtoolConfig.getEnergyTransferRate();
     }
     
     public static int getInventorySize() {
@@ -145,7 +142,7 @@ public class MultibuilderItem extends Item {
 
     @Override
     public ICapabilityProvider initCapabilities(ItemStack stack, CompoundTag nbt) {
-        return new ItemCapabilityProvider(stack, getEnergyMaxStorage(), getEnergyTransferRate(), INVENTORY_SIZE, STACK_SIZE);
+        return new ItemCapabilityProvider(stack, getEnergyMaxStorage(), getEnergyTransferRate(), getInventorySize(), STACK_SIZE);
     }
 
     public CustomEnergyStorage getEnergy(ItemStack stack) {
@@ -195,7 +192,7 @@ public class MultibuilderItem extends Item {
                     usedSlots++;
                 }
             }
-            list.add(Component.translatable("tooltip.mbtool.inventory_slots", usedSlots, INVENTORY_SIZE)
+            list.add(Component.translatable("tooltip.mbtool.inventory_slots", usedSlots, getInventorySize())
                 .withStyle(ChatFormatting.GRAY));
         }
     }

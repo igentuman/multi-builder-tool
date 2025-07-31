@@ -2,6 +2,7 @@ package igentuman.mbtool;
 
 import igentuman.mbtool.client.screen.MultibuilderScreen;
 import igentuman.mbtool.client.screen.MultibuilderSelectStructureScreen;
+import igentuman.mbtool.config.MbtoolConfig;
 import igentuman.mbtool.container.MultibuilderContainer;
 import igentuman.mbtool.container.MultibuilderSelectStructureContainer;
 import igentuman.mbtool.item.MultibuilderItem;
@@ -56,6 +57,9 @@ public class Mbtool
         context.getModEventBus().addListener(this::commonSetup);
         context.getModEventBus().addListener(Mbtool::init);
         context.getModEventBus().addListener(this::addCreative);
+        
+        // Register configuration
+        MbtoolConfig.register();
     }
     
     private void commonSetup(FMLCommonSetupEvent event) {

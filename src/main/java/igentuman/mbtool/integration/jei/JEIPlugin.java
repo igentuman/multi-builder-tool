@@ -1,6 +1,6 @@
 package igentuman.mbtool.integration.jei;
 
-import igentuman.mbtool.common.MultiblocksProvider;
+import igentuman.mbtool.util.MultiblocksProvider;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
 import mezz.jei.api.registration.IRecipeCategoryRegistration;

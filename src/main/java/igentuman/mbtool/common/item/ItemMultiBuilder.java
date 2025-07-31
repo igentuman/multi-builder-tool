@@ -1,6 +1,7 @@
 package igentuman.mbtool.common.item;
 
-import blusunrize.immersiveengineering.api.utils.CapabilityUtils;
+import igentuman.mbtool.util.CapabilityUtils;
+import igentuman.mbtool.config.MbtoolConfig;
 import igentuman.mbtool.util.CustomEnergyStorage;
 import igentuman.mbtool.util.ItemEnergyHandler;
 import net.minecraft.ChatFormatting;
@@ -56,7 +57,7 @@ public class ItemMultiBuilder extends Item {
     }
 
     protected int getEnergyMaxStorage() {
-        return 100000;
+        return MbtoolConfig.getMaxEnergy();
     }
 
     @Override

@@ -3,7 +3,7 @@ package igentuman.mbtool.client.render;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import igentuman.mbtool.client.handler.ClientHandler;
-import igentuman.mbtool.common.MultiblocksProvider;
+import igentuman.mbtool.util.MultiblocksProvider;
 import igentuman.mbtool.integration.jei.MultiblockStructure;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;

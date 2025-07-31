@@ -1,6 +1,6 @@
 package igentuman.mbtool.client.handler;
 
-import igentuman.mbtool.common.MultiblocksProvider;
+import igentuman.mbtool.util.MultiblocksProvider;
 import net.minecraft.world.item.ItemStack;
 
 public class ClientHandler

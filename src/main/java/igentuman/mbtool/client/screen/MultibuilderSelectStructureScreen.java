@@ -1,8 +1,7 @@
 package igentuman.mbtool.client.screen;
 
 import igentuman.mbtool.client.gui.MultiblockButton;
-import igentuman.mbtool.common.MultiblocksProvider;
-import igentuman.mbtool.container.MultibuilderContainer;
+import igentuman.mbtool.util.MultiblocksProvider;
 import igentuman.mbtool.container.MultibuilderSelectStructureContainer;
 import igentuman.mbtool.integration.jei.MultiblockStructure;
 import net.minecraft.client.gui.GuiGraphics;
@@ -36,7 +35,7 @@ public class MultibuilderSelectStructureScreen extends AbstractContainerScreen<M
     
     // Grid configuration
     private static final int GRID_COLUMNS = 3;
-    private static final int GRID_ROWS = 3;
+    private static final int GRID_ROWS = 2;
     private static final int BUTTON_SIZE = 64;
     private static final int BUTTON_SPACING = 2;
     private static final int STRUCTURES_PER_PAGE = GRID_COLUMNS * GRID_ROWS;

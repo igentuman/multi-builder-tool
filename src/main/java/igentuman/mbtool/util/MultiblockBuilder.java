@@ -1,5 +1,6 @@
 package igentuman.mbtool.util;
 
+import igentuman.mbtool.config.MbtoolConfig;
 import igentuman.mbtool.integration.jei.MultiblockStructure;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -18,9 +19,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class MultiblockBuilder {
-    
-    // Energy cost per block placed
-    private static final int ENERGY_PER_BLOCK = 100;
     
     /**
      * Attempts to build a multiblock structure
@@ -45,7 +43,7 @@ public class MultiblockBuilder {
         Map<Block, Integer> requiredBlocks = calculateRequiredBlocks(structure);
         
         // Calculate total energy cost
-        int totalEnergyCost = requiredBlocks.values().stream().mapToInt(Integer::intValue).sum() * ENERGY_PER_BLOCK;
+        int totalEnergyCost = requiredBlocks.values().stream().mapToInt(Integer::intValue).sum() * MbtoolConfig.getEnergyPerBlock();
         
         // Check if we have enough energy (skip for creative mode)
         if (!isCreative) {

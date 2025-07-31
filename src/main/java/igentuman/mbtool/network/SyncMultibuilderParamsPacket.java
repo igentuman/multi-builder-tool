@@ -1,6 +1,6 @@
 package igentuman.mbtool.network;
 
-import igentuman.mbtool.common.MultiblocksProvider;
+import igentuman.mbtool.util.MultiblocksProvider;
 import igentuman.mbtool.integration.jei.MultiblockStructure;
 import igentuman.mbtool.item.MultibuilderItem;
 import igentuman.mbtool.util.MultiblockBuilder;

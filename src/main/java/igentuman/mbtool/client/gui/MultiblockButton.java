@@ -6,11 +6,14 @@ import igentuman.mbtool.integration.jei.MultiblockStructure;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractButton;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
-import net.minecraft.world.entity.vehicle.Minecart;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A custom button that renders a multiblock structure instead of text or image
@@ -31,6 +34,7 @@ public class MultiblockButton extends AbstractButton {
         super(x, y, width, height, message);
         this.structure = structure;
         this.onPress = onPress;
+        updateTooltip();
     }
     
     /**
@@ -38,6 +42,7 @@ public class MultiblockButton extends AbstractButton {
      */
     public void setStructure(MultiblockStructure structure) {
         this.structure = structure;
+        updateTooltip();
     }
     
     /**
@@ -61,6 +66,25 @@ public class MultiblockButton extends AbstractButton {
         this.backgroundColor = normal;
         this.hoveredBackgroundColor = hovered;
         this.pressedBackgroundColor = pressed;
+    }
+    
+    /**
+     * Updates the tooltip based on the current structure
+     */
+    void updateTooltip() {
+        if (structure != null && structure.getName() != null && !structure.getName().isEmpty()) {
+            // Create a single component with structure name and dimensions
+            Component tooltip = Component.translatable(structure.getName())
+                .append(Component.literal("\n"))
+                .append(Component.translatable("gui.mbtool.multiblock_button.dimensions", 
+                    structure.getWidth(), structure.getHeight(), structure.getDepth())
+                    .withStyle(style -> style.withColor(0x808080)));
+            
+            setTooltip(Tooltip.create(tooltip));
+        } else {
+            // Clear tooltip if no structure or no name
+            setTooltip(null);
+        }
     }
     
     @Override
@@ -220,6 +244,7 @@ public class MultiblockButton extends AbstractButton {
             MultiblockButton button = new MultiblockButton(x, y, width, height, structure, onPress, message);
             button.setRenderBackground(renderBackground);
             button.setBackgroundColors(backgroundColor, hoveredBackgroundColor, pressedBackgroundColor);
+            button.updateTooltip(); // Ensure tooltip is updated after all properties are set
             return button;
         }
     }
