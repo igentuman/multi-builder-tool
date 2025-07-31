@@ -1,10 +1,7 @@
 package igentuman.mbtool.item;
 
 import igentuman.mbtool.container.MultibuilderContainer;
-import igentuman.mbtool.util.CapabilityUtils;
-import igentuman.mbtool.util.CustomEnergyStorage;
-import igentuman.mbtool.util.ItemEnergyHandler;
-import igentuman.mbtool.util.TextUtils;
+import igentuman.mbtool.util.*;
 import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -24,6 +21,7 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
+import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.network.NetworkHooks;
 
 import javax.annotation.Nonnull;
@@ -37,6 +35,10 @@ public class MultibuilderItem extends Item {
     private static final int ENERGY_CAPACITY = 100000; // 100k FE
     private static final int ENERGY_TRANSFER_RATE = 1000; // 1k FE/t
     
+    // Inventory configuration
+    private static final int INVENTORY_SIZE = 24; // 24 slots
+    private static final int STACK_SIZE = 64; // Standard stack size
+
     public MultibuilderItem(Properties pProperties) {
         super(pProperties);
     }
@@ -92,14 +94,30 @@ public class MultibuilderItem extends Item {
     protected int getEnergyTransferRate() {
         return ENERGY_TRANSFER_RATE;
     }
+    
+    public static int getInventorySize() {
+        return INVENTORY_SIZE;
+    }
 
     @Override
     public ICapabilityProvider initCapabilities(ItemStack stack, CompoundTag nbt) {
-        return new ItemEnergyHandler(stack, getEnergyMaxStorage(), getEnergyTransferRate(), getEnergyTransferRate());
+        return new ItemCapabilityProvider(stack, getEnergyMaxStorage(), getEnergyTransferRate(), INVENTORY_SIZE, STACK_SIZE);
     }
 
     public CustomEnergyStorage getEnergy(ItemStack stack) {
         return (CustomEnergyStorage) CapabilityUtils.getPresentCapability(stack, ForgeCapabilities.ENERGY);
+    }
+    
+    public IItemHandler getInventory(ItemStack stack) {
+        return (IItemHandler) CapabilityUtils.getPresentCapability(stack, ForgeCapabilities.ITEM_HANDLER);
+    }
+    
+    public ItemInventoryHandler getInventoryHandler(ItemStack stack) {
+        IItemHandler handler = getInventory(stack);
+        if (handler instanceof ItemInventoryHandler) {
+            return (ItemInventoryHandler) handler;
+        }
+        return null;
     }
 
     @Override
@@ -122,6 +140,19 @@ public class MultibuilderItem extends Item {
             list.add(TextUtils.__("tooltip.mbtool.energy_stored", 
                 TextUtils.formatEnergy(energyStorage.getEnergyStored()), 
                 TextUtils.formatEnergy(getEnergyMaxStorage())).withStyle(ChatFormatting.BLUE));
+        }
+        
+        // Show inventory information
+        IItemHandler inventory = getInventory(stack);
+        if (inventory != null) {
+            int usedSlots = 0;
+            for (int i = 0; i < inventory.getSlots(); i++) {
+                if (!inventory.getStackInSlot(i).isEmpty()) {
+                    usedSlots++;
+                }
+            }
+            list.add(Component.translatable("tooltip.mbtool.inventory_slots", usedSlots, INVENTORY_SIZE)
+                .withStyle(ChatFormatting.GRAY));
         }
     }
     
@@ -155,4 +186,44 @@ public class MultibuilderItem extends Item {
         }
         return 0;
     }
+    
+    /**
+     * Get an item from the inventory
+     */
+    public ItemStack getInventoryItem(ItemStack multibuilderStack, int slot) {
+        IItemHandler inventory = getInventory(multibuilderStack);
+        if (inventory != null && slot >= 0 && slot < inventory.getSlots()) {
+            return inventory.getStackInSlot(slot);
+        }
+        return ItemStack.EMPTY;
+    }
+    
+    /**
+     * Insert an item into the inventory
+     */
+    public ItemStack insertInventoryItem(ItemStack multibuilderStack, ItemStack itemToInsert, boolean simulate) {
+        IItemHandler inventory = getInventory(multibuilderStack);
+        if (inventory != null) {
+            // Try to insert into any available slot
+            for (int i = 0; i < inventory.getSlots(); i++) {
+                itemToInsert = inventory.insertItem(i, itemToInsert, simulate);
+                if (itemToInsert.isEmpty()) {
+                    break;
+                }
+            }
+        }
+        return itemToInsert;
+    }
+    
+    /**
+     * Extract an item from the inventory
+     */
+    public ItemStack extractInventoryItem(ItemStack multibuilderStack, int slot, int amount, boolean simulate) {
+        IItemHandler inventory = getInventory(multibuilderStack);
+        if (inventory != null && slot >= 0 && slot < inventory.getSlots()) {
+            return inventory.extractItem(slot, amount, simulate);
+        }
+        return ItemStack.EMPTY;
+    }
+    
 }
