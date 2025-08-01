@@ -10,6 +10,7 @@
   "message.mbtool.no_inventory": "Инвентарь недоступен",
   "message.mbtool.insufficient_blocks": "Недостаточно блоков! Требуется ещё %d %s",
   "message.mbtool.cannot_place_at": "Невозможно поставить блок в %d, %d, %d",
+  "message.mbtool.cannot_place_protected": "Невозможно поставить блок в %d, %d, %d - область защищена",
   "message.mbtool.multiblock_built": "Мультиблок успешно построен! Размещено %d блоков из %s",
   "message.mbtool.no_build_position": "Невозможно определить позицию для строительства",
   "message.mbtool.invalid_recipe": "Выбран неверный рецепт",

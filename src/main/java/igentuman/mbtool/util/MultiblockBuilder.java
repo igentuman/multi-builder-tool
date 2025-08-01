@@ -13,6 +13,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.level.block.state.properties.Property;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraftforge.items.IItemHandler;
 
 import java.util.HashMap;
@@ -88,10 +89,17 @@ public class MultiblockBuilder {
             BlockPos rotatedRelativePos = rotateBlockPos(relativePos, structure, rotation);
             BlockPos worldPos = centerPos.offset(rotatedRelativePos);
             BlockState currentState = level.getBlockState(worldPos);
+            BlockState rotatedBlockState = rotateBlockState(blockState, rotation);
             
             // Check if we can place the block here
-            if (!currentState.canBeReplaced()) {
+            if (!currentState.canBeReplaced() || !canPlayerPlaceBlockAt(level, player, worldPos, blockState)) {
                 return new BuildResult(false, Component.translatable("message.mbtool.cannot_place_at", 
+                    worldPos.getX(), worldPos.getY(), worldPos.getZ()));
+            }
+            
+            // Check if the player can place blocks at this position (respects claims)
+            if (!canPlayerPlaceBlockAt(level, player, worldPos, rotatedBlockState)) {
+                return new BuildResult(false, Component.translatable("message.mbtool.cannot_place_protected", 
                     worldPos.getX(), worldPos.getY(), worldPos.getZ()));
             }
         }
@@ -133,8 +141,8 @@ public class MultiblockBuilder {
             BlockPos worldPos = centerPos.offset(rotatedRelativePos);
             BlockState rotatedBlockState = rotateBlockState(blockState, rotation);
             
-            // Place the block
-            if (level.setBlock(worldPos, rotatedBlockState, 3)) {
+            // Place the block using player-respecting method
+            if (placeBlockAsPlayer(level, player, worldPos, rotatedBlockState)) {
                 blocksPlaced++;
                 
                 // Update block entity if needed
@@ -153,7 +161,47 @@ public class MultiblockBuilder {
         }
         
         return new BuildResult(true, Component.translatable("message.mbtool.multiblock_built", 
-            blocksPlaced, structure.getName()));
+            blocksPlaced, Component.translatable(structure.getName())));
+    }
+    
+    /**
+     * Checks if a player can place a block at the given position (respects claim systems)
+     * @param level The world level
+     * @param player The player attempting to place the block
+     * @param pos The position to check
+     * @param blockState The block state to place
+     * @return true if the player can place the block, false otherwise
+     */
+    private static boolean canPlayerPlaceBlockAt(Level level, Player player, BlockPos pos, BlockState blockState) {
+        // Check if the player can interact with this position
+        // This method respects claim systems like FTB Chunks, WorldGuard, etc.
+        return level.mayInteract(player, pos);
+    }
+    
+    /**
+     * Places a block as if the player placed it, respecting claim systems and protection mods
+     * @param level The world level
+     * @param player The player placing the block
+     * @param pos The position to place the block
+     * @param blockState The block state to place
+     * @return true if the block was successfully placed, false otherwise
+     */
+    private static boolean placeBlockAsPlayer(Level level, Player player, BlockPos pos, BlockState blockState) {
+        // First check if the player can place the block at this position
+        if (!canPlayerPlaceBlockAt(level, player, pos, blockState)) {
+            return false;
+        }
+        
+        // Place the block with proper flags (3 = update neighbors and clients)
+        boolean success = level.setBlock(pos, blockState, 3);
+        
+        if (success && level instanceof ServerLevel serverLevel) {
+            // Notify the block that it was placed by a player
+            Block block = blockState.getBlock();
+            block.setPlacedBy(level, pos, blockState, player, new ItemStack(block.asItem()));
+        }
+        
+        return success;
     }
     
     /**

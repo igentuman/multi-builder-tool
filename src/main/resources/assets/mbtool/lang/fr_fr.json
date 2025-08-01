@@ -10,6 +10,7 @@
   "message.mbtool.no_inventory": "Aucun inventaire disponible",
   "message.mbtool.insufficient_blocks": "Blocs insuffisants ! Besoin de %d %s de plus",
   "message.mbtool.cannot_place_at": "Impossible de placer le bloc à %d, %d, %d",
+  "message.mbtool.cannot_place_protected": "Impossible de placer le bloc à %d, %d, %d - zone protégée",
   "message.mbtool.multiblock_built": "Multi-bloc construit avec succès ! %d blocs placés depuis %s",
   "message.mbtool.no_build_position": "Impossible de déterminer la position de construction",
   "message.mbtool.invalid_recipe": "Recette sélectionnée invalide",
