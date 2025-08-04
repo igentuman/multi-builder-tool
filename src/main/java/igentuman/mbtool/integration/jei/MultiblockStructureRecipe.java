@@ -1,14 +1,17 @@
 package igentuman.mbtool.integration.jei;
 
+import mezz.jei.api.runtime.IIngredientManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class MultiblockStructureRecipe {
     private final ResourceLocation id;
@@ -17,8 +20,9 @@ public class MultiblockStructureRecipe {
     private final MultiblockStructure structure;
     public int currentLayer = 0;
     public List<ItemStack> outputs = new ArrayList<>();
+    private IIngredientManager ingredientManager;
 
-    public MultiblockStructureRecipe(ResourceLocation id, CompoundTag structureNbt, String name) {
+    public MultiblockStructureRecipe(ResourceLocation id, CompoundTag structureNbt, String name, IIngredientManager ingredientManager) {
         this.id = id;
         this.structureNbt = structureNbt;
         this.name =  name;
@@ -32,6 +36,15 @@ public class MultiblockStructureRecipe {
                 outputs.add(new ItemStack(block));
             }
         }
+        for(ItemStack stackItem :outputs) {
+            for(Map.Entry<BlockPos, BlockState> block : structure.getBlocks().entrySet()) {
+                if(stackItem.is(block.getValue().getBlock().asItem())) {
+                    stackItem.setCount(stackItem.getCount() + 1);
+                }
+            }
+            stackItem.setCount(stackItem.getCount() - 1);
+        }
+        this.ingredientManager = ingredientManager;
     }
     
     public ResourceLocation getId() {
@@ -51,6 +64,9 @@ public class MultiblockStructureRecipe {
     }
 
     public void slice() {
+        if(structure.getMaxY() < currentLayer) {
+            currentLayer = structure.getMaxY();
+        }
         currentLayer--;
         if (currentLayer < structure.getMinY()) {
             currentLayer = structure.getMaxY();
@@ -60,5 +76,9 @@ public class MultiblockStructureRecipe {
     public Ingredient getIngredients() {
         Ingredient ingredient = Ingredient.of(outputs.toArray(new ItemStack[0]));
         return ingredient;
+    }
+
+    public IIngredientManager getIngredientManager() {
+        return ingredientManager;
     }
 }

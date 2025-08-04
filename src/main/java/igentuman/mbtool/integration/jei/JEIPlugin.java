@@ -5,6 +5,7 @@ import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
 import mezz.jei.api.registration.IRecipeCategoryRegistration;
 import mezz.jei.api.registration.IRecipeRegistration;
+import mezz.jei.api.runtime.IIngredientManager;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
 
@@ -15,6 +16,7 @@ import static igentuman.mbtool.Mbtool.rl;
 @JeiPlugin
 public class JEIPlugin implements IModPlugin {
 
+    private IIngredientManager ingredientManager;
     @Override
     public ResourceLocation getPluginUid() {
         return rl("jei_plugin");
@@ -23,6 +25,7 @@ public class JEIPlugin implements IModPlugin {
         registration.addRecipeCategories(
                 new MultiblockStructureCategory(registration.getJeiHelpers().getGuiHelper())
         );
+        ingredientManager = registration.getJeiHelpers().getIngredientManager();
     }
 
     public void registerRecipes(IRecipeRegistration registration) {
@@ -36,7 +39,8 @@ public class JEIPlugin implements IModPlugin {
                 .map(structure -> new MultiblockStructureRecipe(
                         structure.getId(),
                         structure.getStructureNbt(),
-                        structure.getName()))
+                        structure.getName(),
+                        ingredientManager))
                 .toList();
     }
 }

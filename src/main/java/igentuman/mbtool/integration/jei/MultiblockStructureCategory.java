@@ -15,6 +15,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
@@ -50,6 +51,7 @@ public class MultiblockStructureCategory implements IRecipeCategory<MultiblockSt
     private final IDrawable icon;
     private final Component title;
     private final MultiblockRenderer renderer;
+    private IngredientsButton ingredientsButton;
 
     public MultiblockStructureCategory(IGuiHelper guiHelper) {
         this.background = guiHelper.createBlankDrawable(160, 120);
@@ -84,12 +86,19 @@ public class MultiblockStructureCategory implements IRecipeCategory<MultiblockSt
         builder.addInvisibleIngredients(RecipeIngredientRole.OUTPUT).addItemLike(MBTOOL.get());
         builder.addInvisibleIngredients(RecipeIngredientRole.OUTPUT).addIngredients(recipe.getIngredients());
         builder.addInvisibleIngredients(RecipeIngredientRole.INPUT).addIngredients(recipe.getIngredients());
+        ingredientsButton = IngredientsButton.create(recipe);
+        ingredientsButton.updateBounds(new Rect2i(5, 15, 10, 10));
     }
     
     @Override
     public void draw(MultiblockStructureRecipe recipe, IRecipeSlotsView recipeSlotsView, GuiGraphics graphics, double mouseX, double mouseY) {
         // Draw structure name
         Font font = Minecraft.getInstance().font;
+        ingredientsButton.recipe = recipe;
+        ingredientsButton.draw(graphics, 5, 15, 1);
+        if(ingredientsButton.isMouseOver(mouseX, mouseY)) {
+            ingredientsButton.drawTooltips(graphics, (int) mouseX, (int) mouseY);
+        }
         graphics.drawString(font, __(recipe.getName()), 5, 2, 0xFFFFFFFF);
         long window = Minecraft.getInstance().getWindow().getWindow();
         boolean leftMouseDown = GLFW.glfwGetMouseButton(window, GLFW.GLFW_MOUSE_BUTTON_LEFT)
