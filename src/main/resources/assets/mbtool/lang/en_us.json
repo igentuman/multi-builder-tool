@@ -14,6 +14,7 @@
   "message.mbtool.multiblock_built": "Successfully built multiblock! Placed %d blocks from %s",
   "message.mbtool.no_build_position": "Cannot determine build position",
   "message.mbtool.invalid_recipe": "Invalid recipe selected",
+  "message.mbtool.invalid_structure": "Invalid structure data received",
   "message.mbtool.no_recipe": "No recipe selected. Use GUI to select a structure first",
   "gui.mbtool.multiblock_button.dimensions": "Dimensions: %d x %d x %d",
   "mbtool.structure.mekanism_boiler": "Mekanism Boiler",

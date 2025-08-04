@@ -6,6 +6,7 @@ import igentuman.mbtool.container.MultibuilderContainer;
 import igentuman.mbtool.integration.jei.MultiblockStructure;
 import igentuman.mbtool.network.NetworkHandler;
 import igentuman.mbtool.network.SyncMultibuilderParamsPacket;
+import igentuman.mbtool.network.SyncRuntimeStructurePacket;
 import igentuman.mbtool.util.*;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -78,11 +79,17 @@ public class MultibuilderItem extends Item {
         } else {
             // Build multiblock when not sneaking
             if (level.isClientSide) {
+                int rotation = getRotation(itemStack);
+
+                if(runtimeStructure != null) {
+                    // Send runtimeStructure to server to build
+                    NetworkHandler.INSTANCE.sendToServer(
+                            new SyncRuntimeStructurePacket(runtimeStructure.getStructureNbt(), rotation, hand));
+                    return InteractionResultHolder.success(itemStack);
+                }
                 // Client side: validate and send packet to server
                 if(hasRecipe(itemStack)) {
                     int recipeIndex = itemStack.getOrCreateTag().getInt("recipe");
-                    int rotation = getRotation(itemStack);
-                    
                     // Ensure structures are loaded on client
                     if (MultiblocksProvider.structures.isEmpty()) {
                         MultiblocksProvider.getStructures();
