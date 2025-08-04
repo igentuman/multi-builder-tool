@@ -45,6 +45,7 @@ public class MultibuilderItem extends Item {
     // Inventory configuration
     private static final int INVENTORY_SIZE = 24; // 24 slots
     private static final int STACK_SIZE = 64; // Standard stack size
+    public MultiblockStructure runtimeStructure;
 
     public MultibuilderItem(Properties pProperties) {
         super(pProperties);
@@ -429,5 +430,8 @@ public class MultibuilderItem extends Item {
 
         return hit;
     }
-    
+
+    public void setRuntimeStructure(MultiblockStructure structure) {
+        runtimeStructure = structure;
+    }
 }

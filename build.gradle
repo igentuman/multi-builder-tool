@@ -113,9 +113,12 @@ dependencies {
     compileOnly fg.deobf("com.gregtechceu.gtceu:gtceu-${mc_version}:${gtm_version}"){
         transitive = false
     }
-    runtimeOnly fg.deobf("curse.maven:blood-magic-224791:5290993") {
+    implementation fg.deobf("curse.maven:just-enough-mekanism-multiblocks-898746:6170219"){
         transitive = false
     }
+    /*runtimeOnly fg.deobf("curse.maven:blood-magic-224791:5290993") {
+        transitive = false
+    }*/
     implementation fg.deobf("curse.maven:nuclearcraft-neoteric-840010:6825786")
     //runtimeOnly fg.deobf("curse.maven:mantle-74924:6603205")
     //runtimeOnly fg.deobf("curse.maven:tinkers-construct-74072:6603344")
@@ -186,10 +189,10 @@ jar {
     }
 }
 
-/*mixin {
+mixin {
     add sourceSets.main, "mbtool.refmap.json"
     config "mbtool.mixins.json"
-}*/
+}
 
 jar.enabled = false
 

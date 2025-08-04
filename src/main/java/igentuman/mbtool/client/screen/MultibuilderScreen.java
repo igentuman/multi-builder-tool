@@ -1,10 +1,12 @@
 package igentuman.mbtool.client.screen;
 
 import igentuman.mbtool.client.render.MultiblockRenderer;
+import igentuman.mbtool.item.MultibuilderItem;
 import igentuman.mbtool.util.MultiblocksProvider;
 import igentuman.mbtool.container.MultibuilderContainer;
 import igentuman.mbtool.container.MultibuilderSelectStructureContainer;
 import igentuman.mbtool.integration.jei.MultiblockStructure;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
@@ -106,10 +108,16 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
         pGuiGraphics.blit(TEXTURE, x, y, 0, 0, this.imageWidth, this.imageHeight);
         if(selectedStructure > -1) {
             List<MultiblockStructure> allStructures = MultiblocksProvider.getStructures();
-
+            MultiblockStructure structure = allStructures.get(selectedStructure);
+            ItemStack multibuilderStack = Minecraft.getInstance().player.getInventory().getItem(Minecraft.getInstance().player.getInventory().selected);
+            if(!multibuilderStack.is(MBTOOL.get())) return;
+            MultibuilderItem multibuilderItem = (MultibuilderItem) multibuilderStack.getItem();
+            if(multibuilderItem.runtimeStructure != null) {
+                structure = multibuilderItem.runtimeStructure;
+            }
             // Render the selected structure
             MultiblockRenderer.render(
-                allStructures.get(selectedStructure),
+                    structure,
                 pGuiGraphics.pose(),
                 x + 118, y + 9, 60, 60
             );

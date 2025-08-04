@@ -50,5 +50,6 @@
   "mbtool.structure.blood_magic_altar_3": "Алтарь Кровавой Магии Уровень 3",
   "mbtool.structure.blood_magic_altar_4": "Алтарь Кровавой Магии Уровень 4",
   "mbtool.structure.blood_magic_altar_5": "Алтарь Кровавой Магии Уровень 5",
-  "mbtool.structure.blood_magic_edge_of_the_hidden_realm": "Кровавая Магия Грань Скрытого Царства"
+  "mbtool.structure.blood_magic_edge_of_the_hidden_realm": "Кровавая Магия Грань Скрытого Царства",
+  "mbtool.tooltip.load_into_mbtool": "Загрузить в Мультистроитель"
 }

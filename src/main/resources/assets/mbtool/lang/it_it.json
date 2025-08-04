@@ -50,5 +50,6 @@
   "mbtool.structure.blood_magic_altar_3": "Altare di Magia del Sangue Livello 3",
   "mbtool.structure.blood_magic_altar_4": "Altare di Magia del Sangue Livello 4",
   "mbtool.structure.blood_magic_altar_5": "Altare di Magia del Sangue Livello 5",
-  "mbtool.structure.blood_magic_edge_of_the_hidden_realm": "Magia del Sangue Confine del Regno Nascosto"
+  "mbtool.structure.blood_magic_edge_of_the_hidden_realm": "Magia del Sangue Confine del Regno Nascosto",
+  "mbtool.tooltip.load_into_mbtool": "Carica nello Strumento Multi-costruttore"
 }

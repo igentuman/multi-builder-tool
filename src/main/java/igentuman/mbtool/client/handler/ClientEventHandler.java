@@ -33,9 +33,9 @@ public class ClientEventHandler {
         ItemStack offItem = player.getItemInHand(InteractionHand.OFF_HAND);
 
         boolean main = !mainItem.isEmpty() && mainItem.is(MBTOOL.get()) && ClientHandler.hasRecipe(mainItem);
-        boolean off = !offItem.isEmpty() && offItem.is(MBTOOL.get()) && ClientHandler.hasRecipe(offItem);
 
-        if (!main && !off) {
+
+        if (!main) {
             return;
         }
 

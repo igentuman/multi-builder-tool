@@ -50,5 +50,6 @@
   "mbtool.structure.blood_magic_altar_3": "Autel de Magie du Sang Niveau 3",
   "mbtool.structure.blood_magic_altar_4": "Autel de Magie du Sang Niveau 4",
   "mbtool.structure.blood_magic_altar_5": "Autel de Magie du Sang Niveau 5",
-  "mbtool.structure.blood_magic_edge_of_the_hidden_realm": "Magie du Sang Bord du Royaume Caché"
+  "mbtool.structure.blood_magic_edge_of_the_hidden_realm": "Magie du Sang Bord du Royaume Caché",
+  "mbtool.tooltip.load_into_mbtool": "Charger dans l'Outil Multi-constructeur"
 }

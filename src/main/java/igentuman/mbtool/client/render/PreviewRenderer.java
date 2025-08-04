@@ -3,6 +3,7 @@ package igentuman.mbtool.client.render;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import igentuman.mbtool.client.handler.ClientHandler;
+import igentuman.mbtool.item.MultibuilderItem;
 import igentuman.mbtool.util.MultiblocksProvider;
 import igentuman.mbtool.integration.jei.MultiblockStructure;
 import net.minecraft.client.Minecraft;
@@ -93,6 +94,10 @@ public class PreviewRenderer {
         }
         
         structure = MultiblocksProvider.structures.get(recipeIndex);
+        MultibuilderItem multibuilderItem = (MultibuilderItem) multibuilderStack.getItem();
+        if(multibuilderItem.runtimeStructure != null) {
+            structure = multibuilderItem.runtimeStructure;
+        }
         if (structure == null) return null;
         
         // Get rotation from item (if supported in the future)
