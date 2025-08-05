@@ -17,6 +17,7 @@
   "message.mbtool.no_recipe": "Kein Rezept ausgewählt. Verwende die Benutzeroberfläche, um zuerst eine Struktur auszuwählen",
   "gui.mbtool.multiblock_button.dimensions": "Abmessungen: %d x %d x %d",
   "mbtool.structure.mekanism_boiler": "Mekanism Kessel",
+  "mbtool.structure.mekanism_evaporation_tower": "Mekanism Verdampfungsturm",
   "mbtool.structure.mekanism_fission_reactor": "Mekanism Spaltungsreaktor",
   "mbtool.structure.mekanism_fusion_reactor": "Mekanism Fusionsreaktor",
   "mbtool.structure.nuclearcraft_fission_reactor": "Nuclearcraft Spaltungsreaktor",

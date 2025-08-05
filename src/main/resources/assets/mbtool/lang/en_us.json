@@ -18,6 +18,7 @@
   "message.mbtool.no_recipe": "No recipe selected. Use GUI to select a structure first",
   "gui.mbtool.multiblock_button.dimensions": "Dimensions: %d x %d x %d",
   "mbtool.structure.mekanism_boiler": "Mekanism Boiler",
+  "mbtool.structure.mekanism_evaporation_tower": "Mekanism Evaporation Tower",
   "mbtool.structure.mekanism_fission_reactor": "Mekanism Fission Reactor",
   "mbtool.structure.mekanism_fusion_reactor": "Mekanism Fusion Reactor",
   "mbtool.structure.nuclearcraft_fission_reactor": "Nuclearcraft Fission Reactor",

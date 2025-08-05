@@ -17,6 +17,7 @@
   "message.mbtool.no_recipe": "Nessuna ricetta selezionata. Usa l'interfaccia per selezionare prima una struttura",
   "gui.mbtool.multiblock_button.dimensions": "Dimensioni: %d x %d x %d",
   "mbtool.structure.mekanism_boiler": "Caldaia Mekanism",
+  "mbtool.structure.mekanism_evaporation_tower": "Torre di evaporazione Mekanism",
   "mbtool.structure.mekanism_fission_reactor": "Reattore a fissione Mekanism",
   "mbtool.structure.mekanism_fusion_reactor": "Reattore a fusione Mekanism",
   "mbtool.structure.nuclearcraft_fission_reactor": "Reattore a fissione Nuclearcraft",

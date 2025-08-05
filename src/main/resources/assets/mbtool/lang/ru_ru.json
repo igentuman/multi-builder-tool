@@ -17,6 +17,7 @@
   "message.mbtool.no_recipe": "Рецепт не выбран. Используйте GUI для выбора структуры",
   "gui.mbtool.multiblock_button.dimensions": "Размеры: %d x %d x %d",
   "mbtool.structure.mekanism_boiler": "Котёл Mekanism",
+  "mbtool.structure.mekanism_evaporation_tower": "Башня испарения Mekanism",
   "mbtool.structure.mekanism_fission_reactor": "Реактор деления Mekanism",
   "mbtool.structure.mekanism_fusion_reactor": "Термоядерный реактор Mekanism",
   "mbtool.structure.nuclearcraft_fission_reactor": "Реактор деления Nuclearcraft",
