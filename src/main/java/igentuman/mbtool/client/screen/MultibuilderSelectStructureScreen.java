@@ -1,6 +1,7 @@
 package igentuman.mbtool.client.screen;
 
 import igentuman.mbtool.client.gui.MultiblockButton;
+import igentuman.mbtool.item.MultibuilderItem;
 import igentuman.mbtool.util.MultiblocksProvider;
 import igentuman.mbtool.container.MultibuilderSelectStructureContainer;
 import igentuman.mbtool.integration.jei.MultiblockStructure;
@@ -334,6 +335,10 @@ public class MultibuilderSelectStructureScreen extends AbstractContainerScreen<M
                 
                 if (multibuilderStack.is(MBTOOL.get())) {
                     multibuilderStack.getOrCreateTag().putInt("recipe", originalIndex);
+                    
+                    // Nullify runtimeStructure when player chooses a structure
+                    MultibuilderItem multibuilderItem = (MultibuilderItem) multibuilderStack.getItem();
+                    multibuilderItem.setRuntimeStructure(null);
                 }
             }
             

@@ -10,6 +10,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.network.chat.Component;
+import java.util.regex.Pattern;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -19,6 +20,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(MultiblockWidget.class)
 public abstract class MultiblockWidgetMixin {
+
+    private static final Pattern MULTIBLOCK_TYPE_PATTERN = Pattern.compile("Fission|Turbine");
 
     @Shadow @Final protected CostList costsList;
     @Shadow protected IntSliderWithButtons heightWidget;
@@ -35,7 +38,7 @@ public abstract class MultiblockWidgetMixin {
 
     @Inject(method = "render(Lnet/minecraft/client/gui/GuiGraphics;IIF)V", at = @At("RETURN"), remap = false)
     private void onRenderReturn(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
-        if(!this.getClass().toString().contains("Fission")) {
+        if(!MULTIBLOCK_TYPE_PATTERN.matcher(this.getClass().toString()).find()) {
             return;
         }
         passToMbtoolBtn.render(guiGraphics, mouseX, mouseY, partialTick);
@@ -50,7 +53,7 @@ public abstract class MultiblockWidgetMixin {
 
     @Inject(method = "updateInput", at = @At("HEAD"), remap = false)
     private void onUpdateInput(double pMouseX, double pMouseY, CallbackInfo ci) {
-        if(!this.getClass().toString().contains("Fission")) {
+        if(!MULTIBLOCK_TYPE_PATTERN.matcher(this.getClass().toString()).find()) {
             return;
         }
         if (JEI_MekanismMultiblocks_Client.PRESSED) {
