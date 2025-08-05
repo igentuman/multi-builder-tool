@@ -43,7 +43,7 @@ public class PassToMbtoolBtn extends ImageButton {
             MultiblockStructure structure = MekanismStructureGenerator.generate(blocks, structureHeight, structureWidth, structureLength);
             if(structure == null) return true;
             MultibuilderItem item = (MultibuilderItem) mbtool.getItem();
-            item.setRuntimeStructure(structure);
+            item.setRuntimeStructure(mbtool, structure);
         }
         return false;
     }

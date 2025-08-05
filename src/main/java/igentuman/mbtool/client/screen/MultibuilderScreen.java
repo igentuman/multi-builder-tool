@@ -112,8 +112,9 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
             ItemStack multibuilderStack = Minecraft.getInstance().player.getInventory().getItem(Minecraft.getInstance().player.getInventory().selected);
             if(!multibuilderStack.is(MBTOOL.get())) return;
             MultibuilderItem multibuilderItem = (MultibuilderItem) multibuilderStack.getItem();
-            if(multibuilderItem.runtimeStructure != null) {
-                structure = multibuilderItem.runtimeStructure;
+            MultiblockStructure runtimeStructure = multibuilderItem.getRuntimeStructure(multibuilderStack);
+            if(runtimeStructure != null) {
+                structure = runtimeStructure;
             }
             // Render the selected structure
             MultiblockRenderer.render(

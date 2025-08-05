@@ -338,7 +338,7 @@ public class MultibuilderSelectStructureScreen extends AbstractContainerScreen<M
                     
                     // Nullify runtimeStructure when player chooses a structure
                     MultibuilderItem multibuilderItem = (MultibuilderItem) multibuilderStack.getItem();
-                    multibuilderItem.setRuntimeStructure(null);
+                    multibuilderItem.setRuntimeStructure(multibuilderStack, null);
                 }
             }
             

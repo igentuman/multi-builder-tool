@@ -10,7 +10,7 @@ public class ClientHandler
 	{
 		try {
 			MultibuilderItem multibuilderItem = (MultibuilderItem)item.getItem();
-			if (!item.getOrCreateTag().contains("recipe") && multibuilderItem.runtimeStructure == null) {
+			if (!item.getOrCreateTag().contains("recipe") && multibuilderItem.getRuntimeStructure(item) == null) {
 				return false;
 			}
 			
@@ -20,7 +20,7 @@ public class ClientHandler
 			}
 			
 			int recipeIndex = item.getOrCreateTag().getInt("recipe");
-			return recipeIndex >= 0 && recipeIndex < MultiblocksProvider.structures.size() || multibuilderItem.runtimeStructure != null;
+			return recipeIndex >= 0 && recipeIndex < MultiblocksProvider.structures.size() || multibuilderItem.getRuntimeStructure(item) != null;
 		} catch (Exception ignored) {
 			return false;
 		}

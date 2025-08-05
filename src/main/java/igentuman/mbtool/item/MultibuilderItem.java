@@ -46,7 +46,6 @@ public class MultibuilderItem extends Item {
     // Inventory configuration
     private static final int INVENTORY_SIZE = 24; // 24 slots
     private static final int STACK_SIZE = 64; // Standard stack size
-    public MultiblockStructure runtimeStructure;
 
     public MultibuilderItem(Properties pProperties) {
         super(pProperties);
@@ -81,6 +80,7 @@ public class MultibuilderItem extends Item {
             if (level.isClientSide) {
                 int rotation = getRotation(itemStack);
 
+                MultiblockStructure runtimeStructure = getRuntimeStructure(itemStack);
                 if(runtimeStructure != null) {
                     // Send runtimeStructure to server to build
                     NetworkHandler.INSTANCE.sendToServer(
@@ -438,7 +438,31 @@ public class MultibuilderItem extends Item {
         return hit;
     }
 
-    public void setRuntimeStructure(MultiblockStructure structure) {
-        runtimeStructure = structure;
+    /**
+     * Set the runtime structure in the ItemStack's NBT
+     */
+    public void setRuntimeStructure(ItemStack stack, MultiblockStructure structure) {
+        CompoundTag tag = stack.getOrCreateTag();
+        if (structure != null) {
+            tag.put("runtimeStructure", structure.getStructureNbt());
+        } else {
+            tag.remove("runtimeStructure");
+        }
+    }
+    
+    /**
+     * Get the runtime structure from the ItemStack's NBT
+     */
+    public MultiblockStructure getRuntimeStructure(ItemStack stack) {
+        try {
+            CompoundTag tag = stack.getOrCreateTag();
+            if (tag.contains("runtimeStructure")) {
+                CompoundTag structureNbt = tag.getCompound("runtimeStructure");
+                return new MultiblockStructure(structureNbt);
+            }
+        } catch (Exception ignored) {
+            // Fall through to return null
+        }
+        return null;
     }
 }

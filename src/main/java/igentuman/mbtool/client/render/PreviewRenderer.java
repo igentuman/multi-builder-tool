@@ -95,8 +95,9 @@ public class PreviewRenderer {
         
         structure = MultiblocksProvider.structures.get(recipeIndex);
         MultibuilderItem multibuilderItem = (MultibuilderItem) multibuilderStack.getItem();
-        if(multibuilderItem.runtimeStructure != null) {
-            structure = multibuilderItem.runtimeStructure;
+        MultiblockStructure runtimeStructure = multibuilderItem.getRuntimeStructure(multibuilderStack);
+        if(runtimeStructure != null) {
+            structure = runtimeStructure;
         }
         if (structure == null) return null;
         
