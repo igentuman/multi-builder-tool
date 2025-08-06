@@ -1,6 +1,6 @@
 package igentuman.mbtool.util;
 
-import igentuman.mbtool.integration.jei.MultiblockStructure;
+import igentuman.mbtool.integration.kubejs.MbtoolKubeJsEvents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtIo;
@@ -11,6 +11,7 @@ import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.level.block.Block;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import java.io.IOException;
@@ -21,6 +22,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
 import static igentuman.mbtool.Mbtool.rlFromString;
+import static igentuman.mbtool.util.ModUtil.isKubeJsLoaded;
 
 public class MultiblocksProvider implements PreparableReloadListener {
 
@@ -41,6 +43,7 @@ public class MultiblocksProvider implements PreparableReloadListener {
      */
     public static void setStructures(List<MultiblockStructure> newStructures) {
         structures.clear();
+
         structures.addAll(newStructures);
     }
 
@@ -51,6 +54,11 @@ public class MultiblocksProvider implements PreparableReloadListener {
         return CompletableFuture.supplyAsync(() -> {
             return loadMultiblockStructures(resourceManager);
         }, backgroundExecutor).thenCompose(preparationBarrier::wait).thenAcceptAsync(loadedStructures -> {
+            InitMbtoolStructuresEvent event = new InitMbtoolStructuresEvent(loadedStructures);
+            MinecraftForge.EVENT_BUS.post(event);
+            if(isKubeJsLoaded()) {
+                MbtoolKubeJsEvents.onInitMbtoolStructures(event);
+            }
             structures.clear();
             structures.addAll(loadedStructures);
         }, gameExecutor);

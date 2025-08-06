@@ -1,7 +1,7 @@
 package igentuman.mbtool.client.gui;
 
 import giselle.jei_mekanism_multiblocks.client.jei.CostList;
-import igentuman.mbtool.integration.jei.MultiblockStructure;
+import igentuman.mbtool.util.MultiblockStructure;
 import igentuman.mbtool.item.MultibuilderItem;
 import igentuman.mbtool.util.MekanismStructureGenerator;
 import net.minecraft.client.Minecraft;

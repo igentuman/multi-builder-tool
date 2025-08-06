@@ -1,11 +1,9 @@
 package igentuman.mbtool.util;
 
-import igentuman.mbtool.integration.jei.MultiblockStructure;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.IntTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.Block;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;

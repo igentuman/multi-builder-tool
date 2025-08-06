@@ -1,10 +1,8 @@
 package igentuman.mbtool.network;
 
-import igentuman.mbtool.integration.jei.MultiblockStructure;
+import igentuman.mbtool.util.MultiblockStructure;
 import igentuman.mbtool.util.MultiblocksProvider;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.Tag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.network.NetworkEvent;

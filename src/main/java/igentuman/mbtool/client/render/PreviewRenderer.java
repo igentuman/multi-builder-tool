@@ -5,7 +5,7 @@ import com.mojang.blaze3d.vertex.*;
 import igentuman.mbtool.client.handler.ClientHandler;
 import igentuman.mbtool.item.MultibuilderItem;
 import igentuman.mbtool.util.MultiblocksProvider;
-import igentuman.mbtool.integration.jei.MultiblockStructure;
+import igentuman.mbtool.util.MultiblockStructure;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.RenderType;

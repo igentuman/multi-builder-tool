@@ -1,7 +1,6 @@
 package igentuman.mbtool.util;
 
 import igentuman.mbtool.config.MbtoolConfig;
-import igentuman.mbtool.integration.jei.MultiblockStructure;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;

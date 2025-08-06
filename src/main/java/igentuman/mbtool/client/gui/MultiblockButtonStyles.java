@@ -1,6 +1,6 @@
 package igentuman.mbtool.client.gui;
 
-import igentuman.mbtool.integration.jei.MultiblockStructure;
+import igentuman.mbtool.util.MultiblockStructure;
 import net.minecraft.network.chat.Component;
 
 /**

@@ -1,6 +1,6 @@
 package igentuman.mbtool.network;
 
-import igentuman.mbtool.integration.jei.MultiblockStructure;
+import igentuman.mbtool.util.MultiblockStructure;
 import igentuman.mbtool.item.MultibuilderItem;
 import igentuman.mbtool.util.MultiblockBuilder;
 import net.minecraft.core.BlockPos;

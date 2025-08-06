@@ -3,7 +3,7 @@ package igentuman.mbtool.item;
 import igentuman.mbtool.util.MultiblocksProvider;
 import igentuman.mbtool.config.MbtoolConfig;
 import igentuman.mbtool.container.MultibuilderContainer;
-import igentuman.mbtool.integration.jei.MultiblockStructure;
+import igentuman.mbtool.util.MultiblockStructure;
 import igentuman.mbtool.network.NetworkHandler;
 import igentuman.mbtool.network.SyncMultibuilderParamsPacket;
 import igentuman.mbtool.network.SyncRuntimeStructurePacket;

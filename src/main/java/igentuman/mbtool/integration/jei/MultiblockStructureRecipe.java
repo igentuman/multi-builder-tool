@@ -1,5 +1,6 @@
 package igentuman.mbtool.integration.jei;
 
+import igentuman.mbtool.util.MultiblockStructure;
 import mezz.jei.api.runtime.IIngredientManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;

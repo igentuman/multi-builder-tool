@@ -2,7 +2,7 @@ package igentuman.mbtool.client.gui;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import igentuman.mbtool.client.render.MultiblockRenderer;
-import igentuman.mbtool.integration.jei.MultiblockStructure;
+import igentuman.mbtool.util.MultiblockStructure;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractButton;
@@ -10,10 +10,6 @@ import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.Mth;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * A custom button that renders a multiblock structure instead of text or image
