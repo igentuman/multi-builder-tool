@@ -22,6 +22,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
 import static igentuman.mbtool.Mbtool.rlFromString;
+import static igentuman.mbtool.util.GTUtils.loadGtStructures;
+import static igentuman.mbtool.util.ModUtil.isGtLoaded;
 import static igentuman.mbtool.util.ModUtil.isKubeJsLoaded;
 
 public class MultiblocksProvider implements PreparableReloadListener {
@@ -90,9 +92,13 @@ public class MultiblocksProvider implements PreparableReloadListener {
                 System.err.println("Failed to load structure from " + location + ": " + e.getMessage());
             }
         }
-
+        if(isGtLoaded()) {
+            loadGtStructures(loadedStructures);
+        }
         return loadedStructures;
     }
+
+
 
     /**
      * @deprecated Use getStructures() instead. This method is kept for backward compatibility.

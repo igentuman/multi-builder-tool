@@ -40,6 +40,7 @@ import javax.annotation.Nonnull;
 import java.util.List;
 
 import static igentuman.mbtool.Mbtool.MBTOOL;
+import static igentuman.mbtool.util.ModUtil.isGtLoaded;
 
 public class MultibuilderItem extends Item {
     
@@ -186,9 +187,15 @@ public class MultibuilderItem extends Item {
     public void appendHoverText(ItemStack stack, @javax.annotation.Nullable Level world, List<Component> list, TooltipFlag flag) {
         CustomEnergyStorage energyStorage = getEnergy(stack);
         if (energyStorage != null) {
-            list.add(TextUtils.__("tooltip.mbtool.energy_stored", 
-                TextUtils.formatEnergy(energyStorage.getEnergyStored()), 
-                TextUtils.formatEnergy(getEnergyMaxStorage())).withStyle(ChatFormatting.BLUE));
+            if(isGtLoaded()) {
+                list.add(TextUtils.__("tooltip.mbtool.energy_stored",
+                        GTUtils.formatEUEnergy(energyStorage.getEnergyStored()),
+                        GTUtils.formatEUEnergy(getEnergyMaxStorage())).withStyle(ChatFormatting.BLUE));
+            } else {
+                list.add(TextUtils.__("tooltip.mbtool.energy_stored",
+                        TextUtils.formatEnergy(energyStorage.getEnergyStored()),
+                        TextUtils.formatEnergy(getEnergyMaxStorage())).withStyle(ChatFormatting.BLUE));
+            }
         }
         
         // Show inventory information

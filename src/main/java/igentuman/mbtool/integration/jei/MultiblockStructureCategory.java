@@ -19,6 +19,7 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -211,13 +212,24 @@ public class MultiblockStructureCategory implements IRecipeCategory<MultiblockSt
                 stack.pushPose();
                 stack.translate(pos.getX(), pos.getY(), pos.getZ());
 
+                // Get ModelData from the block state for proper rendering of complex blocks like GTCEU controllers/ports
+                ModelData modelData = ModelData.EMPTY;
+                try {
+                    BakedModel model = blockRenderer.getBlockModel(state);
+                    // Try to get model data from the block if it supports it
+                    modelData = model.getModelData(minecraft.level, pos, state, ModelData.EMPTY);
+                } catch (Exception e) {
+                    // Fall back to empty model data if there's any issue
+                    modelData = ModelData.EMPTY;
+                }
+
                 blockRenderer.renderSingleBlock(
                         state,
                         stack,
                         bufferSource,
                         15728880,
                         OverlayTexture.NO_OVERLAY,
-                        ModelData.EMPTY,
+                        modelData,
                         null
                 );
 
