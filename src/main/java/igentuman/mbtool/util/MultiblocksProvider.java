@@ -93,7 +93,7 @@ public class MultiblocksProvider implements PreparableReloadListener {
             }
         }
         if(isGtLoaded()) {
-            loadGtStructures(loadedStructures);
+            //loadGtStructures(loadedStructures); //todo fix BERs rendering, and get this back
         }
         return loadedStructures;
     }

@@ -61,19 +61,9 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
         if (this.minecraft != null && this.minecraft.player != null) {
             Player player = this.minecraft.player;
             ItemStack multibuilderStack = player.getInventory().getItem(player.getInventory().selected);
-            
-            if (multibuilderStack.is(MBTOOL.get()) && multibuilderStack.hasTag()) {
-                int recipeIndex = multibuilderStack.getOrCreateTag().getInt("recipe");
-                if (recipeIndex >= 0) {
-                    // Ensure structures are loaded
-                    if (MultiblocksProvider.structures.isEmpty()) {
-                        MultiblocksProvider.getStructures();
-                    }
-                    
-                    if (recipeIndex < MultiblocksProvider.structures.size()) {
-                        selectedStructure = recipeIndex;
-                    }
-                }
+            selectedStructure = -1;
+            if (multibuilderStack.getItem() instanceof MultibuilderItem multibuilderItem) {
+                selectedStructure = multibuilderItem.getSelectedStructureId(multibuilderStack);
             }
         }
     }
@@ -106,23 +96,16 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
         int x = (this.width - this.imageWidth) / 2;
         int y = (this.height - this.imageHeight) / 2;
         pGuiGraphics.blit(TEXTURE, x, y, 0, 0, this.imageWidth, this.imageHeight);
-        if(selectedStructure > -1) {
-            List<MultiblockStructure> allStructures = MultiblocksProvider.getStructures();
-            MultiblockStructure structure = allStructures.get(selectedStructure);
-            ItemStack multibuilderStack = Minecraft.getInstance().player.getInventory().getItem(Minecraft.getInstance().player.getInventory().selected);
-            if(!multibuilderStack.is(MBTOOL.get())) return;
-            MultibuilderItem multibuilderItem = (MultibuilderItem) multibuilderStack.getItem();
-            MultiblockStructure runtimeStructure = multibuilderItem.getRuntimeStructure(multibuilderStack);
-            if(runtimeStructure != null) {
-                structure = runtimeStructure;
-            }
-            // Render the selected structure
-            MultiblockRenderer.render(
-                    structure,
+        ItemStack multibuilderStack = Minecraft.getInstance().player.getInventory().getItem(Minecraft.getInstance().player.getInventory().selected);
+        if(!multibuilderStack.is(MBTOOL.get())) return;
+        MultibuilderItem multibuilderItem = (MultibuilderItem) multibuilderStack.getItem();
+        MultiblockStructure structure = multibuilderItem.getCurrentStructure(multibuilderStack);
+        if(structure == null) return;
+        MultiblockRenderer.render(
+                structure,
                 pGuiGraphics.pose(),
                 x + 118, y + 9, 60, 60
-            );
-        }
+        );
     }
 
     @Override

@@ -47,6 +47,7 @@ public class MultibuilderItem extends Item {
     // Inventory configuration
     private static final int INVENTORY_SIZE = 24; // 24 slots
     private static final int STACK_SIZE = 64; // Standard stack size
+    public int delay = 0;
 
     public MultibuilderItem(Properties pProperties) {
         super(pProperties);
@@ -77,6 +78,8 @@ public class MultibuilderItem extends Item {
             }
             return InteractionResultHolder.success(itemStack);
         } else {
+            if(delay > 0) return InteractionResultHolder.pass(itemStack);
+            delay = 40;
             // Build multiblock when not sneaking
             if (level.isClientSide) {
                 int rotation = getRotation(itemStack);
@@ -86,6 +89,9 @@ public class MultibuilderItem extends Item {
                     // Send runtimeStructure to server to build
                     NetworkHandler.INSTANCE.sendToServer(
                             new SyncRuntimeStructurePacket(runtimeStructure.getStructureNbt(), rotation, hand));
+                    if(itemStack.getOrCreateTag().getInt("recipe") > 0) {
+                        setRuntimeStructure(itemStack, null);
+                    }
                     return InteractionResultHolder.success(itemStack);
                 }
                 // Client side: validate and send packet to server
@@ -99,6 +105,7 @@ public class MultibuilderItem extends Item {
                     // Validate recipe index on client
                     if (recipeIndex >= 0 && recipeIndex < MultiblocksProvider.structures.size()) {
                         // Send packet to server with current parameters
+                        setRuntimeStructure(itemStack, null);
                         NetworkHandler.INSTANCE.sendToServer(
                             new SyncMultibuilderParamsPacket(recipeIndex, rotation, hand));
                         return InteractionResultHolder.success(itemStack);
@@ -318,7 +325,12 @@ public class MultibuilderItem extends Item {
      */
     public boolean hasRecipe(ItemStack stack) {
         try {
-            if (!stack.getOrCreateTag().contains("recipe")) {
+            MultibuilderItem multibuilderItem = (MultibuilderItem)stack.getItem();
+            if (multibuilderItem.getRuntimeStructure(stack) != null) {
+                return true;
+            }
+            CompoundTag tag = stack.getOrCreateTag();
+            if (tag == null || !tag.contains("recipe")) {
                 return false;
             }
             
@@ -327,7 +339,7 @@ public class MultibuilderItem extends Item {
                 MultiblocksProvider.getStructures();
             }
             
-            int recipeIndex = stack.getOrCreateTag().getInt("recipe");
+            int recipeIndex = tag.getInt("recipe");
             return recipeIndex >= 0 && recipeIndex < MultiblocksProvider.structures.size();
         } catch (Exception ignored) {
             return false;
@@ -342,11 +354,22 @@ public class MultibuilderItem extends Item {
             if (!hasRecipe(stack)) {
                 return null;
             }
-            
-            int recipeIndex = stack.getOrCreateTag().getInt("recipe");
-            if (recipeIndex >= 0 && recipeIndex < MultiblocksProvider.structures.size()) {
+
+            if(stack.getItem() instanceof  MultibuilderItem multibuilderItem) {
+                CompoundTag tag = stack.getOrCreateTag();
+                if (tag == null || !tag.contains("recipe")) {
+                    return null;
+                }
+
+                // Ensure structures are loaded
+                if (MultiblocksProvider.structures.isEmpty()) {
+                    MultiblocksProvider.getStructures();
+                }
+
+                int recipeIndex = tag.getInt("recipe");
                 return MultiblocksProvider.structures.get(recipeIndex);
             }
+
         } catch (Exception ignored) {
             // Fall through to return null
         }
@@ -451,9 +474,16 @@ public class MultibuilderItem extends Item {
     public void setRuntimeStructure(ItemStack stack, MultiblockStructure structure) {
         CompoundTag tag = stack.getOrCreateTag();
         if (structure != null) {
+            tag.remove("recipe");
             tag.put("runtimeStructure", structure.getStructureNbt());
         } else {
             tag.remove("runtimeStructure");
+        }
+    }
+
+    public void inventoryTick(ItemStack pStack, Level pLevel, Entity pEntity, int pSlotId, boolean pIsSelected) {
+        if(delay > 0) {
+            delay--;
         }
     }
     
@@ -463,7 +493,7 @@ public class MultibuilderItem extends Item {
     public MultiblockStructure getRuntimeStructure(ItemStack stack) {
         try {
             CompoundTag tag = stack.getOrCreateTag();
-            if (tag.contains("runtimeStructure")) {
+            if (tag != null && tag.contains("runtimeStructure")) {
                 CompoundTag structureNbt = tag.getCompound("runtimeStructure");
                 return new MultiblockStructure(structureNbt);
             }
@@ -471,5 +501,20 @@ public class MultibuilderItem extends Item {
             // Fall through to return null
         }
         return null;
+    }
+
+    public MultiblockStructure getCurrentStructure(ItemStack stack) {
+        MultiblockStructure structure = getRuntimeStructure(stack);
+        if(structure == null) {
+            structure = getSelectedStructure(stack);
+        }
+        return  structure;
+    }
+
+    public int getSelectedStructureId(ItemStack multibuilderStack) {
+        if(multibuilderStack.getOrCreateTag().contains("recipe")) {
+            return  multibuilderStack.getOrCreateTag().getInt("recipe");
+        }
+        return -1;
     }
 }

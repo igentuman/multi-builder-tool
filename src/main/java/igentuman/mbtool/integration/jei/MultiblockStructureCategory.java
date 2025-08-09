@@ -2,6 +2,7 @@ package igentuman.mbtool.integration.jei;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import igentuman.mbtool.util.MultiblockStructure;
 import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
@@ -17,6 +18,7 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.Rect2i;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.resources.model.BakedModel;
@@ -214,8 +216,9 @@ public class MultiblockStructureCategory implements IRecipeCategory<MultiblockSt
 
                 // Get ModelData from the block state for proper rendering of complex blocks like GTCEU controllers/ports
                 ModelData modelData = ModelData.EMPTY;
+                BakedModel model = blockRenderer.getBlockModel(state);
+
                 try {
-                    BakedModel model = blockRenderer.getBlockModel(state);
                     // Try to get model data from the block if it supports it
                     modelData = model.getModelData(minecraft.level, pos, state, ModelData.EMPTY);
                 } catch (Exception e) {

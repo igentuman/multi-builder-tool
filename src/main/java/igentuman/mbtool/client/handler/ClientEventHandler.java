@@ -30,12 +30,11 @@ public class ClientEventHandler {
         if (player == null) return;
 
         ItemStack mainItem = player.getItemInHand(InteractionHand.MAIN_HAND);
-        ItemStack offItem = player.getItemInHand(InteractionHand.OFF_HAND);
 
-        boolean main = !mainItem.isEmpty() && mainItem.is(MBTOOL.get()) && ClientHandler.hasRecipe(mainItem);
+        boolean main = !mainItem.isEmpty() && mainItem.is(MBTOOL.get()) && ClientHandler.hasStructure(mainItem);
 
 
-        if (!main) {
+        if (!main || !ClientHandler.canShowPreview(mainItem)) {
             return;
         }
 

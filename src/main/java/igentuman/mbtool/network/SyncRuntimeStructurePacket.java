@@ -76,7 +76,9 @@ public class SyncRuntimeStructurePacket {
                 player.level(), player, itemStack, structure, buildPos, packet.rotation);
             
             // Send result message to player
-            player.sendSystemMessage(result.getMessage());
+            if(result.getMessage() != null) {
+                //player.sendSystemMessage(result.getMessage());
+            }
         });
         context.setPacketHandled(true);
     }

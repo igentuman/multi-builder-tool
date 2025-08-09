@@ -4,7 +4,6 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import igentuman.mbtool.client.handler.ClientHandler;
 import igentuman.mbtool.item.MultibuilderItem;
-import igentuman.mbtool.util.MultiblocksProvider;
 import igentuman.mbtool.util.MultiblockStructure;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
@@ -72,8 +71,8 @@ public class PreviewRenderer {
         ItemStack mainItem = player.getItemInHand(InteractionHand.MAIN_HAND);
         ItemStack offItem = player.getItemInHand(InteractionHand.OFF_HAND);
 
-        boolean main = !mainItem.isEmpty() && mainItem.is(MBTOOL.get()) && ClientHandler.hasRecipe(mainItem);
-        boolean off = !offItem.isEmpty() && offItem.is(MBTOOL.get()) && ClientHandler.hasRecipe(offItem);
+        boolean main = !mainItem.isEmpty() && mainItem.is(MBTOOL.get()) && ClientHandler.hasStructure(mainItem);
+        boolean off = !offItem.isEmpty() && offItem.is(MBTOOL.get()) && ClientHandler.hasStructure(offItem);
 
         if (!main && !off) return null;
 
@@ -82,23 +81,8 @@ public class PreviewRenderer {
 
         // Get the selected structure
         ItemStack multibuilderStack = main ? mainItem : offItem;
-        int recipeIndex = multibuilderStack.getOrCreateTag().getInt("recipe");
-        
-        // Ensure structures are loaded
-        if (MultiblocksProvider.structures.isEmpty()) {
-            MultiblocksProvider.getStructures();
-        }
-        
-        if (recipeIndex < 0 || recipeIndex >= MultiblocksProvider.structures.size()) {
-            return null;
-        }
-        
-        structure = MultiblocksProvider.structures.get(recipeIndex);
-        MultibuilderItem multibuilderItem = (MultibuilderItem) multibuilderStack.getItem();
-        MultiblockStructure runtimeStructure = multibuilderItem.getRuntimeStructure(multibuilderStack);
-        if(runtimeStructure != null) {
-            structure = runtimeStructure;
-        }
+        structure = ((MultibuilderItem)multibuilderStack.getItem()).getCurrentStructure(multibuilderStack);
+
         if (structure == null) return null;
         
         // Get rotation from item (if supported in the future)
