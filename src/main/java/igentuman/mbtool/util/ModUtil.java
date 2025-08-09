@@ -12,12 +12,14 @@ public class ModUtil {
     protected static boolean gtLoaded;
     protected static boolean oc2Loaded;
     protected static boolean kubeJsLoaded;
+    protected static boolean isJEMMLoaded;
     protected static void initialize()
     {
         if(initialized)
             return;
         initialized = true;
         isMekanismLoadeed = ModList.get().isLoaded("mekanism");
+        isJEMMLoaded = ModList.get().isLoaded("jei_mekanism_multiblocks");
         isMekanismGeneratorsLoadeed = ModList.get().isLoaded("mekanismgenerators");
         isBfrLoaded = ModList.get().isLoaded("bfr");
         oc2Loaded = ModList.get().isLoaded("oc2r");
@@ -30,6 +32,11 @@ public class ModUtil {
     public static boolean isKubeJsLoaded() {
         initialize();
         return kubeJsLoaded;
+    }
+
+    public static boolean isJEMMLoaded() {
+        initialize();
+        return isJEMMLoaded;
     }
 
     public static boolean isOC2Loaded() {

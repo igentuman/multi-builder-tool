@@ -3,6 +3,7 @@
   "package": "igentuman.mbtool.mixin",
   "compatibilityLevel": "JAVA_17",
   "refmap": "nuclearcraft.refmap.json",
+  "plugin": "igentuman.mbtool.mixin.MBToolMixinPlugin",
   "mixins": [
   ],
   "server": [

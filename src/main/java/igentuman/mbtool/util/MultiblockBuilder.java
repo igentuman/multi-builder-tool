@@ -13,6 +13,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.util.RandomSource;
 import net.minecraftforge.items.IItemHandler;
 
 import java.util.HashMap;
@@ -157,6 +159,11 @@ public class MultiblockBuilder {
             if (energyStorage != null) {
                 energyStorage.extractEnergy(totalEnergyCost, false);
             }
+        }
+        
+        // Spawn smoke particles around the built structure
+        if (level instanceof ServerLevel serverLevel) {
+            spawnSmokeParticles(serverLevel, structure, centerPos, rotation);
         }
         
         return new BuildResult(true, Component.translatable("message.mbtool.multiblock_built", 
@@ -351,6 +358,92 @@ public class MultiblockBuilder {
     private static IItemHandler getInventory(ItemStack stack) {
         return (IItemHandler) CapabilityUtils.getPresentCapability(stack, 
             net.minecraftforge.common.capabilities.ForgeCapabilities.ITEM_HANDLER);
+    }
+    
+    /**
+     * Spawns smoke particles around the built multiblock structure
+     * @param serverLevel The server level
+     * @param structure The built structure
+     * @param centerPos The center position of the structure
+     * @param rotation The rotation applied to the structure
+     */
+    private static void spawnSmokeParticles(ServerLevel serverLevel, MultiblockStructure structure, 
+                                          BlockPos centerPos, int rotation) {
+        RandomSource random = serverLevel.getRandom();
+        
+        // Calculate structure bounds after rotation
+        int minX = Integer.MAX_VALUE, maxX = Integer.MIN_VALUE;
+        int minY = Integer.MAX_VALUE, maxY = Integer.MIN_VALUE;
+        int minZ = Integer.MAX_VALUE, maxZ = Integer.MIN_VALUE;
+        
+        // Find the actual bounds of the rotated structure
+        for (BlockPos relativePos : structure.getBlocks().keySet()) {
+            BlockState blockState = structure.getBlocks().get(relativePos);
+            if (!blockState.isAir()) {
+                BlockPos rotatedRelativePos = rotateBlockPos(relativePos, structure, rotation);
+                BlockPos worldPos = centerPos.offset(rotatedRelativePos);
+                
+                minX = Math.min(minX, worldPos.getX());
+                maxX = Math.max(maxX, worldPos.getX());
+                minY = Math.min(minY, worldPos.getY());
+                maxY = Math.max(maxY, worldPos.getY());
+                minZ = Math.min(minZ, worldPos.getZ());
+                maxZ = Math.max(maxZ, worldPos.getZ());
+            }
+        }
+        
+        // Spawn particles around the structure perimeter
+        int particleCount = Math.max(20, (maxX - minX + maxZ - minZ) * 2); // Scale with structure size
+        
+        for (int i = 0; i < particleCount; i++) {
+            double x, y, z;
+            
+            // Choose a random side of the structure to spawn particles on
+            int side = random.nextInt(4);
+            switch (side) {
+                case 0: // North side
+                    x = minX + random.nextDouble() * (maxX - minX + 1);
+                    z = minZ - 0.5 + random.nextDouble() * 0.5;
+                    break;
+                case 1: // South side
+                    x = minX + random.nextDouble() * (maxX - minX + 1);
+                    z = maxZ + 0.5 + random.nextDouble() * 0.5;
+                    break;
+                case 2: // West side
+                    x = minX - 0.5 + random.nextDouble() * 0.5;
+                    z = minZ + random.nextDouble() * (maxZ - minZ + 1);
+                    break;
+                default: // East side
+                    x = maxX + 0.5 + random.nextDouble() * 0.5;
+                    z = minZ + random.nextDouble() * (maxZ - minZ + 1);
+                    break;
+            }
+            
+            // Random height within structure bounds, slightly above ground
+            y = minY + random.nextDouble() * (maxY - minY + 2) + 0.5;
+            
+            double velocityX = (random.nextDouble() - 0.5) * 0.1;
+            double velocityY = random.nextDouble() * 0.1 + 0.05; // Upward motion
+            double velocityZ = (random.nextDouble() - 0.5) * 0.1;
+            
+            serverLevel.sendParticles(ParticleTypes.COMPOSTER, x, y, z, 1, velocityX, velocityY, velocityZ, 0.02);
+            
+            if (random.nextFloat() < 0.3f) {
+                serverLevel.sendParticles(ParticleTypes.COMPOSTER, x, y, z, 1, velocityX, velocityY, velocityZ, 0.02);
+            }
+        }
+        
+        for (int i = 0; i < 5; i++) {
+            double offsetX = (random.nextDouble() - 0.5) * 2;
+            double offsetY = random.nextDouble() * 2;
+            double offsetZ = (random.nextDouble() - 0.5) * 2;
+            
+            serverLevel.sendParticles(ParticleTypes.COMPOSTER,
+                centerPos.getX() + 0.5 + offsetX, 
+                centerPos.getY() + 1 + offsetY, 
+                centerPos.getZ() + 0.5 + offsetZ, 
+                3, 0.1, 0.1, 0.1, 0.05);
+        }
     }
     
     /**
