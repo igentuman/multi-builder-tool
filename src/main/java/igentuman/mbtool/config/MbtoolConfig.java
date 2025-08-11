@@ -21,11 +21,11 @@ public class MbtoolConfig {
         
         MAX_ENERGY = BUILDER
                 .comment("Maximum energy capacity of the Multibuilder Tool (in FE)")
-                .defineInRange("maxEnergy", 1000000, 1000, 10000000);
+                .defineInRange("maxEnergy", 10000000, 100000, 100000000);
         
         ENERGY_TRANSFER_RATE = BUILDER
                 .comment("Energy transfer rate for charging/discharging (in FE/tick)")
-                .defineInRange("energyTransferRate", 1000, 1, 100000);
+                .defineInRange("energyTransferRate", 100000, 10000, 1000000);
         
         ENERGY_PER_BLOCK = BUILDER
                 .comment("Energy cost per block placed (in FE)")
