@@ -124,14 +124,7 @@ public class MultibuilderContainer extends AbstractContainerMenu {
 
     @Override
     public boolean stillValid(Player pPlayer) {
-        // Check if the multibuilder item is still in the correct slot
-        if (playerSlot == 40) {
-            // Offhand slot
-            return pPlayer.getItemInHand(InteractionHand.OFF_HAND).is(MBTOOL.get());
-        } else {
-            // Main hand or other inventory slot
-            return pPlayer.getInventory().getItem(playerSlot).is(MBTOOL.get());
-        }
+        return pPlayer.getItemInHand(InteractionHand.MAIN_HAND).is(MBTOOL.get());
     }
     
     public IItemHandler getItemHandler() {

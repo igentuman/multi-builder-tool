@@ -2,7 +2,9 @@ package igentuman.mbtool.client.gui;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import igentuman.mbtool.client.render.MultiblockRenderer;
+import igentuman.mbtool.container.MultibuilderSelectStructureContainer;
 import igentuman.mbtool.util.MultiblockStructure;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractButton;
@@ -10,6 +12,11 @@ import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FormattedText;
+import net.minecraft.world.item.ItemStack;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A custom button that renders a multiblock structure instead of text or image
@@ -21,7 +28,9 @@ public class MultiblockButton extends AbstractButton {
     private int backgroundColor = 0xFF8B8B8B;
     private int hoveredBackgroundColor = 0xFFA0A0A0;
     private int pressedBackgroundColor = 0xFF606060;
-    
+    private MultibuilderSelectStructureContainer container;
+    private boolean hasAllIngredients = false;
+
     public MultiblockButton(int x, int y, int width, int height, MultiblockStructure structure, OnPress onPress) {
         this(x, y, width, height, structure, onPress, Component.empty());
     }
@@ -32,13 +41,17 @@ public class MultiblockButton extends AbstractButton {
         this.onPress = onPress;
         updateTooltip();
     }
-    
+
     /**
      * Sets the multiblock structure to render
      */
     public void setStructure(MultiblockStructure structure) {
         this.structure = structure;
         updateTooltip();
+    }
+
+    private void setContainer(MultibuilderSelectStructureContainer container) {
+        this.container = container;
     }
     
     /**
@@ -68,6 +81,7 @@ public class MultiblockButton extends AbstractButton {
      * Updates the tooltip based on the current structure
      */
     void updateTooltip() {
+        hasAllIngredients = true;
         if (structure != null && structure.getName() != null && !structure.getName().isEmpty()) {
             // Create a single component with structure name and dimensions
             Component tooltip = Component.translatable(structure.getName())
@@ -75,7 +89,26 @@ public class MultiblockButton extends AbstractButton {
                 .append(Component.translatable("gui.mbtool.multiblock_button.dimensions", 
                     structure.getWidth(), structure.getHeight(), structure.getDepth())
                     .withStyle(style -> style.withColor(0x808080)));
-            
+            List<Component> itemsTooltip = new ArrayList<>();
+            if(container != null) {
+                for(ItemStack stack: structure.getNeededItems()) {
+                    boolean hasEnough = container.hasEnough(stack);
+                    if(!hasEnough) {
+                        hasAllIngredients = false;
+                    }
+                    ChatFormatting style = hasEnough ? ChatFormatting.GREEN : ChatFormatting.RED;
+                    itemsTooltip.add(Component.literal(stack.getCount() + "x " + stack.getHoverName().getString()).withStyle(style));
+                }
+
+            }
+            if(!itemsTooltip.isEmpty()) {
+                // Add items section to tooltip
+                tooltip = tooltip.copy().append(Component.literal("\n"));
+                
+                for(Component itemComponent : itemsTooltip) {
+                    tooltip = tooltip.copy().append(Component.literal("\n")).append(itemComponent);
+                }
+            }
             setTooltip(Tooltip.create(tooltip));
         } else {
             // Clear tooltip if no structure or no name
@@ -105,8 +138,13 @@ public class MultiblockButton extends AbstractButton {
             
             guiGraphics.fill(this.getX(), this.getY(), this.getX() + this.width, this.getY() + this.height, bgColor);
             
-            // Render border
-            int borderColor = this.isHoveredOrFocused() ? 0xFFFFFFFF : 0xFF000000;
+            // Render border - green if has all ingredients, red if missing some, default otherwise
+            int borderColor;
+            if (container != null && structure != null && !structure.getNeededItems().isEmpty()) {
+                borderColor = hasAllIngredients ? 0xFF00FF00 : 0xFFFF0000; // Green or Red
+            } else {
+                borderColor = this.isHoveredOrFocused() ? 0xFFFFFFFF : 0xFF000000; // Default behavior
+            }
             guiGraphics.fill(this.getX(), this.getY(), this.getX() + this.width, this.getY() + 1, borderColor); // Top
             guiGraphics.fill(this.getX(), this.getY() + this.height - 1, this.getX() + this.width, this.getY() + this.height, borderColor); // Bottom
             guiGraphics.fill(this.getX(), this.getY(), this.getX() + 1, this.getY() + this.height, borderColor); // Left
@@ -200,7 +238,8 @@ public class MultiblockButton extends AbstractButton {
         private int backgroundColor = 0xFF8B8B8B;
         private int hoveredBackgroundColor = 0xFFA0A0A0;
         private int pressedBackgroundColor = 0xFF606060;
-        
+        private MultibuilderSelectStructureContainer container;
+
         public Builder bounds(int x, int y, int width, int height) {
             this.x = x;
             this.y = y;
@@ -240,11 +279,17 @@ public class MultiblockButton extends AbstractButton {
             MultiblockButton button = new MultiblockButton(x, y, width, height, structure, onPress, message);
             button.setRenderBackground(renderBackground);
             button.setBackgroundColors(backgroundColor, hoveredBackgroundColor, pressedBackgroundColor);
+            button.setContainer(container);
             button.updateTooltip(); // Ensure tooltip is updated after all properties are set
             return button;
         }
+
+        public Builder container(MultibuilderSelectStructureContainer menu) {
+            this.container = menu;
+            return this;
+        }
     }
-    
+
     /**
      * Creates a new builder instance
      */

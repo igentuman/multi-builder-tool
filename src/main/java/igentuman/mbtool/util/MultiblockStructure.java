@@ -5,15 +5,15 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.registries.ForgeRegistries;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import static igentuman.mbtool.Mbtool.rlFromString;
+import static net.minecraft.world.level.block.Blocks.AIR;
 import static net.minecraft.world.level.block.state.StateHolder.PROPERTIES_TAG;
 
 public class MultiblockStructure {
@@ -144,5 +144,29 @@ public class MultiblockStructure {
 
     public void setStructureNbt(CompoundTag nbt) {
         this.nbt = nbt;
+    }
+
+    public List<ItemStack> getNeededItems() {
+        List<ItemStack> outputs = new ArrayList<>();
+        List<Block> blockTypes = new ArrayList<>();
+        for(BlockPos pos : getBlocks().keySet()) {
+            if(getBlocks().get(pos).is(AIR)) {
+                continue;
+            }
+            Block block = getBlocks().get(pos).getBlock();
+            if (!blockTypes.contains(block)) {
+                blockTypes.add(block);
+                outputs.add(new ItemStack(block));
+            }
+        }
+        for(ItemStack stackItem :outputs) {
+            for(Map.Entry<BlockPos, BlockState> block : getBlocks().entrySet()) {
+                if(stackItem.is(block.getValue().getBlock().asItem())) {
+                    stackItem.setCount(stackItem.getCount() + 1);
+                }
+            }
+            stackItem.setCount(stackItem.getCount() - 1);
+        }
+        return outputs;
     }
 }

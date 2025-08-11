@@ -9,6 +9,7 @@ import igentuman.mbtool.util.MultiblockStructure;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
@@ -103,6 +104,7 @@ public class MultibuilderSelectStructureScreen extends AbstractContainerScreen<M
                 MultiblockButton button = MultiblockButton.builder()
                         .bounds(buttonX, buttonY, BUTTON_SIZE, BUTTON_SIZE)
                         .structure(null) // Will be set when updating page
+                        .container(getMenu())
                         .onPress(this::onMultiblockButtonPressed)
                         .build();
                 
@@ -138,8 +140,72 @@ public class MultibuilderSelectStructureScreen extends AbstractContainerScreen<M
     @Override
     public void render(GuiGraphics pGuiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
         this.renderBackground(pGuiGraphics);
+        
+        // Temporarily disable tooltips for multiblock buttons to prevent double tooltips
+        List<Tooltip> savedTooltips = new ArrayList<>();
+        for (MultiblockButton button : multiblockButtons) {
+            savedTooltips.add(button.getTooltip());
+            button.setTooltip(null);
+        }
+        
         super.render(pGuiGraphics, pMouseX, pMouseY, pPartialTick);
-        this.renderTooltip(pGuiGraphics, pMouseX, pMouseY);
+        
+        // Restore tooltips
+        for (int i = 0; i < multiblockButtons.size(); i++) {
+            multiblockButtons.get(i).setTooltip(savedTooltips.get(i));
+        }
+        
+        this.renderCustomTooltip(pGuiGraphics, pMouseX, pMouseY);
+    }
+    
+    /**
+     * Custom tooltip rendering that adjusts position based on button location
+     */
+    private void renderCustomTooltip(GuiGraphics pGuiGraphics, int pMouseX, int pMouseY) {
+        // Check if we're hovering over a multiblock button
+        MultiblockButton hoveredButton = null;
+        for (MultiblockButton button : multiblockButtons) {
+            if (button.isMouseOver(pMouseX, pMouseY) && button.visible && button.getTooltip() != null) {
+                hoveredButton = button;
+                break;
+            }
+        }
+        
+        if (hoveredButton != null) {
+            // Get the tooltip from the button
+            var tooltip = hoveredButton.getTooltip();
+            if (tooltip != null) {
+                // Calculate screen center
+                int screenCenterY = this.height / 2;
+                
+                // Check if button is in the top half of the screen
+                boolean buttonInTopHalf = hoveredButton.getY() < screenCenterY;
+                
+                if (buttonInTopHalf) {
+                    // For buttons in top half, render tooltip below the button
+                    int tooltipX = pMouseX;
+                    int tooltipY = hoveredButton.getY() + hoveredButton.getHeight() + 5;
+                    
+                    // Ensure tooltip doesn't go off screen
+                    tooltipY = Math.min(tooltipY, this.height - 50); // Leave some margin at bottom
+                    
+                    pGuiGraphics.renderTooltip(this.font, tooltip.toCharSequence(this.minecraft), tooltipX, tooltipY);
+                } else {
+                    // For buttons in bottom half, render tooltip above the button
+                    int tooltipX = pMouseX;
+                    int tooltipY = hoveredButton.getY() - 5;
+                    
+                    // Ensure tooltip doesn't go off screen
+                    tooltipY = Math.max(tooltipY, 20); // Leave some margin at top
+                    
+                    pGuiGraphics.renderTooltip(this.font, tooltip.toCharSequence(this.minecraft), tooltipX, tooltipY);
+                }
+                return;
+            }
+        }
+        
+        // Default tooltip rendering for other elements
+        //this.renderTooltip(pGuiGraphics, pMouseX, pMouseY);
     }
     
     @Override

@@ -4,6 +4,7 @@ import igentuman.mbtool.config.MbtoolConfig;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -164,12 +165,21 @@ public class MultiblockBuilder {
         // Spawn smoke particles around the built structure
         if (level instanceof ServerLevel serverLevel) {
             spawnSmokeParticles(serverLevel, structure, centerPos, rotation);
+            sendPlacementSoundEvent(level, centerPos);
         }
         
         return new BuildResult(true, Component.translatable("message.mbtool.multiblock_built", 
             blocksPlaced, Component.translatable(structure.getName())));
     }
-    
+
+    private static void sendPlacementSoundEvent(Level level, BlockPos centerPos) {
+        // Play a block placement sound at the center position
+        level.playSound(null, centerPos, 
+            SoundEvents.NETHERITE_BLOCK_PLACE,
+            net.minecraft.sounds.SoundSource.BLOCKS, 
+            1.0f, 1.0f);
+    }
+
     /**
      * Checks if a player can place a block at the given position (respects claim systems)
      * @param level The world level
