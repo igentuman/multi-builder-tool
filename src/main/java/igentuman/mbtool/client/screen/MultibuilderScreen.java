@@ -49,7 +49,7 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
     
     public MultibuilderScreen(MultibuilderContainer pMenu, Inventory pPlayerInventory, Component pTitle) {
         super(pMenu, pPlayerInventory, pTitle);
-        this.imageWidth = 186;
+        this.imageWidth = 216;
         this.imageHeight = 206;
     }
 
@@ -61,7 +61,7 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
         loadSelectedStructure();
         
         // Position the button in the GUI
-        int x = this.leftPos + 119;
+        int x = this.leftPos + 150;
         int y = this.topPos + 67;
         int buttonWidth = 57;
         int buttonHeight = 17;
@@ -76,7 +76,7 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
         this.addRenderableWidget(this.chooseButton);
         
         // Position the paste button under the choose button
-        int pasteX = this.leftPos + 139 + (buttonWidth - 18) / 2; // Center the 18x18 button under the choose button
+        int pasteX = this.leftPos + 170 + (buttonWidth - 18) / 2; // Center the 18x18 button under the choose button
         int pasteY = this.topPos + 67 + buttonHeight + 2; // 2 pixels gap below choose button
         
         this.pasteButton = new ImageButton(pasteX, pasteY, 18, 18, 0, 0, 18, PASTE_ICON, 18, 36, this::onPasteButtonClick);
@@ -195,7 +195,7 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
         MultiblockRenderer.render(
                 structure,
                 pGuiGraphics.pose(),
-                x + 118, y + 9, 60, 60
+                x + 148, y + 9, 60, 60
         );
     }
 

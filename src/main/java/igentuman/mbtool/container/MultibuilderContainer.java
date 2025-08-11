@@ -18,7 +18,7 @@ import static igentuman.mbtool.Mbtool.MULTIBUILDER_CONTAINER;
 
 public class MultibuilderContainer extends AbstractContainerMenu {
     
-    private static final int INVENTORY_SIZE = 30;
+    private static final int INVENTORY_SIZE = 40;
     private final IItemHandler itemHandler;
     private final int playerSlot;
     
@@ -54,26 +54,26 @@ public class MultibuilderContainer extends AbstractContainerMenu {
     private void addMultibuilderInventory() {
         // 6 columns, 4 rows = 24 slots
         for (int row = 0; row < 5; row++) {
-            for (int col = 0; col < 6; col++) {
+            for (int col = 0; col < 8; col++) {
                 int index = row * 6 + col;
-                this.addSlot(new SlotItemHandler(itemHandler, index, 10 + col * 18, 13 + row * 18));
+                this.addSlot(new SlotItemHandler(itemHandler, index, 5 + col * 18, 13 + row * 18));
             }
         }
     }
     
     private void addPlayerInventory(Inventory playerInventory) {
-        int yOffset = 111;
+        int yOffset = 107;
         for (int i = 0; i < 3; ++i) {
             for (int l = 0; l < 9; ++l) {
-                this.addSlot(new Slot(playerInventory, l + i * 9 + 9, 10 + l * 18, yOffset + i * 18));
+                this.addSlot(new Slot(playerInventory, l + i * 9 + 5, 5 + l * 18, yOffset + i * 18));
             }
         }
     }
 
     private void addPlayerHotbar(Inventory playerInventory) {
-        int yOffset = 169;
+        int yOffset = 165;
         for (int i = 0; i < 9; ++i) {
-            this.addSlot(new Slot(playerInventory, i, 10 + i * 18, yOffset));
+            this.addSlot(new Slot(playerInventory, i, 5 + i * 18, yOffset));
         }
     }
 
