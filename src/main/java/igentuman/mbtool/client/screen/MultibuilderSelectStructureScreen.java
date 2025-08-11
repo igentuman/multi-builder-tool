@@ -144,7 +144,19 @@ public class MultibuilderSelectStructureScreen extends AbstractContainerScreen<M
     
     @Override
     public boolean keyPressed(int pKeyCode, int pScanCode, int pModifiers) {
-        if (this.searchField.keyPressed(pKeyCode, pScanCode, pModifiers)) {
+        // If search field is focused, handle all key presses to prevent default Minecraft key bindings
+        if (this.searchField != null && this.searchField.isFocused()) {
+            if (this.searchField.keyPressed(pKeyCode, pScanCode, pModifiers)) {
+                return true;
+            }
+            // Return true for any key press when search field is focused to prevent default handling
+            // except for ESC key which should still close the GUI
+            if (pKeyCode != 256) { // 256 is ESC key
+                return true;
+            }
+        }
+        
+        if (this.searchField != null && this.searchField.keyPressed(pKeyCode, pScanCode, pModifiers)) {
             return true;
         }
         return super.keyPressed(pKeyCode, pScanCode, pModifiers);
@@ -152,7 +164,16 @@ public class MultibuilderSelectStructureScreen extends AbstractContainerScreen<M
     
     @Override
     public boolean charTyped(char pCodePoint, int pModifiers) {
-        if (this.searchField.charTyped(pCodePoint, pModifiers)) {
+        // If search field is focused, prioritize it for character input
+        if (this.searchField != null && this.searchField.isFocused()) {
+            if (this.searchField.charTyped(pCodePoint, pModifiers)) {
+                return true;
+            }
+            // Return true to prevent other character handling when search field is focused
+            return true;
+        }
+        
+        if (this.searchField != null && this.searchField.charTyped(pCodePoint, pModifiers)) {
             return true;
         }
         return super.charTyped(pCodePoint, pModifiers);
