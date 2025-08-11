@@ -59,5 +59,15 @@
   "mbtool.structure.extreme_energizer": "Energizer Ekstremalny",
   "mbtool.structure.extreme_fluidizer": "Upłynniacz Ekstremalny",
   "mbtool.structure.extreme_turbine_reinforced": "Turbina Ekstremalna (Wzmocniona)",
-  "mbtool.structure.reinforced_extreme_reactor": "Reaktor Ekstremalny (Wzmocniony)"
+  "mbtool.structure.reinforced_extreme_reactor": "Reaktor Ekstremalny (Wzmocniony)",
+  "gui.mbtool.paste_reactor_tooltip": "Wklej projekt reaktora NuclearCraft ze schowka\n(Obsługuje JSON, ścieżki plików i adresy URL)",
+  "message.mbtool.clipboard_empty": "Schowek jest pusty",
+  "message.mbtool.reactor_loaded_url": "Projekt reaktora NuclearCraft załadowany z adresu URL pomyślnie!",
+  "message.mbtool.reactor_loaded_file": "Projekt reaktora NuclearCraft załadowany z pliku pomyślnie!",
+  "message.mbtool.reactor_loaded_json": "Projekt reaktora NuclearCraft załadowany z JSON pomyślnie!",
+  "message.mbtool.no_multibuilder_item": "Brak narzędzia multi-budowniczy w ręce",
+  "message.mbtool.reactor_parse_failed_url": "Nie udało się przeanalizować projektu reaktora z adresu URL",
+  "message.mbtool.reactor_parse_failed_file": "Nie udało się przeanalizować projektu reaktora z pliku",
+  "message.mbtool.reactor_parse_failed_json": "Nie udało się przeanalizować projektu reaktora z JSON",
+  "message.mbtool.clipboard_parse_error": "Błąd analizowania zawartości schowka: %s"
 }

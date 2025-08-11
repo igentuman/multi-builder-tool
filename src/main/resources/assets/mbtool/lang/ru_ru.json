@@ -59,5 +59,15 @@
   "mbtool.structure.extreme_energizer": "Экстремальный Энергизатор",
   "mbtool.structure.extreme_fluidizer": "Экстремальный Флюидизатор",
   "mbtool.structure.extreme_turbine_reinforced": "Экстремальная Турбина (Усиленная)",
-  "mbtool.structure.reinforced_extreme_reactor": "Экстремальный Реактор (Усиленный)"
+  "mbtool.structure.reinforced_extreme_reactor": "Экстремальный Реактор (Усиленный)",
+  "gui.mbtool.paste_reactor_tooltip": "Вставить дизайн реактора NuclearCraft из буфера обмена\n(Поддерживает JSON, пути к файлам и URL)",
+  "message.mbtool.clipboard_empty": "Буфер обмена пуст",
+  "message.mbtool.reactor_loaded_url": "Дизайн реактора NuclearCraft успешно загружен с URL!",
+  "message.mbtool.reactor_loaded_file": "Дизайн реактора NuclearCraft успешно загружен из файла!",
+  "message.mbtool.reactor_loaded_json": "Дизайн реактора NuclearCraft успешно загружен из JSON!",
+  "message.mbtool.no_multibuilder_item": "Нет мультистроителя в руке",
+  "message.mbtool.reactor_parse_failed_url": "Не удалось разобрать дизайн реактора с URL",
+  "message.mbtool.reactor_parse_failed_file": "Не удалось разобрать дизайн реактора из файла",
+  "message.mbtool.reactor_parse_failed_json": "Не удалось разобрать дизайн реактора из JSON",
+  "message.mbtool.clipboard_parse_error": "Ошибка разбора содержимого буфера обмена: %s"
 }

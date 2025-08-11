@@ -80,7 +80,7 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
         int pasteY = this.topPos + 67 + buttonHeight + 2; // 2 pixels gap below choose button
         
         this.pasteButton = new ImageButton(pasteX, pasteY, 18, 18, 0, 0, 18, PASTE_ICON, 18, 36, this::onPasteButtonClick);
-        this.pasteButton.setTooltip(Tooltip.create(Component.literal("Paste NuclearCraft Reactor design from clipboard\n(Supports JSON, file paths, and URLs)")));
+        this.pasteButton.setTooltip(Tooltip.create(Component.translatable("gui.mbtool.paste_reactor_tooltip")));
         if(!ModUtil.isNCNLoaded()) {
             this.pasteButton.visible = false;
         }
@@ -126,7 +126,7 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
         
         if (jsonText == null || jsonText.trim().isEmpty()) {
             if (this.minecraft != null && this.minecraft.player != null) {
-                this.minecraft.player.sendSystemMessage(Component.literal("Clipboard is empty"));
+                this.minecraft.player.sendSystemMessage(Component.translatable("message.mbtool.clipboard_empty"));
             }
             return;
         }
@@ -153,29 +153,29 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
                     
                     if (multibuilderStack.getItem() instanceof MultibuilderItem multibuilderItem) {
                         multibuilderItem.setRuntimeStructure(multibuilderStack, structure);
-                        String message = switch (inputType) {
-                            case "URL" -> "NuclearCraft reactor design loaded from URL successfully!";
-                            case "file" -> "NuclearCraft reactor design loaded from file successfully!";
-                            default -> "NuclearCraft reactor design loaded from JSON successfully!";
+                        String messageKey = switch (inputType) {
+                            case "URL" -> "message.mbtool.reactor_loaded_url";
+                            case "file" -> "message.mbtool.reactor_loaded_file";
+                            default -> "message.mbtool.reactor_loaded_json";
                         };
-                        player.sendSystemMessage(Component.literal(message));
+                        player.sendSystemMessage(Component.translatable(messageKey));
                     } else {
-                        player.sendSystemMessage(Component.literal("No multibuilder item in hand"));
+                        player.sendSystemMessage(Component.translatable("message.mbtool.no_multibuilder_item"));
                     }
                 }
             } else {
                 if (this.minecraft != null && this.minecraft.player != null) {
-                    String message = switch (inputType) {
-                        case "URL" -> "Failed to parse reactor design from URL";
-                        case "file" -> "Failed to parse reactor design from file";
-                        default -> "Failed to parse reactor design from JSON";
+                    String messageKey = switch (inputType) {
+                        case "URL" -> "message.mbtool.reactor_parse_failed_url";
+                        case "file" -> "message.mbtool.reactor_parse_failed_file";
+                        default -> "message.mbtool.reactor_parse_failed_json";
                     };
-                    this.minecraft.player.sendSystemMessage(Component.literal(message));
+                    this.minecraft.player.sendSystemMessage(Component.translatable(messageKey));
                 }
             }
         } catch (Exception e) {
             if (this.minecraft != null && this.minecraft.player != null) {
-                this.minecraft.player.sendSystemMessage(Component.literal("Error parsing clipboard content: " + e.getMessage()));
+                this.minecraft.player.sendSystemMessage(Component.translatable("message.mbtool.clipboard_parse_error", e.getMessage()));
             }
         }
     }

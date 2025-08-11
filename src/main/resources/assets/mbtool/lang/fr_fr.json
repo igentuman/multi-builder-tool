@@ -59,5 +59,15 @@
   "mbtool.structure.extreme_energizer": "Énergiseur Extrême",
   "mbtool.structure.extreme_fluidizer": "Fluidiseur Extrême",
   "mbtool.structure.extreme_turbine_reinforced": "Turbine Extrême (Renforcée)",
-  "mbtool.structure.reinforced_extreme_reactor": "Réacteur Extrême (Renforcé)"
+  "mbtool.structure.reinforced_extreme_reactor": "Réacteur Extrême (Renforcé)",
+  "gui.mbtool.paste_reactor_tooltip": "Coller la conception de réacteur NuclearCraft depuis le presse-papiers\n(Supporte JSON, chemins de fichiers et URLs)",
+  "message.mbtool.clipboard_empty": "Le presse-papiers est vide",
+  "message.mbtool.reactor_loaded_url": "Conception de réacteur NuclearCraft chargée depuis l'URL avec succès !",
+  "message.mbtool.reactor_loaded_file": "Conception de réacteur NuclearCraft chargée depuis le fichier avec succès !",
+  "message.mbtool.reactor_loaded_json": "Conception de réacteur NuclearCraft chargée depuis JSON avec succès !",
+  "message.mbtool.no_multibuilder_item": "Aucun outil multi-constructeur en main",
+  "message.mbtool.reactor_parse_failed_url": "Échec de l'analyse de la conception de réacteur depuis l'URL",
+  "message.mbtool.reactor_parse_failed_file": "Échec de l'analyse de la conception de réacteur depuis le fichier",
+  "message.mbtool.reactor_parse_failed_json": "Échec de l'analyse de la conception de réacteur depuis JSON",
+  "message.mbtool.clipboard_parse_error": "Erreur lors de l'analyse du contenu du presse-papiers : %s"
 }
