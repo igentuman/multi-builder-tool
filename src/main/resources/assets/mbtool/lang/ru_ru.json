@@ -52,5 +52,12 @@
   "mbtool.structure.blood_magic_altar_4": "Алтарь Кровавой Магии Уровень 4",
   "mbtool.structure.blood_magic_altar_5": "Алтарь Кровавой Магии Уровень 5",
   "mbtool.structure.blood_magic_edge_of_the_hidden_realm": "Кровавая Магия Грань Скрытого Царства",
-  "mbtool.tooltip.load_into_mbtool": "Загрузить в Мультистроитель"
+  "mbtool.tooltip.load_into_mbtool": "Загрузить в Мультистроитель",
+  "mbtool.structure.basic_extreme_reactor": "Экстремальный Реактор (Базовый)",
+  "mbtool.structure.extreme_turbine_basic": "Экстремальная Турбина (Базовая)",
+  "mbtool.structure.extreme_reprocessor": "Экстремальный Переработчик",
+  "mbtool.structure.extreme_energizer": "Экстремальный Энергизатор",
+  "mbtool.structure.extreme_fluidizer": "Экстремальный Флюидизатор",
+  "mbtool.structure.extreme_turbine_reinforced": "Экстремальная Турбина (Усиленная)",
+  "mbtool.structure.reinforced_extreme_reactor": "Экстремальный Реактор (Усиленный)"
 }

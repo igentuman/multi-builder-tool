@@ -52,5 +52,12 @@
   "mbtool.structure.blood_magic_altar_4": "Ołtarz Magii Krwi Poziom 4",
   "mbtool.structure.blood_magic_altar_5": "Ołtarz Magii Krwi Poziom 5",
   "mbtool.structure.blood_magic_edge_of_the_hidden_realm": "Magia Krwi Krawędź Ukrytego Królestwa",
-  "mbtool.tooltip.load_into_mbtool": "Załaduj do Narzędzia Multi-budowniczy"
+  "mbtool.tooltip.load_into_mbtool": "Załaduj do Narzędzia Multi-budowniczy",
+  "mbtool.structure.basic_extreme_reactor": "Reaktor Ekstremalny (Podstawowy)",
+  "mbtool.structure.extreme_turbine_basic": "Turbina Ekstremalna (Podstawowa)",
+  "mbtool.structure.extreme_reprocessor": "Przetwarzacz Ekstremalny",
+  "mbtool.structure.extreme_energizer": "Energizer Ekstremalny",
+  "mbtool.structure.extreme_fluidizer": "Upłynniacz Ekstremalny",
+  "mbtool.structure.extreme_turbine_reinforced": "Turbina Ekstremalna (Wzmocniona)",
+  "mbtool.structure.reinforced_extreme_reactor": "Reaktor Ekstremalny (Wzmocniony)"
 }

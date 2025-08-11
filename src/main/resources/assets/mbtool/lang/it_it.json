@@ -52,5 +52,12 @@
   "mbtool.structure.blood_magic_altar_4": "Altare di Magia del Sangue Livello 4",
   "mbtool.structure.blood_magic_altar_5": "Altare di Magia del Sangue Livello 5",
   "mbtool.structure.blood_magic_edge_of_the_hidden_realm": "Magia del Sangue Confine del Regno Nascosto",
-  "mbtool.tooltip.load_into_mbtool": "Carica nello Strumento Multi-costruttore"
+  "mbtool.tooltip.load_into_mbtool": "Carica nello Strumento Multi-costruttore",
+  "mbtool.structure.basic_extreme_reactor": "Reattore Estremo (Base)",
+  "mbtool.structure.extreme_turbine_basic": "Turbina Estrema (Base)",
+  "mbtool.structure.extreme_reprocessor": "Riprocessore Estremo",
+  "mbtool.structure.extreme_energizer": "Energizzatore Estremo",
+  "mbtool.structure.extreme_fluidizer": "Fluidificatore Estremo",
+  "mbtool.structure.extreme_turbine_reinforced": "Turbina Estrema (Rinforzata)",
+  "mbtool.structure.reinforced_extreme_reactor": "Reattore Estremo (Rinforzato)"
 }
