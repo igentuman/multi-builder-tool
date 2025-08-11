@@ -12,6 +12,8 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
 
+import static igentuman.mbtool.item.MultibuilderItem.INVENTORY_SIZE;
+
 
 public class ItemInventoryHandler implements IItemHandlerModifiable, INBTSerializable<CompoundTag> {
 
@@ -152,7 +154,6 @@ public class ItemInventoryHandler implements IItemHandlerModifiable, INBTSeriali
 
     @Override
     public void deserializeNBT(CompoundTag nbt) {
-        setSize(nbt.contains("Size", Tag.TAG_INT) ? nbt.getInt("Size") : stacks.size());
         ListTag tagList = nbt.getList("Items", Tag.TAG_COMPOUND);
         for (int i = 0; i < tagList.size(); i++) {
             CompoundTag itemTags = tagList.getCompound(i);

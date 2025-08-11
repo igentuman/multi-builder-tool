@@ -45,7 +45,7 @@ import static igentuman.mbtool.util.ModUtil.isGtLoaded;
 public class MultibuilderItem extends Item {
     
     // Inventory configuration
-    private static final int INVENTORY_SIZE = 24; // 24 slots
+    public static final int INVENTORY_SIZE = 30; // 30 slots
     private static final int STACK_SIZE = 64; // Standard stack size
     public int delay = 0;
 

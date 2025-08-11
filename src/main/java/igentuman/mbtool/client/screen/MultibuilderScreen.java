@@ -31,7 +31,7 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
     public MultibuilderScreen(MultibuilderContainer pMenu, Inventory pPlayerInventory, Component pTitle) {
         super(pMenu, pPlayerInventory, pTitle);
         this.imageWidth = 186;
-        this.imageHeight = 186;
+        this.imageHeight = 206;
     }
 
     @Override
@@ -117,6 +117,5 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
     @Override
     protected void renderLabels(@NotNull GuiGraphics graphics, int mouseX, int mouseY) {
         graphics.drawString(this.font, this.title, this.inventoryLabelX, 3, 4210752, false);
-        graphics.drawString(this.font, this.playerInventoryTitle, this.inventoryLabelX, 85, 4210752, false);
     }
 }
