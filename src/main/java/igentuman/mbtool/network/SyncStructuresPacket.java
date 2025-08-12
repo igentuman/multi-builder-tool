@@ -9,7 +9,10 @@ import net.minecraftforge.network.NetworkEvent;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Supplier;
+
+import static igentuman.mbtool.Mbtool.rl;
 
 public class SyncStructuresPacket {
     private final List<StructureData> structures;
@@ -33,9 +36,9 @@ public class SyncStructuresPacket {
     public static void encode(SyncStructuresPacket packet, FriendlyByteBuf buffer) {
         buffer.writeInt(packet.structures.size());
         for (StructureData structure : packet.structures) {
-            buffer.writeResourceLocation(structure.id);
-            buffer.writeNbt(structure.nbt);
-            buffer.writeUtf(structure.name);
+            buffer.writeResourceLocation(Objects.requireNonNullElseGet(structure.id, () -> rl("unknown")));
+            buffer.writeNbt(Objects.requireNonNullElseGet(structure.nbt, CompoundTag::new));
+            buffer.writeUtf(Objects.requireNonNullElseGet(structure.name, () -> ""));
         }
     }
     
