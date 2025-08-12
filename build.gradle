@@ -110,13 +110,13 @@ repositories {
 dependencies {
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
     minecraft "net.minecraftforge:forge:${mc_version}-${forge_version}"
-    implementation fg.deobf("com.gregtechceu.gtceu:gtceu-${mc_version}:${gtm_version}"){
+    compileOnly fg.deobf("com.gregtechceu.gtceu:gtceu-${mc_version}:${gtm_version}"){
         transitive = false
     }
     implementation fg.deobf("curse.maven:extreme-reactors-250277:6772552")
     implementation fg.deobf("curse.maven:zerocore-247921:5850671")
     compileOnly fg.deobf("curse.maven:ldlib-626676:6849454")
-    implementation fg.deobf("curse.maven:just-enough-mekanism-multiblocks-898746:6170219"){
+    compileOnly fg.deobf("curse.maven:just-enough-mekanism-multiblocks-898746:6170219"){
         transitive = false
     }
     /*runtimeOnly fg.deobf("curse.maven:blood-magic-224791:5290993") {
@@ -192,10 +192,10 @@ jar {
     }
 }
 
-mixin {
+/*mixin {
     add sourceSets.main, "mbtool.refmap.json"
     config "mbtool.mixins.json"
-}
+}*/
 
 jar.enabled = false
 

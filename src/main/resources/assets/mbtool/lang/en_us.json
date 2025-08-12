@@ -6,6 +6,7 @@
   "tooltip.mbtool.energy_stored": "Energy Stored: %s / %s",
   "tooltip.mbtool.inventory_slots": "Inventory: %d / %d slots used",
   "jei.category.mbtool.multiblock_structure": "Multiblock Structure",
+  "emi.category.mbtool.multiblock_structure": "Multiblock Structure",
   "message.mbtool.insufficient_energy": "Insufficient energy! Need %s",
   "message.mbtool.no_inventory": "No inventory available",
   "message.mbtool.insufficient_blocks": "Insufficient blocks! Need %d more %s",
