@@ -192,10 +192,10 @@ jar {
     }
 }
 
-/*mixin {
+mixin {
     add sourceSets.main, "mbtool.refmap.json"
     config "mbtool.mixins.json"
-}*/
+}
 
 jar.enabled = false
 

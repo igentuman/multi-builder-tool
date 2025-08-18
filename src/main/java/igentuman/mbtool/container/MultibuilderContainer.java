@@ -52,10 +52,10 @@ public class MultibuilderContainer extends AbstractContainerMenu {
     }
     
     private void addMultibuilderInventory() {
-        // 6 columns, 4 rows = 24 slots
+        // 8 columns, 5 rows = 40 slots
         for (int row = 0; row < 5; row++) {
             for (int col = 0; col < 8; col++) {
-                int index = row * 6 + col;
+                int index = row * 8 + col;
                 this.addSlot(new SlotItemHandler(itemHandler, index, 5 + col * 18, 13 + row * 18));
             }
         }
@@ -65,7 +65,7 @@ public class MultibuilderContainer extends AbstractContainerMenu {
         int yOffset = 107;
         for (int i = 0; i < 3; ++i) {
             for (int l = 0; l < 9; ++l) {
-                this.addSlot(new Slot(playerInventory, l + i * 9 + 5, 5 + l * 18, yOffset + i * 18));
+                this.addSlot(new Slot(playerInventory, l + i * 9 + 9, 5 + l * 18, yOffset + i * 18));
             }
         }
     }
