@@ -1,16 +1,12 @@
 package igentuman.mbtool.util;
 
-import net.minecraftforge.eventbus.api.Event;
+import net.neoforged.bus.api.Event;
 
 import java.util.List;
 
 public class InitMbtoolStructuresEvent extends Event {
 
-    @Override
-    public boolean isCancelable() {
-        return true;
-    }
-
+    public boolean isCanceled = false;
     public final List<MultiblockStructure> structures;
 
     public InitMbtoolStructuresEvent(List<MultiblockStructure> structures) {

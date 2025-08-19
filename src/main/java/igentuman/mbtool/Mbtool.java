@@ -19,11 +19,13 @@ import net.minecraftforge.common.extensions.IForgeMenuType;
 import net.minecraftforge.event.AddReloadListenerEvent;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.registries.DeferredRegister;
+import net.neoforged.neoforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import org.apache.logging.log4j.LogManager;
@@ -49,11 +51,7 @@ public class Mbtool
             () -> IForgeMenuType.create((windowId, inv, data) -> new MultibuilderSelectStructureContainer(windowId, data.readBlockPos(), inv, data.readInt())));
 
 
-    public Mbtool() {
-        this(FMLJavaModLoadingContext.get());
-    }
-
-    public Mbtool(FMLJavaModLoadingContext context) {
+    public Mbtool(IEventBus modEventBus, ModContainer modContainer) {
         ITEMS.register(context.getModEventBus());
         CONTAINERS.register(context.getModEventBus());
         context.getModEventBus().addListener(this::commonSetup);

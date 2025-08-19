@@ -2,7 +2,7 @@ package igentuman.mbtool.integration.kubejs;
 
 import dev.latvian.mods.kubejs.event.EventGroup;
 import dev.latvian.mods.kubejs.event.EventHandler;
-import dev.latvian.mods.kubejs.event.EventJS;
+import dev.latvian.mods.kubejs.event.KubeEvent;
 import dev.latvian.mods.kubejs.event.EventResult;
 import dev.latvian.mods.kubejs.script.ScriptType;
 import igentuman.mbtool.util.MultiblockStructure;
@@ -17,10 +17,10 @@ public class MbtoolKubeJsEvents {
     public static void onInitMbtoolStructures(InitMbtoolStructuresEvent event) {
         InitMbtoolStructures evenjs = new InitMbtoolStructures(event.structures);
         EventResult result = ON_LOAD_STRUCTURES.post(ScriptType.SERVER, evenjs);
-        event.setCanceled(result.interruptDefault() || result.interruptFalse() || result.interruptTrue());
+        event.isCanceled = result.interruptDefault() || result.interruptFalse() || result.interruptTrue();
     }
 
-    public static class InitMbtoolStructures extends EventJS {
+    public static class InitMbtoolStructures implements KubeEvent {
 
         public List<MultiblockStructure> structures;
 
