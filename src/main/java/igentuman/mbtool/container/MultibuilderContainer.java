@@ -13,6 +13,8 @@ import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.SlotItemHandler;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.UUID;
+
 import static igentuman.mbtool.Mbtool.MBTOOL;
 import static igentuman.mbtool.Mbtool.MULTIBUILDER_CONTAINER;
 
@@ -21,26 +23,29 @@ public class MultibuilderContainer extends AbstractContainerMenu {
     private static final int INVENTORY_SIZE = 40;
     private final IItemHandler itemHandler;
     private final int playerSlot;
+    private final UUID uuid;
     
     public MultibuilderContainer(@Nullable MenuType<?> pMenuType, int pContainerId) {
         super(pMenuType, pContainerId);
         this.itemHandler = null;
         this.playerSlot = -1;
+        uuid = UUID.randomUUID();
     }
 
     public MultibuilderContainer(int pContainerId, BlockPos pos, Inventory pPlayerInventory, int slot) {
         super(MULTIBUILDER_CONTAINER.get(), pContainerId);
         this.playerSlot = slot;
-        
         // Get the multibuilder item from the player's inventory
         ItemStack multibuilderStack = slot == 40 ? pPlayerInventory.offhand.get(0) : pPlayerInventory.items.get(slot);
-        
+
         if (multibuilderStack.getItem() instanceof MultibuilderItem multibuilderItem) {
             this.itemHandler = multibuilderItem.getInventory(multibuilderStack);
+            uuid = multibuilderItem.getUUID(multibuilderStack);
         } else {
             this.itemHandler = null;
+            uuid = UUID.randomUUID();
         }
-        
+
         // Add multibuilder inventory slots (6x4 grid)
         if (itemHandler != null) {
             addMultibuilderInventory();
@@ -84,10 +89,10 @@ public class MultibuilderContainer extends AbstractContainerMenu {
         
         if (slot != null && slot.hasItem()) {
             ItemStack itemstack1 = slot.getItem();
+            if(pPlayer.getItemInHand(InteractionHand.MAIN_HAND).equals(itemstack1)) {
+                return ItemStack.EMPTY;
+            }
             itemstack = itemstack1.copy();
-            
-            // Multibuilder inventory slots: 0-23
-            // Player inventory slots: 24-59 (24-50 main inventory, 51-59 hotbar)
             
             if (pIndex < INVENTORY_SIZE) {
                 // Moving from multibuilder inventory to player inventory
@@ -124,7 +129,11 @@ public class MultibuilderContainer extends AbstractContainerMenu {
 
     @Override
     public boolean stillValid(Player pPlayer) {
-        return pPlayer.getItemInHand(InteractionHand.MAIN_HAND).is(MBTOOL.get());
+        ItemStack stack = pPlayer.getItemInHand(InteractionHand.MAIN_HAND);
+        if(stack.getItem() instanceof MultibuilderItem multibuilderItem) {
+            return multibuilderItem.getUUID(stack).equals(uuid);
+        }
+        return false;
     }
     
     public IItemHandler getItemHandler() {

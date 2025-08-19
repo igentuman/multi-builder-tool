@@ -38,6 +38,7 @@ import net.minecraftforge.network.NetworkHooks;
 
 import javax.annotation.Nonnull;
 import java.util.List;
+import java.util.UUID;
 
 import static igentuman.mbtool.Mbtool.MBTOOL;
 import static igentuman.mbtool.util.ModUtil.isGtLoaded;
@@ -516,5 +517,16 @@ public class MultibuilderItem extends Item {
             return  multibuilderStack.getOrCreateTag().getInt("recipe");
         }
         return -1;
+    }
+
+    public UUID getUUID(ItemStack multibuilderStack) {
+        try {
+            if(!multibuilderStack.getOrCreateTag().contains("uuid")) {
+                multibuilderStack.getOrCreateTag().putUUID("uuid", UUID.randomUUID());
+            }
+            return multibuilderStack.getOrCreateTag().getUUID("uuid");
+        } catch(Exception e) {
+            return null;
+        }
     }
 }
