@@ -188,19 +188,16 @@ public class ItemMultiBuilder extends Item implements ISpecialElectricItem, IEle
         this.setElectricity(itemStack, electricityStored);
     }
 
-    @Optional.Method(modid = "mekanism")
     public double getMaxEnergy(ItemStack itemStack)
     {
         return this.getMaxElectricityStored(itemStack)  * 0.1;
     }
 
-    @Optional.Method(modid = "mekanism")
     public double getMaxTransfer(ItemStack itemStack)
     {
         return ModConfig.general.mbtool_energy_capacity * 0.01;
     }
 
-    @Optional.Method(modid = "mekanism")
     public boolean canReceive(ItemStack itemStack)
     {
         return true;
