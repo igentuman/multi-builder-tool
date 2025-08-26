@@ -107,7 +107,11 @@ public class ItemCapabilityProvider implements ICapabilityProvider {
         tag.putInt("energy", energyStorage.getEnergyStored());
         
         // Save inventory data
-        tag.put("Inventory", inventoryHandler.serializeNBT());
+        CompoundTag inventoryNBT = inventoryHandler.serializeNBT();
+        tag.put("Inventory", inventoryNBT);
+        
+        // Force the stack to be marked as changed to ensure NBT persistence
+        stack.setTag(tag);
     }
     
     public CustomEnergyStorage getEnergyStorage() {

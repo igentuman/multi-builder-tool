@@ -1,9 +1,11 @@
 package igentuman.mbtool.util;
 
 import net.minecraft.core.NonNullList;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.common.util.INBTSerializable;
 import net.minecraftforge.items.IItemHandlerModifiable;
@@ -56,7 +58,7 @@ public class ItemInventoryHandler implements IItemHandlerModifiable, INBTSeriali
         if (existing.isEmpty())
             return ItemStack.EMPTY;
 
-        int toExtract = Math.min(amount, existing.getMaxStackSize());
+        int toExtract = Math.min(amount, existing.getCount());
 
         if (existing.getCount() <= toExtract) {
             if (!simulate) {
@@ -86,7 +88,7 @@ public class ItemInventoryHandler implements IItemHandlerModifiable, INBTSeriali
 
         ItemStack existing = this.stacks.get(slot);
 
-        int limit = getStackLimit(slot, stack);
+        int limit = getSlotLimit(slot);
 
         if (!existing.isEmpty()) {
             if (!ItemHandlerHelper.canItemStacksStack(stack, existing))
@@ -119,16 +121,31 @@ public class ItemInventoryHandler implements IItemHandlerModifiable, INBTSeriali
 
     @Override
     public int getSlotLimit(int slot) {
-        return stackSize;
+        return 512;
     }
 
     protected int getStackLimit(int slot, @NotNull ItemStack stack) {
-        return Math.min(getSlotLimit(slot), stack.getMaxStackSize());
+        // Always use our custom slot limit of 512, ignoring the item's default max stack size
+        return getSlotLimit(slot);
     }
 
     @Override
     public boolean isItemValid(int slot, @NotNull ItemStack stack) {
         return true;
+    }
+
+    /**
+     * Custom method to save ItemStack to NBT with support for large stack counts (up to Integer.MAX_VALUE).
+     * This is needed because the default ItemStack.save() method uses putByte() for count, limiting it to 127.
+     * 
+     * @param stack The ItemStack to save
+     * @param compoundTag The NBT tag to save to
+     * @return The NBT tag with the ItemStack data
+     */
+    private CompoundTag saveItemStackWithLargeCount(ItemStack stack, CompoundTag compoundTag) {
+        CompoundTag saveTag = stack.save(compoundTag);
+        saveTag.putInt("RealCount", stack.getCount());
+        return saveTag;
     }
 
     @Override
@@ -138,7 +155,8 @@ public class ItemInventoryHandler implements IItemHandlerModifiable, INBTSeriali
             if (!stacks.get(i).isEmpty()) {
                 CompoundTag itemTag = new CompoundTag();
                 itemTag.putInt("Slot", i);
-                stacks.get(i).save(itemTag);
+                // Use custom save method to support large stack counts
+                saveItemStackWithLargeCount(stacks.get(i), itemTag);
                 nbtTagList.add(itemTag);
             }
         }
@@ -154,13 +172,29 @@ public class ItemInventoryHandler implements IItemHandlerModifiable, INBTSeriali
 
     @Override
     public void deserializeNBT(CompoundTag nbt) {
+        // Clear existing stacks first
+        for (int i = 0; i < stacks.size(); i++) {
+            stacks.set(i, ItemStack.EMPTY);
+        }
+        
+        // Load items from NBT
         ListTag tagList = nbt.getList("Items", Tag.TAG_COMPOUND);
         for (int i = 0; i < tagList.size(); i++) {
             CompoundTag itemTags = tagList.getCompound(i);
             int slot = itemTags.getInt("Slot");
 
             if (slot >= 0 && slot < stacks.size()) {
-                stacks.set(slot, ItemStack.of(itemTags));
+                // Load ItemStack preserving large stack counts
+                // First create the stack normally
+                ItemStack stack = ItemStack.of(itemTags);
+                
+                // Then force the count to the original value if it was larger than the item's max stack size
+                if (itemTags.contains("RealCount")) {
+                    int originalCount = itemTags.getInt("RealCount");
+                    // Always set the count to the original value, bypassing any validation
+                    stack.setCount(originalCount);
+                }
+                stacks.set(slot, stack);
             }
         }
     }

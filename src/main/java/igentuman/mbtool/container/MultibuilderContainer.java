@@ -61,7 +61,7 @@ public class MultibuilderContainer extends AbstractContainerMenu {
         for (int row = 0; row < 5; row++) {
             for (int col = 0; col < 8; col++) {
                 int index = row * 8 + col;
-                this.addSlot(new SlotItemHandler(itemHandler, index, 5 + col * 18, 13 + row * 18));
+                this.addSlot(new CustomSlotHandler(itemHandler, index, 5 + col * 18, 13 + row * 18));
             }
         }
     }
@@ -125,6 +125,93 @@ public class MultibuilderContainer extends AbstractContainerMenu {
         }
         
         return itemstack;
+    }
+
+    @Override
+    protected boolean moveItemStackTo(ItemStack pStack, int pStartIndex, int pEndIndex, boolean pReverseDirection) {
+        boolean flag = false;
+        int i = pStartIndex;
+        if (pReverseDirection) {
+            i = pEndIndex - 1;
+        }
+
+        if (pStack.isStackable()) {
+            while(!pStack.isEmpty()) {
+                if (pReverseDirection) {
+                    if (i < pStartIndex) {
+                        break;
+                    }
+                } else if (i >= pEndIndex) {
+                    break;
+                }
+
+                Slot slot = this.slots.get(i);
+                ItemStack itemstack = slot.getItem();
+                if (!itemstack.isEmpty() && ItemStack.isSameItemSameTags(pStack, itemstack)) {
+                    int j = itemstack.getCount() + pStack.getCount();
+                    // Always use the slot's max stack size (512) for our custom slots
+                    int maxSize = slot.getMaxStackSize();
+                    if (j <= maxSize) {
+                        pStack.setCount(0);
+                        itemstack.setCount(j);
+                        slot.setChanged();
+                        flag = true;
+                    } else if (itemstack.getCount() < maxSize) {
+                        pStack.shrink(maxSize - itemstack.getCount());
+                        itemstack.setCount(maxSize);
+                        slot.setChanged();
+                        flag = true;
+                    }
+                }
+
+                if (pReverseDirection) {
+                    --i;
+                } else {
+                    ++i;
+                }
+            }
+        }
+
+        if (!pStack.isEmpty()) {
+            if (pReverseDirection) {
+                i = pEndIndex - 1;
+            } else {
+                i = pStartIndex;
+            }
+
+            while(true) {
+                if (pReverseDirection) {
+                    if (i < pStartIndex) {
+                        break;
+                    }
+                } else if (i >= pEndIndex) {
+                    break;
+                }
+
+                Slot slot1 = this.slots.get(i);
+                ItemStack itemstack1 = slot1.getItem();
+                if (itemstack1.isEmpty() && slot1.mayPlace(pStack)) {
+                    // Use the slot's max stack size (512 for our custom slots)
+                    if (pStack.getCount() > slot1.getMaxStackSize()) {
+                        slot1.setByPlayer(pStack.split(slot1.getMaxStackSize()));
+                    } else {
+                        slot1.setByPlayer(pStack.split(pStack.getCount()));
+                    }
+
+                    slot1.setChanged();
+                    flag = true;
+                    break;
+                }
+
+                if (pReverseDirection) {
+                    --i;
+                } else {
+                    ++i;
+                }
+            }
+        }
+
+        return flag;
     }
 
     @Override

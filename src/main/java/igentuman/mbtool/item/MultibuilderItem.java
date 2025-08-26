@@ -47,7 +47,7 @@ public class MultibuilderItem extends Item {
     
     // Inventory configuration
     public static final int INVENTORY_SIZE = 40; // 40 slots
-    private static final int STACK_SIZE = 64; // Standard stack size
+    private static final int STACK_SIZE = 512; // Standard stack size
     public int delay = 0;
 
     public MultibuilderItem(Properties pProperties) {
