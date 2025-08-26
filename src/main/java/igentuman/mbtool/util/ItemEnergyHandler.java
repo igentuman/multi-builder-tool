@@ -1,26 +1,26 @@
 package igentuman.mbtool.util;
 
-import net.minecraft.core.Direction;
+import igentuman.mbtool.registry.MbtoolDataComponents;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.ICapabilityProvider;
-import net.minecraftforge.common.util.LazyOptional;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.energy.IEnergyStorage;
 
-import static net.minecraftforge.common.capabilities.ForgeCapabilities.ENERGY;
-
-public class ItemEnergyHandler implements ICapabilityProvider {
+/**
+ * Utility class for handling energy in item stacks
+ * This replaces the old capability provider pattern with direct capability queries
+ */
+public class ItemEnergyHandler {
 
     private final int storage;
     private final int output;
     private final int input;
     public ItemStack stack;
 
-    protected final LazyOptional<ItemEnergy>  energy = LazyOptional.of(this::createEnergy);
-
-    private ItemEnergy createEnergy() {
-        return new ItemEnergy(stack, capacity(), chargeRate(), sendRate());
+    public ItemEnergyHandler(ItemStack stack, int storage, int output, int input) {
+        this.stack = stack;
+        this.storage = storage;
+        this.output = output;
+        this.input = input;
     }
 
     public int sendRate() {
@@ -36,47 +36,48 @@ public class ItemEnergyHandler implements ICapabilityProvider {
     }
 
     public int getEnergyStored() {
-        return getCapability(ENERGY, null).orElse(null).getEnergyStored();
-    }
-
-    public ItemEnergyHandler(ItemStack stack, int storage, int output, int input) {
-        this.stack = stack;
-        this.storage = storage;
-        this.output = output;
-        this.input = input;
-    }
-
-    @Override
-    public @NotNull <T> LazyOptional<T> getCapability(@NotNull Capability<T> cap, @Nullable Direction side) {
-        if(cap ==  ENERGY) {
-            return energy.cast();
+        IEnergyStorage energyStorage = stack.getCapability(Capabilities.EnergyStorage.ITEM);
+        if (energyStorage != null) {
+            return energyStorage.getEnergyStored();
         }
-        return LazyOptional.empty();
+        return 0;
     }
 
-    public class ItemEnergy extends CustomEnergyStorage {
+    /**
+     * Gets the energy storage capability for this item stack
+     */
+    public IEnergyStorage getEnergyStorage() {
+        return stack.getCapability(Capabilities.EnergyStorage.ITEM);
+    }
+
+    /**
+     * Inner class that implements the actual energy storage behavior
+     */
+    public static class ItemEnergy extends CustomEnergyStorage {
         private ItemStack stack;
+        
         public ItemEnergy(ItemStack stack, int capacity, int maxReceive, int maxExtract) {
             super(capacity, maxReceive, maxExtract);
             this.stack = stack;
-            energy = stack.getOrCreateTag().contains("energy") ? stack.getOrCreateTag().getInt("energy") : 0;
+            Integer energyValue = stack.get(MbtoolDataComponents.ENERGY.get());
+            energy = energyValue != null ? energyValue : 0;
         }
 
         @Override
         public int extractEnergy(int extract, boolean simulate) {
             int amount = super.extractEnergy(extract, simulate);
-            if (!simulate)
-                stack.getOrCreateTag().putInt("energy", this.energy);
-
+            if (!simulate) {
+                stack.set(MbtoolDataComponents.ENERGY.get(), this.energy);
+            }
             return amount;
         }
 
         @Override
-        public int receiveEnergy(int receieve, boolean simulate) {
-            int amount = super.receiveEnergy(receieve, simulate);
-            if (!simulate)
-                stack.getOrCreateTag().putInt("energy", this.energy);
-
+        public int receiveEnergy(int receive, boolean simulate) {
+            int amount = super.receiveEnergy(receive, simulate);
+            if (!simulate) {
+                stack.set(MbtoolDataComponents.ENERGY.get(), this.energy);
+            }
             return amount;
         }
     }

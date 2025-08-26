@@ -154,7 +154,7 @@ public class MultiblockButton extends AbstractButton {
         // Render the multiblock structure if available
         if (structure != null && !structure.getBlocks().isEmpty()) {
             // Save the current state
-            guiGraphics.pose().pushPose();
+            guiGraphics.pose().pushMatrix();
             
             try {
                 // Enable scissor test to clip rendering to button bounds
@@ -168,7 +168,7 @@ public class MultiblockButton extends AbstractButton {
                 int screenHeight = Minecraft.getInstance().getWindow().getHeight();
                 scaledY = screenHeight - scaledY - scaledHeight;
                 
-                RenderSystem.enableScissor(scaledX, scaledY, scaledWidth, scaledHeight);
+                RenderSystem.enableScissorForRenderTypeDraws(scaledX, scaledY, scaledWidth, scaledHeight);
                 
                 // Add some padding to the rendering area
                 int padding = renderBackground ? 3 : 1;
@@ -187,7 +187,7 @@ public class MultiblockButton extends AbstractButton {
                 e.printStackTrace();
             } finally {
                 RenderSystem.disableScissor();
-                guiGraphics.pose().popPose();
+                guiGraphics.pose().popMatrix();
             }
         } else {
             // If no structure is available, render a placeholder

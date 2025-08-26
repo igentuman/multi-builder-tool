@@ -3,10 +3,13 @@ package igentuman.mbtool.integration.jei;
 import igentuman.mbtool.util.MultiblockStructure;
 import mezz.jei.api.runtime.IIngredientManager;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderSet;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.level.ItemLike;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -75,7 +78,11 @@ public class MultiblockStructureRecipe {
     }
 
     public Ingredient getIngredients() {
-        Ingredient ingredient = Ingredient.of(outputs.toArray(new ItemStack[0]));
+        List<HolderSet<ItemLike>> items = new ArrayList<>();
+        for(ItemStack item: outputs) {
+            items.add(HolderSet.direct(item.getItem()));
+        }
+        Ingredient ingredient = Ingredient.of(items);
         return ingredient;
     }
 

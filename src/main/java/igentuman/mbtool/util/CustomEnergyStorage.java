@@ -3,7 +3,7 @@ package igentuman.mbtool.util;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.IntTag;
 import net.minecraft.nbt.Tag;
-import net.minecraftforge.energy.EnergyStorage;
+import net.neoforged.neoforge.energy.EnergyStorage;
 
 public class CustomEnergyStorage extends EnergyStorage {
 
@@ -138,8 +138,8 @@ public class CustomEnergyStorage extends EnergyStorage {
         if (nbt instanceof IntTag intNbt) {
             this.energy = intNbt.getAsInt();
         } else {
-            energy = ((CompoundTag) nbt).getInt("energy");
-            capacity = ((CompoundTag) nbt).getInt("capacity");
+            energy = ((CompoundTag) nbt).getInt("energy").orElse(0);
+            capacity = ((CompoundTag) nbt).getInt("capacity").orElse(this.capacity);
         }
     }
 

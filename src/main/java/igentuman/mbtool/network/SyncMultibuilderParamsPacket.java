@@ -1,5 +1,7 @@
 package igentuman.mbtool.network;
 
+import igentuman.mbtool.Mbtool;
+import igentuman.mbtool.registry.MbtoolDataComponents;
 import igentuman.mbtool.util.MultiblocksProvider;
 import igentuman.mbtool.util.MultiblockStructure;
 import igentuman.mbtool.item.MultibuilderItem;
@@ -7,54 +9,48 @@ import igentuman.mbtool.util.MultiblockBuilder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-import java.util.function.Supplier;
-
-public class SyncMultibuilderParamsPacket {
-    private final int recipeIndex;
-    private final int rotation;
-    private final InteractionHand hand;
+public record SyncMultibuilderParamsPacket(int recipeIndex, int rotation, InteractionHand hand) implements CustomPacketPayload {
     
-    public SyncMultibuilderParamsPacket(int recipeIndex, int rotation, InteractionHand hand) {
-        this.recipeIndex = recipeIndex;
-        this.rotation = rotation;
-        this.hand = hand;
+    public static final CustomPacketPayload.Type<SyncMultibuilderParamsPacket> TYPE = 
+        new CustomPacketPayload.Type<>(Mbtool.rl("sync_multibuilder_params"));
+    
+    public static final StreamCodec<FriendlyByteBuf, SyncMultibuilderParamsPacket> STREAM_CODEC = 
+        StreamCodec.composite(
+            StreamCodec.VAR_INT, SyncMultibuilderParamsPacket::recipeIndex,
+            StreamCodec.VAR_INT, SyncMultibuilderParamsPacket::rotation,
+            StreamCodec.of((buf, hand) -> buf.writeEnum(hand), buf -> buf.readEnum(InteractionHand.class)), SyncMultibuilderParamsPacket::hand,
+            SyncMultibuilderParamsPacket::new
+        );
+    
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
     
-    public static void encode(SyncMultibuilderParamsPacket packet, FriendlyByteBuf buffer) {
-        buffer.writeInt(packet.recipeIndex);
-        buffer.writeInt(packet.rotation);
-        buffer.writeEnum(packet.hand);
-    }
-    
-    public static SyncMultibuilderParamsPacket decode(FriendlyByteBuf buffer) {
-        int recipeIndex = buffer.readInt();
-        int rotation = buffer.readInt();
-        InteractionHand hand = buffer.readEnum(InteractionHand.class);
-        return new SyncMultibuilderParamsPacket(recipeIndex, rotation, hand);
-    }
-    
-    public static void handle(SyncMultibuilderParamsPacket packet, Supplier<NetworkEvent.Context> contextSupplier) {
-        NetworkEvent.Context context = contextSupplier.get();
+    public static void handle(SyncMultibuilderParamsPacket packet, IPayloadContext context) {
         context.enqueueWork(() -> {
-            ServerPlayer player = context.getSender();
+            ServerPlayer player = (ServerPlayer) context.player();
             if (player == null) return;
             
-            ItemStack itemStack = player.getItemInHand(packet.hand);
+            ItemStack itemStack = player.getItemInHand(packet.hand());
             if (!(itemStack.getItem() instanceof MultibuilderItem multibuilderItem)) {
                 return;
             }
             
             // Update the server-side ItemStack with client parameters
-            itemStack.getOrCreateTag().putInt("recipe", packet.recipeIndex);
-            itemStack.getOrCreateTag().putInt("rotation", packet.rotation);
+            itemStack.set(MbtoolDataComponents.RECIPE.get(), packet.recipeIndex());
+            itemStack.set(MbtoolDataComponents.ROTATION.get(), packet.rotation());
             
             // Ensure structures are loaded on server
             if (MultiblocksProvider.structures.isEmpty()) {
@@ -62,20 +58,20 @@ public class SyncMultibuilderParamsPacket {
             }
             
             // Validate recipe index
-            if (packet.recipeIndex < 0 || packet.recipeIndex >= MultiblocksProvider.structures.size()) {
+            if (packet.recipeIndex() < 0 || packet.recipeIndex() >= MultiblocksProvider.structures.size()) {
                 player.sendSystemMessage(Component.translatable("message.mbtool.invalid_recipe"));
                 return;
             }
             
             // Get the structure
-            MultiblockStructure structure = MultiblocksProvider.structures.get(packet.recipeIndex);
+            MultiblockStructure structure = MultiblocksProvider.structures.get(packet.recipeIndex());
             if (structure == null) {
                 player.sendSystemMessage(Component.translatable("message.mbtool.invalid_recipe"));
                 return;
             }
             
             // Get build position
-            BlockPos buildPos = getBuildPosition(player, structure, packet.rotation);
+            BlockPos buildPos = getBuildPosition(player, structure, packet.rotation());
             if (buildPos == null) {
                 player.sendSystemMessage(Component.translatable("message.mbtool.no_build_position"));
                 return;
@@ -83,12 +79,11 @@ public class SyncMultibuilderParamsPacket {
             
             // Attempt to build the multiblock
             MultiblockBuilder.BuildResult result = MultiblockBuilder.buildMultiblock(
-                player.level(), player, itemStack, structure, buildPos, packet.rotation);
+                player.level(), player, itemStack, structure, buildPos, packet.rotation());
             
             // Send result message to player
             player.sendSystemMessage(result.getMessage());
         });
-        context.setPacketHandled(true);
     }
     
     /**

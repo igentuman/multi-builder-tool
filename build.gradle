@@ -63,6 +63,10 @@ dependencies {
     compileOnly "curse.maven:nuclearcraft-neoteric-840010:6899485"
     implementation "curse.maven:jei-238222:6832478"
     compileOnly "curse.maven:emi-580555:6420931"
+    compileOnly "curse.maven:mekanism-268560:6895130"
+    compileOnly "curse.maven:mekanism-generators-268566:6895133"
+    compileOnly "curse.maven:just-enough-mekanism-multiblocks-898746:6462078"
+    compileOnly "curse.maven:gregtechceu-modern-890405:6792853"
 }
 
 tasks.withType(ProcessResources).configureEach {

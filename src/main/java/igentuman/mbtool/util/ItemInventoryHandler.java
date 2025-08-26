@@ -1,13 +1,13 @@
 package igentuman.mbtool.util;
 
 import net.minecraft.core.NonNullList;
+import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.common.util.INBTSerializable;
-import net.minecraftforge.items.IItemHandlerModifiable;
-import net.minecraftforge.items.ItemHandlerHelper;
+import net.neoforged.neoforge.items.IItemHandlerModifiable;
+import net.neoforged.neoforge.items.ItemHandlerHelper;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
@@ -15,7 +15,7 @@ import javax.annotation.Nonnull;
 import static igentuman.mbtool.item.MultibuilderItem.INVENTORY_SIZE;
 
 
-public class ItemInventoryHandler implements IItemHandlerModifiable, INBTSerializable<CompoundTag> {
+public class ItemInventoryHandler implements IItemHandlerModifiable {
 
     protected int slots;
     protected int stackSize;
@@ -68,11 +68,11 @@ public class ItemInventoryHandler implements IItemHandlerModifiable, INBTSeriali
             }
         } else {
             if (!simulate) {
-                this.stacks.set(slot, ItemHandlerHelper.copyStackWithSize(existing, existing.getCount() - toExtract));
+                this.stacks.set(slot, existing.copyWithCount(existing.getCount() - toExtract));
                // onContentsChanged(slot);
             }
 
-            return ItemHandlerHelper.copyStackWithSize(existing, toExtract);
+            return existing.copyWithCount(toExtract);
         }
     }
 
@@ -89,7 +89,7 @@ public class ItemInventoryHandler implements IItemHandlerModifiable, INBTSeriali
         int limit = getStackLimit(slot, stack);
 
         if (!existing.isEmpty()) {
-            if (!ItemHandlerHelper.canItemStacksStack(stack, existing))
+            if (!ItemStack.isSameItemSameComponents(stack, existing))
                 return stack;
 
             limit -= existing.getCount();
@@ -102,13 +102,13 @@ public class ItemInventoryHandler implements IItemHandlerModifiable, INBTSeriali
 
         if (!simulate) {
             if (existing.isEmpty()) {
-                this.stacks.set(slot, reachedLimit ? ItemHandlerHelper.copyStackWithSize(stack, limit) : stack);
+                this.stacks.set(slot, reachedLimit ? stack.copyWithCount(limit) : stack);
             } else {
                 existing.grow(reachedLimit ? limit : stack.getCount());
             }
         }
 
-        return reachedLimit ? ItemHandlerHelper.copyStackWithSize(stack, stack.getCount() - limit) : ItemStack.EMPTY;
+        return reachedLimit ? stack.copyWithCount(stack.getCount() - limit) : ItemStack.EMPTY;
     }
 
     @Override
@@ -131,42 +131,28 @@ public class ItemInventoryHandler implements IItemHandlerModifiable, INBTSeriali
         return true;
     }
 
-    @Override
-    public CompoundTag serializeNBT() {
-        ListTag nbtTagList = new ListTag();
-        for (int i = 0; i < stacks.size(); i++) {
-            if (!stacks.get(i).isEmpty()) {
-                CompoundTag itemTag = new CompoundTag();
-                itemTag.putInt("Slot", i);
-                stacks.get(i).save(itemTag);
-                nbtTagList.add(itemTag);
-            }
-        }
-        CompoundTag nbt = new CompoundTag();
-        nbt.put("Items", nbtTagList);
-        nbt.putInt("Size", stacks.size());
-        return nbt;
-    }
-
     public void setSize(int size) {
         stacks = NonNullList.withSize(size, ItemStack.EMPTY);
-    }
-
-    @Override
-    public void deserializeNBT(CompoundTag nbt) {
-        ListTag tagList = nbt.getList("Items", Tag.TAG_COMPOUND);
-        for (int i = 0; i < tagList.size(); i++) {
-            CompoundTag itemTags = tagList.getCompound(i);
-            int slot = itemTags.getInt("Slot");
-
-            if (slot >= 0 && slot < stacks.size()) {
-                stacks.set(slot, ItemStack.of(itemTags));
-            }
-        }
     }
 
     protected void validateSlotIndex(int slot) {
         if (slot < 0 || slot >= stacks.size())
             throw new RuntimeException("Slot " + slot + " not in valid range - [0," + stacks.size() + ")");
+    }
+
+    protected Tag serializeNBT() {
+        ListTag nbtTagList = new ListTag();
+        for (int i = 0; i < stacks.size(); i++) {
+            if (!stacks.get(i).isEmpty()) {
+                CompoundTag itemTag = new CompoundTag();
+                itemTag.putByte("Slot", (byte) i);
+                DataComponentMap components = stacks.get(i).getComponents();
+
+                itemTag.write(stacks.get(i).save());
+                stacks.get(i).(itemTag);
+                nbtTagList.add(itemTag);
+            }
+        }
+        return nbtTagList;
     }
 }

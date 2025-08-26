@@ -7,6 +7,7 @@ import igentuman.mbtool.util.MultiblockStructure;
 import igentuman.mbtool.network.NetworkHandler;
 import igentuman.mbtool.network.SyncMultibuilderParamsPacket;
 import igentuman.mbtool.network.SyncRuntimeStructurePacket;
+import igentuman.mbtool.registry.MbtoolDataComponents;
 import igentuman.mbtool.util.*;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -16,7 +17,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -31,10 +31,10 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.common.capabilities.ICapabilityProvider;
-import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.network.NetworkHooks;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.component.CustomData;
+import net.neoforged.neoforge.items.IItemHandler;
 
 import javax.annotation.Nonnull;
 import java.util.List;
@@ -48,6 +48,7 @@ public class MultibuilderItem extends Item {
     // Inventory configuration
     public static final int INVENTORY_SIZE = 40; // 40 slots
     private static final int STACK_SIZE = 64; // Standard stack size
+    private static final int MAX_BAR_WIDTH = 13; // Maximum width for energy bar
     public int delay = 0;
 
     public MultibuilderItem(Properties pProperties) {
@@ -55,14 +56,14 @@ public class MultibuilderItem extends Item {
     }
     
     @Override
-    public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+    public InteractionResult use(Level level, Player player, InteractionHand hand) {
         ItemStack itemStack = player.getItemInHand(hand);
         int slot = hand == InteractionHand.MAIN_HAND ? player.getInventory().selected : 40; // 40 is offhand slot
         
         if(player.isSteppingCarefully()) {
             // Open GUI when sneaking - only on server side
             if (!level.isClientSide) {
-                NetworkHooks.openScreen((ServerPlayer) player, new MenuProvider() {
+                player.openMenu(new MenuProvider() {
                     @Override
                     public Component getDisplayName() {
                         return Component.translatable("gui.mbtool.multibuilder");
@@ -72,14 +73,11 @@ public class MultibuilderItem extends Item {
                     public AbstractContainerMenu createMenu(int containerId, Inventory playerInventory, Player player) {
                         return new MultibuilderContainer(containerId, player.blockPosition(), playerInventory, slot);
                     }
-                }, buf -> {
-                    buf.writeBlockPos(player.blockPosition());
-                    buf.writeInt(slot);
                 });
             }
-            return InteractionResultHolder.success(itemStack);
+            return InteractionResult.SUCCESS;
         } else {
-            if(delay > 0) return InteractionResultHolder.pass(itemStack);
+            if(delay > 0) return InteractionResult.PASS;
             delay = 40;
             // Build multiblock when not sneaking
             if (level.isClientSide) {
@@ -88,16 +86,18 @@ public class MultibuilderItem extends Item {
                 MultiblockStructure runtimeStructure = getRuntimeStructure(itemStack);
                 if(runtimeStructure != null) {
                     // Send runtimeStructure to server to build
-                    NetworkHandler.INSTANCE.sendToServer(
+                    NetworkHandler.sendToServer(
                             new SyncRuntimeStructurePacket(runtimeStructure.getStructureNbt(), rotation, hand));
-                    if(itemStack.getOrCreateTag().getInt("recipe") > 0) {
+                    Integer recipe = itemStack.get(MbtoolDataComponents.RECIPE.get());
+                    if(recipe != null && recipe > 0) {
                         setRuntimeStructure(itemStack, null);
                     }
-                    return InteractionResultHolder.success(itemStack);
+                    return InteractionResult.SUCCESS;
                 }
                 // Client side: validate and send packet to server
                 if(hasRecipe(itemStack)) {
-                    int recipeIndex = itemStack.getOrCreateTag().getInt("recipe");
+                    Integer recipeIndex = itemStack.get(MbtoolDataComponents.RECIPE.get());
+                    if (recipeIndex == null) recipeIndex = 0;
                     // Ensure structures are loaded on client
                     if (MultiblocksProvider.structures.isEmpty()) {
                         MultiblocksProvider.getStructures();
@@ -107,37 +107,21 @@ public class MultibuilderItem extends Item {
                     if (recipeIndex >= 0 && recipeIndex < MultiblocksProvider.structures.size()) {
                         // Send packet to server with current parameters
                         setRuntimeStructure(itemStack, null);
-                        NetworkHandler.INSTANCE.sendToServer(
+                        NetworkHandler.sendToServer(
                             new SyncMultibuilderParamsPacket(recipeIndex, rotation, hand));
-                        return InteractionResultHolder.success(itemStack);
+                        return InteractionResult.SUCCESS;
                     } else {
-                        player.sendSystemMessage(Component.translatable("message.mbtool.invalid_recipe"));
-                        return InteractionResultHolder.fail(itemStack);
+                        player.displayClientMessage(Component.translatable("message.mbtool.invalid_recipe"), true);
+                        return InteractionResult.FAIL;
                     }
                 } else {
-                    player.sendSystemMessage(Component.translatable("message.mbtool.no_recipe"));
-                    return InteractionResultHolder.fail(itemStack);
+                    player.displayClientMessage(Component.translatable("message.mbtool.no_recipe"), true);
+                    return InteractionResult.FAIL;
                 }
             } else {
-                // Server side: packet handling will take care of building
-                // This should not be reached in normal operation since client sends packet
-                return InteractionResultHolder.pass(itemStack);
+                return InteractionResult.PASS;
             }
         }
-    }
-    
-    @Override
-    public boolean isRepairable(@Nonnull ItemStack stack) {
-        return false;
-    }
-
-    @Override
-    public boolean isBookEnchantable(ItemStack stack, ItemStack book) {
-        return false;
-    }
-
-    public boolean canEquip(ItemStack stack, EquipmentSlot armorType, Entity entity) {
-        return false;
     }
 
     @Override
@@ -157,17 +141,98 @@ public class MultibuilderItem extends Item {
         return INVENTORY_SIZE;
     }
 
+    // TODO: Reimplement capabilities for NeoForge 1.21
+    /*
     @Override
     public ICapabilityProvider initCapabilities(ItemStack stack, CompoundTag nbt) {
         return new ItemCapabilityProvider(stack, getEnergyMaxStorage(), getEnergyTransferRate(), getInventorySize(), STACK_SIZE);
     }
+    */
 
     public CustomEnergyStorage getEnergy(ItemStack stack) {
-        return (CustomEnergyStorage) CapabilityUtils.getPresentCapability(stack, ForgeCapabilities.ENERGY);
+        // Create energy storage from NBT data stored in DataComponents
+        CompoundTag tag = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+        CustomEnergyStorage energyStorage = new CustomEnergyStorage(getEnergyMaxStorage(), getEnergyTransferRate(), getEnergyTransferRate());
+        
+        if (tag.contains("energy")) {
+            energyStorage.setEnergy(tag.getInt("energy").orElseGet(() -> 0));
+        }
+        
+        // Override methods to save back to ItemStack
+        return new CustomEnergyStorage(getEnergyMaxStorage(), getEnergyTransferRate(), getEnergyTransferRate()) {
+            {
+                if (tag.contains("energy")) {
+                    setEnergy(tag.getInt("energy").orElseGet(() -> 0));
+                }
+            }
+            
+            @Override
+            public int extractEnergy(int maxExtract, boolean simulate) {
+                int extracted = super.extractEnergy(maxExtract, simulate);
+                if (!simulate && extracted > 0) {
+                    saveEnergyToStack(stack, getEnergyStored());
+                }
+                return extracted;
+            }
+            
+            @Override
+            public int receiveEnergy(int maxReceive, boolean simulate) {
+                int received = super.receiveEnergy(maxReceive, simulate);
+                if (!simulate && received > 0) {
+                    saveEnergyToStack(stack, getEnergyStored());
+                }
+                return received;
+            }
+        };
+    }
+    
+    private void saveEnergyToStack(ItemStack stack, int energy) {
+        CompoundTag tag = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+        tag.putInt("energy", energy);
+        stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
     }
     
     public IItemHandler getInventory(ItemStack stack) {
-        return (IItemHandler) CapabilityUtils.getPresentCapability(stack, ForgeCapabilities.ITEM_HANDLER);
+        // Create inventory handler from NBT data stored in DataComponents
+        CompoundTag tag = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+        ItemInventoryHandler inventoryHandler = new ItemInventoryHandler(getInventorySize(), STACK_SIZE) {
+            @Override
+            public void setStackInSlot(int slot, net.minecraft.world.item.ItemStack itemStack) {
+                super.setStackInSlot(slot, itemStack);
+                saveInventoryToStack(stack, this);
+            }
+            
+            @Override
+            public net.minecraft.world.item.ItemStack insertItem(int slot, net.minecraft.world.item.ItemStack itemStack, boolean simulate) {
+                net.minecraft.world.item.ItemStack result = super.insertItem(slot, itemStack, simulate);
+                if (!simulate) {
+                    saveInventoryToStack(stack, this);
+                }
+                return result;
+            }
+            
+            @Override
+            public net.minecraft.world.item.ItemStack extractItem(int slot, int amount, boolean simulate) {
+                net.minecraft.world.item.ItemStack result = super.extractItem(slot, amount, simulate);
+                if (!simulate && !result.isEmpty()) {
+                    saveInventoryToStack(stack, this);
+                }
+                return result;
+            }
+        };
+        
+        // Load existing inventory data
+        if (tag.contains("Inventory")) {
+            inventoryHandler.deserializeNBT(tag.getCompound("Inventory"));
+        }
+        
+        return inventoryHandler;
+    }
+    
+    private void saveInventoryToStack(ItemStack stack, ItemInventoryHandler inventoryHandler) {
+        CompoundTag tag = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+        tag.put("Inventory", inventoryHandler.serializeNBT());
+        stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
     }
     
     public ItemInventoryHandler getInventoryHandler(ItemStack stack) {
@@ -297,11 +362,8 @@ public class MultibuilderItem extends Item {
      */
     public int getRotation(ItemStack stack) {
         try {
-            if (!stack.getOrCreateTag().contains("rotation")) {
-                return 0;
-            }
-
-            return stack.getOrCreateTag().getInt("rotation");
+            Integer rotation = stack.get(MbtoolDataComponents.ROTATION.get());
+            return rotation != null ? rotation : 0;
         } catch (Exception ignored) {
             return 0;
         }
@@ -309,14 +371,13 @@ public class MultibuilderItem extends Item {
 
     public void rotate(ItemStack stack, int dir) {
         try {
-            CompoundTag tag = stack.getOrCreateTag();
             int rotation = getRotation(stack);
             if(rotation + dir < 0) {
                 rotation = 3;
             } else {
                 rotation = (rotation + dir) % 4;
             }
-            tag.putInt("rotation", rotation);
+            stack.set(MbtoolDataComponents.ROTATION.get(), rotation);
         } catch (Exception ignored) {
         }
     }
@@ -330,8 +391,8 @@ public class MultibuilderItem extends Item {
             if (multibuilderItem.getRuntimeStructure(stack) != null) {
                 return true;
             }
-            CompoundTag tag = stack.getOrCreateTag();
-            if (tag == null || !tag.contains("recipe")) {
+            Integer recipeIndex = stack.get(MbtoolDataComponents.RECIPE.get());
+            if (recipeIndex == null) {
                 return false;
             }
             
@@ -340,7 +401,6 @@ public class MultibuilderItem extends Item {
                 MultiblocksProvider.getStructures();
             }
             
-            int recipeIndex = tag.getInt("recipe");
             return recipeIndex >= 0 && recipeIndex < MultiblocksProvider.structures.size();
         } catch (Exception ignored) {
             return false;
@@ -357,8 +417,8 @@ public class MultibuilderItem extends Item {
             }
 
             if(stack.getItem() instanceof  MultibuilderItem multibuilderItem) {
-                CompoundTag tag = stack.getOrCreateTag();
-                if (tag == null || !tag.contains("recipe")) {
+                Integer recipeIndex = stack.get(MbtoolDataComponents.RECIPE.get());
+                if (recipeIndex == null) {
                     return null;
                 }
 
@@ -367,7 +427,6 @@ public class MultibuilderItem extends Item {
                     MultiblocksProvider.getStructures();
                 }
 
-                int recipeIndex = tag.getInt("recipe");
                 return MultiblocksProvider.structures.get(recipeIndex);
             }
 
@@ -415,7 +474,8 @@ public class MultibuilderItem extends Item {
 
         // Get the selected structure
         ItemStack multibuilderStack = main ? mainItem : offItem;
-        int recipeIndex = multibuilderStack.getOrCreateTag().getInt("recipe");
+        CompoundTag multibuilderTag = multibuilderStack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+        int recipeIndex = multibuilderTag.getInt("recipe");
         
         // Ensure structures are loaded
         if (MultiblocksProvider.structures.isEmpty()) {
@@ -430,7 +490,7 @@ public class MultibuilderItem extends Item {
         if (structure == null) return null;
         
         // Get rotation from item (if supported in the future)
-        int rotation = multibuilderStack.getOrCreateTag().getInt("rotation");
+        int rotation = multibuilderTag.getInt("rotation");
 
         // Calculate placement position based on hit side
         Direction hitSide = rayTrace.getDirection();
@@ -473,13 +533,14 @@ public class MultibuilderItem extends Item {
      * Set the runtime structure in the ItemStack's NBT
      */
     public void setRuntimeStructure(ItemStack stack, MultiblockStructure structure) {
-        CompoundTag tag = stack.getOrCreateTag();
+        CompoundTag tag = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
         if (structure != null) {
             tag.remove("recipe");
             tag.put("runtimeStructure", structure.getStructureNbt());
         } else {
             tag.remove("runtimeStructure");
         }
+        stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
     }
 
     public void inventoryTick(ItemStack pStack, Level pLevel, Entity pEntity, int pSlotId, boolean pIsSelected) {
@@ -493,9 +554,9 @@ public class MultibuilderItem extends Item {
      */
     public MultiblockStructure getRuntimeStructure(ItemStack stack) {
         try {
-            CompoundTag tag = stack.getOrCreateTag();
+            CompoundTag tag = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
             if (tag != null && tag.contains("runtimeStructure")) {
-                CompoundTag structureNbt = tag.getCompound("runtimeStructure");
+                CompoundTag structureNbt = tag.getCompound("runtimeStructure").orElseGet(CompoundTag::new);
                 return new MultiblockStructure(structureNbt);
             }
         } catch (Exception ignored) {
@@ -513,18 +574,21 @@ public class MultibuilderItem extends Item {
     }
 
     public int getSelectedStructureId(ItemStack multibuilderStack) {
-        if(multibuilderStack.getOrCreateTag().contains("recipe")) {
-            return  multibuilderStack.getOrCreateTag().getInt("recipe");
+        CompoundTag tag = multibuilderStack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+        if(tag.contains("recipe")) {
+            return tag.getInt("recipe").orElseGet(() -> -1);
         }
         return -1;
     }
 
     public UUID getUUID(ItemStack multibuilderStack) {
         try {
-            if(!multibuilderStack.getOrCreateTag().contains("uuid")) {
-                multibuilderStack.getOrCreateTag().putUUID("uuid", UUID.randomUUID());
+            CompoundTag tag = multibuilderStack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+            if(!tag.contains("uuid")) {
+                tag.putUUID("uuid", UUID.randomUUID());
+                multibuilderStack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
             }
-            return multibuilderStack.getOrCreateTag().getUUID("uuid");
+            return tag.getUUID("uuid");
         } catch(Exception e) {
             return null;
         }

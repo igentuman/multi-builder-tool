@@ -9,8 +9,8 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.items.SlotItemHandler;
+import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.items.SlotItemHandler;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
@@ -36,7 +36,7 @@ public class MultibuilderContainer extends AbstractContainerMenu {
         super(MULTIBUILDER_CONTAINER.get(), pContainerId);
         this.playerSlot = slot;
         // Get the multibuilder item from the player's inventory
-        ItemStack multibuilderStack = slot == 40 ? pPlayerInventory.offhand.get(0) : pPlayerInventory.items.get(slot);
+        ItemStack multibuilderStack = pPlayerInventory.getItem(slot);
 
         if (multibuilderStack.getItem() instanceof MultibuilderItem multibuilderItem) {
             this.itemHandler = multibuilderItem.getInventory(multibuilderStack);

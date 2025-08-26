@@ -18,17 +18,15 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.Rect2i;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
+import net.minecraft.client.renderer.block.model.BlockStateModel;
 import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.client.model.data.ModelData;
 import org.joml.Quaternionf;
 import org.lwjgl.glfw.GLFW;
 
@@ -41,7 +39,7 @@ import static igentuman.mbtool.util.TextUtils.__;
 
 @SuppressWarnings("removal")
 public class MultiblockStructureCategory implements IRecipeCategory<MultiblockStructureRecipe> {
-    public static final ResourceLocation UID = new ResourceLocation(MODID, "multiblock_structure");
+    public static final ResourceLocation UID = ResourceLocation.fromNamespaceAndPath(MODID, "multiblock_structure");
     public static final RecipeType<MultiblockStructureRecipe> TYPE = RecipeType.create(MODID, "multiblock_structure", MultiblockStructureRecipe.class);
     private boolean isMouseDragging = false;
     private double lastMouseX = 0;
@@ -86,10 +84,10 @@ public class MultiblockStructureCategory implements IRecipeCategory<MultiblockSt
     
     @Override
     public void setRecipe(IRecipeLayoutBuilder builder, MultiblockStructureRecipe recipe, IFocusGroup focuses) {
-        builder.addInvisibleIngredients(RecipeIngredientRole.CATALYST).addItemLike(MBTOOL.get());
+        builder.addInvisibleIngredients(RecipeIngredientRole.CRAFTING_STATION).addItemLike(MBTOOL.get());
         builder.addInvisibleIngredients(RecipeIngredientRole.OUTPUT).addItemLike(MBTOOL.get());
-        builder.addInvisibleIngredients(RecipeIngredientRole.OUTPUT).addIngredients(recipe.getIngredients());
-        builder.addInvisibleIngredients(RecipeIngredientRole.INPUT).addIngredients(recipe.getIngredients());
+        builder.addInvisibleIngredients(RecipeIngredientRole.OUTPUT).addItemStacks(recipe.outputs);
+        builder.addInvisibleIngredients(RecipeIngredientRole.INPUT).addItemStacks(recipe.outputs);
         ingredientsButton = IngredientsButton.create(recipe);
         ingredientsButton.updateBounds(new Rect2i(5, 15, 10, 10));
     }
@@ -131,7 +129,7 @@ public class MultiblockStructureCategory implements IRecipeCategory<MultiblockSt
             manualRotationAngle = angle;
         }
         // Render multiblock structure
-        graphics.pose().pushPose();
+        graphics.pose().pushMatrix();
         graphics.pose().translate(80, 75, 100);
         float scale = 70.0f;
         graphics.pose().scale(scale, -scale, scale);
@@ -166,7 +164,7 @@ public class MultiblockStructureCategory implements IRecipeCategory<MultiblockSt
         }
         renderer.render(recipe.getStructure(), graphics.pose(), recipe.currentLayer);
 
-        graphics.pose().popPose();
+        graphics.pose().popMatrix();
     }
     
     // Inner class to handle rendering of the multiblock structure
@@ -216,7 +214,7 @@ public class MultiblockStructureCategory implements IRecipeCategory<MultiblockSt
 
                 // Get ModelData from the block state for proper rendering of complex blocks like GTCEU controllers/ports
                 ModelData modelData = ModelData.EMPTY;
-                BakedModel model = blockRenderer.getBlockModel(state);
+                BlockStateModel model = blockRenderer.getBlockModel(state);
 
                 try {
                     // Try to get model data from the block if it supports it

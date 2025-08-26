@@ -16,7 +16,8 @@ import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.util.RandomSource;
-import net.minecraftforge.items.IItemHandler;
+import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.capabilities.Capabilities;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -359,7 +360,7 @@ public class MultiblockBuilder {
      */
     private static CustomEnergyStorage getEnergyStorage(ItemStack stack) {
         return (CustomEnergyStorage) CapabilityUtils.getPresentCapability(stack, 
-            net.minecraftforge.common.capabilities.ForgeCapabilities.ENERGY);
+            Capabilities.EnergyStorage.ITEM);
     }
     
     /**
@@ -367,7 +368,7 @@ public class MultiblockBuilder {
      */
     private static IItemHandler getInventory(ItemStack stack) {
         return (IItemHandler) CapabilityUtils.getPresentCapability(stack, 
-            net.minecraftforge.common.capabilities.ForgeCapabilities.ITEM_HANDLER);
+            Capabilities.ItemHandler.ITEM);
     }
     
     /**

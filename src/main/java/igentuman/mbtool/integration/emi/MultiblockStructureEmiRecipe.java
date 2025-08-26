@@ -192,7 +192,7 @@ public class MultiblockStructureEmiRecipe implements EmiRecipe {
             stack.pushPose();
             stack.translate(pos.getX(), pos.getY(), pos.getZ());
             
-            net.minecraftforge.client.model.data.ModelData modelData = net.minecraftforge.client.model.data.ModelData.EMPTY;
+            net.neoforged.neoforge.client.model.data.ModelData modelData = net.neoforged.neoforge.client.model.data.ModelData.EMPTY;
             
             blockRenderer.renderSingleBlock(
                     state,

@@ -1,18 +1,18 @@
 package igentuman.mbtool.config;
 
-import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.fml.ModLoadingContext;
-import net.minecraftforge.fml.config.ModConfig;
+import net.neoforged.neoforge.common.ModConfigSpec;
+import net.neoforged.fml.ModLoadingContext;
+import net.neoforged.fml.config.ModConfig;
 
 public class MbtoolConfig {
     
-    public static final ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
-    public static final ForgeConfigSpec SPEC;
+    public static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
+    public static final ModConfigSpec SPEC;
     
     // Energy Configuration
-    public static final ForgeConfigSpec.ConfigValue<Integer> MAX_ENERGY;
-    public static final ForgeConfigSpec.ConfigValue<Integer> ENERGY_TRANSFER_RATE;
-    public static final ForgeConfigSpec.ConfigValue<Integer> ENERGY_PER_BLOCK;
+    public static final ModConfigSpec.ConfigValue<Integer> MAX_ENERGY;
+    public static final ModConfigSpec.ConfigValue<Integer> ENERGY_TRANSFER_RATE;
+    public static final ModConfigSpec.ConfigValue<Integer> ENERGY_PER_BLOCK;
     
 
     

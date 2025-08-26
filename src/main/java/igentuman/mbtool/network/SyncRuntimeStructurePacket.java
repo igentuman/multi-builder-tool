@@ -1,5 +1,7 @@
 package igentuman.mbtool.network;
 
+import igentuman.mbtool.Mbtool;
+import igentuman.mbtool.registry.MbtoolDataComponents;
 import igentuman.mbtool.util.MultiblockStructure;
 import igentuman.mbtool.item.MultibuilderItem;
 import igentuman.mbtool.util.MultiblockBuilder;
@@ -7,47 +9,40 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-import java.util.function.Supplier;
-
-public class SyncRuntimeStructurePacket {
-    private final CompoundTag structureNbt;
-    private final int rotation;
-    private final InteractionHand hand;
+public record SyncRuntimeStructurePacket(CompoundTag structureNbt, int rotation, InteractionHand hand) implements CustomPacketPayload {
     
-    public SyncRuntimeStructurePacket(CompoundTag structureNbt, int rotation, InteractionHand hand) {
-        this.structureNbt = structureNbt;
-        this.rotation = rotation;
-        this.hand = hand;
+    public static final CustomPacketPayload.Type<SyncRuntimeStructurePacket> TYPE = 
+        new CustomPacketPayload.Type<>(Mbtool.rl("sync_runtime_structure"));
+    
+    public static final StreamCodec<FriendlyByteBuf, SyncRuntimeStructurePacket> STREAM_CODEC = 
+        StreamCodec.composite(
+            StreamCodec.of((buf, nbt) -> buf.writeNbt(nbt), FriendlyByteBuf::readNbt), SyncRuntimeStructurePacket::structureNbt,
+            StreamCodec.VAR_INT, SyncRuntimeStructurePacket::rotation,
+            StreamCodec.of((buf, hand) -> buf.writeEnum(hand), buf -> buf.readEnum(InteractionHand.class)), SyncRuntimeStructurePacket::hand,
+            SyncRuntimeStructurePacket::new
+        );
+    
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
     
-    public static void encode(SyncRuntimeStructurePacket packet, FriendlyByteBuf buffer) {
-        buffer.writeNbt(packet.structureNbt);
-        buffer.writeInt(packet.rotation);
-        buffer.writeEnum(packet.hand);
-    }
-    
-    public static SyncRuntimeStructurePacket decode(FriendlyByteBuf buffer) {
-        CompoundTag structureNbt = buffer.readNbt();
-        int rotation = buffer.readInt();
-        InteractionHand hand = buffer.readEnum(InteractionHand.class);
-        return new SyncRuntimeStructurePacket(structureNbt, rotation, hand);
-    }
-    
-    public static void handle(SyncRuntimeStructurePacket packet, Supplier<NetworkEvent.Context> contextSupplier) {
-        NetworkEvent.Context context = contextSupplier.get();
+    public static void handle(SyncRuntimeStructurePacket packet, IPayloadContext context) {
         context.enqueueWork(() -> {
-            ServerPlayer player = context.getSender();
+            ServerPlayer player = (ServerPlayer) context.player();
             if (player == null) return;
             
-            ItemStack itemStack = player.getItemInHand(packet.hand);
+            ItemStack itemStack = player.getItemInHand(packet.hand());
             if (!(itemStack.getItem() instanceof MultibuilderItem multibuilderItem)) {
                 return;
             }
@@ -55,17 +50,17 @@ public class SyncRuntimeStructurePacket {
             // Create MultiblockStructure from received NBT
             MultiblockStructure structure;
             try {
-                structure = new MultiblockStructure(packet.structureNbt);
+                structure = new MultiblockStructure(packet.structureNbt());
             } catch (Exception e) {
                 player.sendSystemMessage(Component.translatable("message.mbtool.invalid_structure"));
                 return;
             }
             
             // Update the server-side ItemStack with rotation
-            itemStack.getOrCreateTag().putInt("rotation", packet.rotation);
+            itemStack.set(MbtoolDataComponents.ROTATION.get(), packet.rotation());
             
             // Get build position
-            BlockPos buildPos = getBuildPosition(player, structure, packet.rotation);
+            BlockPos buildPos = getBuildPosition(player, structure, packet.rotation());
             if (buildPos == null) {
                 player.sendSystemMessage(Component.translatable("message.mbtool.no_build_position"));
                 return;
@@ -73,14 +68,13 @@ public class SyncRuntimeStructurePacket {
             
             // Attempt to build the multiblock
             MultiblockBuilder.BuildResult result = MultiblockBuilder.buildMultiblock(
-                player.level(), player, itemStack, structure, buildPos, packet.rotation);
+                player.level(), player, itemStack, structure, buildPos, packet.rotation());
             
             // Send result message to player
             if(result.getMessage() != null) {
                 //player.sendSystemMessage(result.getMessage());
             }
         });
-        context.setPacketHandled(true);
     }
     
     /**

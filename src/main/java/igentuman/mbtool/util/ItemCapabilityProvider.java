@@ -1,34 +1,52 @@
 package igentuman.mbtool.util;
 
-import net.minecraft.core.Direction;
+import igentuman.mbtool.registry.MbtoolDataComponents;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.common.capabilities.ICapabilityProvider;
-import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.items.IItemHandler;
+import net.minecraft.world.item.component.CustomData;
+import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.energy.IEnergyStorage;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nonnull;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
 
-public class ItemCapabilityProvider implements ICapabilityProvider {
+public class ItemCapabilityProvider {
     
-    private final ItemStack stack;
-    private final CustomEnergyStorage energyStorage;
-    private final ItemInventoryHandler inventoryHandler;
-    private final LazyOptional<CustomEnergyStorage> energyOptional;
-    private final LazyOptional<IItemHandler> inventoryOptional;
+    // Cache for energy storage instances per item stack
+    private static final Map<ItemStack, CustomEnergyStorage> energyStorageCache = new ConcurrentHashMap<>();
+    // Cache for item handler instances per item stack
+    private static final Map<ItemStack, ItemInventoryHandler> itemHandlerCache = new ConcurrentHashMap<>();
     
-    public ItemCapabilityProvider(ItemStack stack, int energyCapacity, int energyTransferRate, int inventorySize, int stackSize) {
-        this.stack = stack;
-        this.energyStorage = new CustomEnergyStorage(energyCapacity, energyTransferRate, energyTransferRate) {
+    /**
+     * Gets or creates an energy storage capability for the given item stack
+     */
+    public static IEnergyStorage getEnergyStorage(ItemStack stack) {
+        return energyStorageCache.computeIfAbsent(stack, s -> createEnergyStorage(s));
+    }
+    
+    /**
+     * Gets or creates an item handler capability for the given item stack
+     */
+    public static IItemHandler getItemHandler(ItemStack stack) {
+        return itemHandlerCache.computeIfAbsent(stack, s -> createItemHandler(s));
+    }
+    
+    /**
+     * Creates a new energy storage instance for the given item stack
+     */
+    private static CustomEnergyStorage createEnergyStorage(ItemStack stack) {
+        // Default values - these should be configurable or based on item properties
+        int energyCapacity = 100000;
+        int energyTransferRate = 1000;
+        
+        CustomEnergyStorage energyStorage = new CustomEnergyStorage(energyCapacity, energyTransferRate, energyTransferRate) {
             @Override
             public int extractEnergy(int extract, boolean simulate) {
                 int amount = super.extractEnergy(extract, simulate);
                 if (!simulate) {
-                    stack.getOrCreateTag().putInt("energy", this.energy);
+                    stack.set(MbtoolDataComponents.ENERGY.get(), this.energy);
                 }
                 return amount;
             }
@@ -37,23 +55,41 @@ public class ItemCapabilityProvider implements ICapabilityProvider {
             public int receiveEnergy(int receive, boolean simulate) {
                 int amount = super.receiveEnergy(receive, simulate);
                 if (!simulate) {
-                    stack.getOrCreateTag().putInt("energy", this.energy);
+                    stack.set(MbtoolDataComponents.ENERGY.get(), this.energy);
                 }
                 return amount;
             }
         };
-        this.inventoryHandler = new ItemInventoryHandler(inventorySize, stackSize) {
+        
+        // Load existing energy data from DataComponent
+        Integer energy = stack.get(MbtoolDataComponents.ENERGY.get());
+        if (energy != null) {
+            energyStorage.setEnergy(energy);
+        }
+        
+        return energyStorage;
+    }
+    
+    /**
+     * Creates a new item handler instance for the given item stack
+     */
+    private static ItemInventoryHandler createItemHandler(ItemStack stack) {
+        // Default values - these should be configurable or based on item properties
+        int inventorySize = 27;
+        int stackSize = 64;
+        
+        ItemInventoryHandler inventoryHandler = new ItemInventoryHandler(inventorySize, stackSize) {
             @Override
             public void setStackInSlot(int slot, @NotNull ItemStack stack) {
                 super.setStackInSlot(slot, stack);
-                saveToNBT();
+                saveInventoryToNBT();
             }
             
             @Override
             public @NotNull ItemStack insertItem(int slot, @NotNull ItemStack stack, boolean simulate) {
                 ItemStack result = super.insertItem(slot, stack, simulate);
                 if (!simulate) {
-                    saveToNBT();
+                    saveInventoryToNBT();
                 }
                 return result;
             }
@@ -62,66 +98,51 @@ public class ItemCapabilityProvider implements ICapabilityProvider {
             public ItemStack extractItem(int slot, int amount, boolean simulate) {
                 ItemStack result = super.extractItem(slot, amount, simulate);
                 if (!simulate && !result.isEmpty()) {
-                    saveToNBT();
+                    saveInventoryToNBT();
                 }
                 return result;
             }
+            
+            private void saveInventoryToNBT() {
+                // Save inventory data to CustomData (still using NBT for complex data)
+                CompoundTag tag = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+                tag.put("Inventory", this.serializeNBT());
+                stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
+            }
         };
-        this.energyOptional = LazyOptional.of(() -> energyStorage);
-        this.inventoryOptional = LazyOptional.of(() -> inventoryHandler);
         
-        // Load existing data from NBT
-        loadFromNBT();
-    }
-    
-    @NotNull
-    @Override
-    public <T> LazyOptional<T> getCapability(@NotNull Capability<T> cap, @Nullable Direction side) {
-        if (cap == ForgeCapabilities.ENERGY) {
-            return energyOptional.cast();
-        }
-        if (cap == ForgeCapabilities.ITEM_HANDLER) {
-            return inventoryOptional.cast();
-        }
-        return LazyOptional.empty();
-    }
-    
-    private void loadFromNBT() {
-        CompoundTag tag = stack.getOrCreateTag();
-        
-        // Load energy data - use the simple "energy" key for compatibility
-        if (tag.contains("energy")) {
-            energyStorage.setEnergy(tag.getInt("energy"));
-        }
-        
-        // Load inventory data
+        // Load existing inventory data from CustomData
+        CompoundTag tag = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
         if (tag.contains("Inventory")) {
             inventoryHandler.deserializeNBT(tag.getCompound("Inventory"));
         }
-    }
-    
-    public void saveToNBT() {
-        CompoundTag tag = stack.getOrCreateTag();
         
-        // Save energy data - use the simple "energy" key for compatibility
-        tag.putInt("energy", energyStorage.getEnergyStored());
-        
-        // Save inventory data
-        tag.put("Inventory", inventoryHandler.serializeNBT());
-    }
-    
-    public CustomEnergyStorage getEnergyStorage() {
-        return energyStorage;
-    }
-    
-    public ItemInventoryHandler getInventoryHandler() {
         return inventoryHandler;
     }
     
     /**
-     * Force save all data to NBT - useful for ensuring data persistence
+     * Clears cached capabilities for the given item stack
+     * Should be called when the item stack is no longer valid
      */
-    public void forceSave() {
-        saveToNBT();
+    public static void clearCache(ItemStack stack) {
+        energyStorageCache.remove(stack);
+        itemHandlerCache.remove(stack);
+    }
+    
+    /**
+     * Force save all data for the given item stack
+     */
+    public static void forceSave(ItemStack stack) {
+        CustomEnergyStorage energyStorage = energyStorageCache.get(stack);
+        if (energyStorage != null) {
+            stack.set(MbtoolDataComponents.ENERGY.get(), energyStorage.getEnergyStored());
+        }
+        
+        ItemInventoryHandler itemHandler = itemHandlerCache.get(stack);
+        if (itemHandler != null) {
+            CompoundTag tag = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+            tag.put("Inventory", itemHandler.serializeNBT());
+            stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
+        }
     }
 }

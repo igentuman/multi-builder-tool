@@ -11,8 +11,8 @@ import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.level.block.Block;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.neoforge.common.NeoForge;
+import net.minecraft.core.registries.BuiltInRegistries;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -131,7 +131,7 @@ public class MultiblocksProvider implements PreparableReloadListener {
 
             try {
                 ResourceLocation blockLocation = rlFromString(blockId);
-                Block block = ForgeRegistries.BLOCKS.getValue(blockLocation);
+                Block block = BuiltInRegistries.BLOCK.get(blockLocation);
 
                 if (block == null || !blockLocation.getPath().equals(block.asItem().toString())) {
                     System.out.println("Missing block in structure: " + blockId);

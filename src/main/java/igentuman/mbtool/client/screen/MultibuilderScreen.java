@@ -1,16 +1,11 @@
 package igentuman.mbtool.client.screen;
 
 import igentuman.mbtool.client.render.MultiblockRenderer;
-import igentuman.mbtool.item.MultibuilderItem;
-import igentuman.mbtool.util.ModUtil;
-import igentuman.mbtool.util.MultiblocksProvider;
 import igentuman.mbtool.container.MultibuilderContainer;
 import igentuman.mbtool.container.MultibuilderSelectStructureContainer;
+import igentuman.mbtool.item.MultibuilderItem;
+import igentuman.mbtool.util.ModUtil;
 import igentuman.mbtool.util.MultiblockStructure;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.JsonSyntaxException;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -22,22 +17,10 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.IntTag;
-import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.List;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static igentuman.mbtool.Mbtool.rl;
 import static igentuman.mbtool.Mbtool.MBTOOL;
+import static igentuman.mbtool.Mbtool.rl;
 import static igentuman.mbtool.integration.nc.ReactorDesignParser.parseNuclearCraftReactorDesign;
 
 public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderContainer> {

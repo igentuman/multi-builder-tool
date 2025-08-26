@@ -7,7 +7,9 @@ import mezz.jei.common.gui.textures.Textures;
 import mezz.jei.gui.elements.GuiIconToggleButton;
 import mezz.jei.gui.input.UserInput;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.core.Holder;
 import net.minecraft.network.chat.FormattedText;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
 public class IngredientsButton extends GuiIconToggleButton {
@@ -24,7 +26,7 @@ public class IngredientsButton extends GuiIconToggleButton {
 
 	@Override
 	protected void getTooltips(JeiTooltip tooltip) {
-		for(ItemStack i : recipe.getIngredients().getItems())
+		for(Holder<Item> i : recipe.getIngredients())
 			tooltip.add(FormattedText.of(i.getCount() + "x " + i.getHoverName().getString()));
 	}
 

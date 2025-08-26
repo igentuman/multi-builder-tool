@@ -14,9 +14,8 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.common.capabilities.ICapabilityProvider;
-import net.minecraftforge.fml.ModList;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.fml.ModList;
 
 
 import javax.annotation.Nonnull;
@@ -60,14 +59,17 @@ public class ItemMultiBuilder extends Item {
         return MbtoolConfig.getMaxEnergy();
     }
 
+    // TODO: Reimplement capabilities for NeoForge 1.21
+    /*
     @Override
     public ICapabilityProvider initCapabilities(ItemStack stack, CompoundTag nbt) {
         return new ItemEnergyHandler(stack, getEnergyMaxStorage(), getEnergyMaxStorage(), getEnergyMaxStorage());
     }
+    */
 
     public CustomEnergyStorage getEnergy(ItemStack stack)
     {
-        return (CustomEnergyStorage) CapabilityUtils.getPresentCapability(stack, ForgeCapabilities.ENERGY);
+        return (CustomEnergyStorage) CapabilityUtils.getPresentCapability(stack, Capabilities.EnergyStorage.ITEM);
     }
 
     @Override

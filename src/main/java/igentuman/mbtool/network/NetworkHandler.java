@@ -1,39 +1,31 @@
 package igentuman.mbtool.network;
 
 import igentuman.mbtool.Mbtool;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.network.NetworkRegistry;
-import net.minecraftforge.network.simple.SimpleChannel;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
+import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
 public class NetworkHandler {
-    private static final String PROTOCOL_VERSION = "1";
     
-    public static final SimpleChannel INSTANCE = NetworkRegistry.newSimpleChannel(
-        ResourceLocation.fromNamespaceAndPath(Mbtool.MODID, "main"),
-        () -> PROTOCOL_VERSION,
-        PROTOCOL_VERSION::equals,
-        PROTOCOL_VERSION::equals
-    );
+    public static void registerPackets(RegisterPayloadHandlersEvent event) {
+        PayloadRegistrar registrar = event.registrar(Mbtool.MODID);
+        
+        // Register packets using the new payload system
+        registrar.playToServer(SyncMultibuilderParamsPacket.TYPE, SyncMultibuilderParamsPacket.STREAM_CODEC, SyncMultibuilderParamsPacket::handle);
+        registrar.playToClient(SyncStructuresPacket.TYPE, SyncStructuresPacket.STREAM_CODEC, SyncStructuresPacket::handle);
+        registrar.playToServer(SyncRuntimeStructurePacket.TYPE, SyncRuntimeStructurePacket.STREAM_CODEC, SyncRuntimeStructurePacket::handle);
+    }
     
-    private static int packetId = 0;
+    public static void sendToServer(Object packet) {
+        PacketDistributor.sendToServer(packet);
+    }
     
-    public static void registerPackets() {
-        INSTANCE.messageBuilder(SyncMultibuilderParamsPacket.class, packetId++)
-            .encoder(SyncMultibuilderParamsPacket::encode)
-            .decoder(SyncMultibuilderParamsPacket::decode)
-            .consumerMainThread(SyncMultibuilderParamsPacket::handle)
-            .add();
-            
-        INSTANCE.messageBuilder(SyncStructuresPacket.class, packetId++)
-            .encoder(SyncStructuresPacket::encode)
-            .decoder(SyncStructuresPacket::decode)
-            .consumerMainThread(SyncStructuresPacket::handle)
-            .add();
-            
-        INSTANCE.messageBuilder(SyncRuntimeStructurePacket.class, packetId++)
-            .encoder(SyncRuntimeStructurePacket::encode)
-            .decoder(SyncRuntimeStructurePacket::decode)
-            .consumerMainThread(SyncRuntimeStructurePacket::handle)
-            .add();
+    public static void sendToPlayer(ServerPlayer player, Object packet) {
+        PacketDistributor.sendToPlayer(player, packet);
+    }
+    
+    public static void sendToAllPlayers(Object packet) {
+        PacketDistributor.sendToAllPlayers(packet);
     }
 }
