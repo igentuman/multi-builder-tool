@@ -36,10 +36,10 @@ public abstract class MultiblockWidgetMixin {
         });
     }
 
-    @Inject(method = "render(Lnet/minecraft/client/gui/GuiGraphics;IIF)V", at = @At("RETURN"), remap = false)
+    @Inject(method = "render", at = @At("HEAD"), remap = false)
     private void onRenderReturn(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
         if(!MULTIBLOCK_TYPE_PATTERN.matcher(this.getClass().toString()).find()) {
-            return;
+            //return;
         }
         passToMbtoolBtn.render(guiGraphics, mouseX, mouseY, partialTick);
         passToMbtoolBtn.setTooltip(Tooltip.create(Component.translatable("mbtool.tooltip.load_into_mbtool")));

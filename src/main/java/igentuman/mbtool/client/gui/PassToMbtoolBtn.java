@@ -38,7 +38,7 @@ public class PassToMbtoolBtn extends ImageButton {
                 return true;
             }
             ItemStack mbtool = getLocalMbtool();
-            if(mbtool.isEmpty()) return true;
+            if(mbtool.isEmpty() || costsList == null) return true;
             List<ItemStack> blocks = this.costsList.getCosts();
             MultiblockStructure structure = MekanismStructureGenerator.generate(blocks, structureHeight, structureWidth, structureLength);
             if(structure == null) return true;
