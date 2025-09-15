@@ -100,12 +100,6 @@ public class MultibuilderContainer extends AbstractContainerMenu {
                     return ItemStack.EMPTY;
                 }
             } else {
-                // Moving from player inventory to multibuilder inventory
-                // Don't allow moving the multibuilder item itself
-                if (pIndex - INVENTORY_SIZE == playerSlot || (playerSlot == 40 && pIndex == this.slots.size() - 1)) {
-                    return ItemStack.EMPTY;
-                }
-                
                 if (!this.moveItemStackTo(itemstack1, 0, INVENTORY_SIZE, false)) {
                     return ItemStack.EMPTY;
                 }

@@ -76,7 +76,7 @@ public class MekanismStructureGenerator {
         }
 
         // Add random ports
-        addRandomPorts(wallPositions, availableBlocks, usedBlocks, blocksList, palette, paletteMap, paletteIndex, width, height, length);
+        addRandomPorts(blocks, wallPositions, availableBlocks, usedBlocks, blocksList, palette, paletteMap, paletteIndex, width, height, length);
 
         nbt.put("blocks", blocksList);
         nbt.put("palette", palette);
@@ -229,15 +229,18 @@ public class MekanismStructureGenerator {
     private static Map<String, Integer> createBlockAvailabilityMap(List<ItemStack> blocks) {
         Map<String, Integer> availableBlocks = new HashMap<>();
         int ports = howManyPorts(blocks);
+        int adapters = howManyAdapters(blocks);
         boolean hasGlass = hasGlass(blocks);
         for (ItemStack stack : blocks) {
             String blockName = getBlockName(stack);
             int count = stack.getCount();
             if(stack.getItem().toString().contains("glass")) {
                 count += ports;
+                count += adapters;
             }
             if(!hasGlass && stack.getItem().toString().contains("casing")) {
                 count += ports;
+                count += adapters;
             }
             availableBlocks.put(blockName, availableBlocks.getOrDefault(blockName, 0) + count);
         }
@@ -254,14 +257,24 @@ public class MekanismStructureGenerator {
         return false;
     }
 
-    private static int howManyPorts(List<ItemStack> blocks) {
-        int ports = 0;
+    private static int howManyAdapters(List<ItemStack> blocks) {
+        int count = 0;
         for (ItemStack stack : blocks) {
-            if(stack.getItem().toString().contains("port") || stack.getItem().toString().contains("valve")) {
-                ports += stack.getCount();
+            if(stack.getItem().toString().contains("logic_adapter")) {
+                count += stack.getCount();
             }
         }
-        return  ports;
+        return  count;
+    }
+
+    private static int howManyPorts(List<ItemStack> blocks) {
+        int count = 0;
+        for (ItemStack stack : blocks) {
+            if(stack.getItem().toString().contains("port") || stack.getItem().toString().contains("valve")) {
+                count += stack.getCount();
+            }
+        }
+        return  count;
     }
 
     private static String getBlockName(ItemStack stack) {
@@ -409,44 +422,54 @@ public class MekanismStructureGenerator {
         blocksList.add(blockEntry);
     }
 
-    private static void addRandomPorts(List<BlockPosition> wallPositions, 
+    private static void addRandomPorts(List<ItemStack> blocks, List<BlockPosition> wallPositions,
                                      Map<String, Integer> availableBlocks,
                                      Map<String, Integer> usedBlocks,
                                      ListTag blocksList, ListTag palette, 
                                      Map<String, Integer> paletteMap,
                                      AtomicInteger paletteIndex, 
                                      int width, int height, int length) {
-        List<String> portTypes = Arrays.asList(
-            "mekanismgenerators:fission_reactor_port",
-            "mekanismgenerators:fission_reactor_logic_adapter"
-        );
+        int ports = howManyPorts(blocks);
+        int adapters = howManyAdapters(blocks);
         
-        // Filter available port types
-        List<String> availablePorts = new ArrayList<>();
-        for (String portType : portTypes) {
-            if (availableBlocks.containsKey(portType) && 
-                canUseBlock(portType, availableBlocks, usedBlocks)) {
-                availablePorts.add(portType);
+        // Create a list of port types to place based on available counts
+        List<String> portsToPlace = new ArrayList<>();
+        
+        // Add fission reactor ports
+        String portType = "mekanismgenerators:fission_reactor_port";
+        if (availableBlocks.containsKey(portType)) {
+            int availablePorts = availableBlocks.get(portType) - usedBlocks.getOrDefault(portType, 0);
+            for (int i = 0; i < Math.min(ports, availablePorts); i++) {
+                portsToPlace.add(portType);
             }
         }
         
-        if (availablePorts.isEmpty()) return;
+        // Add logic adapters
+        String adapterType = "mekanismgenerators:fission_reactor_logic_adapter";
+        if (availableBlocks.containsKey(adapterType)) {
+            int availableAdapters = availableBlocks.get(adapterType) - usedBlocks.getOrDefault(adapterType, 0);
+            for (int i = 0; i < Math.min(adapters, availableAdapters); i++) {
+                portsToPlace.add(adapterType);
+            }
+        }
         
-        // Place minimum 4 ports, maximum 25% of wall positions
-        int maxPorts = Math.min(wallPositions.size() / 4, availablePorts.size() * 4);
-        int minPorts = Math.min(4, maxPorts);
+        if (portsToPlace.isEmpty()) return;
+        
+        // Ensure we don't try to place more ports than available wall positions
+        int totalPortsToPlace = Math.min(portsToPlace.size(), wallPositions.size());
         
         Collections.shuffle(wallPositions);
+        Collections.shuffle(portsToPlace);
         
         // Track what block types are being replaced by ports
         Map<String, Integer> replacedBlockCounts = new HashMap<>();
         
         int portsPlaced = 0;
-        for (int i = 0; i < wallPositions.size() && portsPlaced < minPorts; i++) {
+        for (int i = 0; i < wallPositions.size() && portsPlaced < totalPortsToPlace; i++) {
             BlockPosition pos = wallPositions.get(i);
-            String portType = availablePorts.get(portsPlaced % availablePorts.size());
+            String currentPortType = portsToPlace.get(portsPlaced);
             
-            if (canUseBlock(portType, availableBlocks, usedBlocks)) {
+            if (canUseBlock(currentPortType, availableBlocks, usedBlocks)) {
                 // Determine what block type would have been placed at this position
                 String replacedBlockType = determineReplacedBlockType(pos.x, pos.y, pos.z, width, height, length, availableBlocks, usedBlocks);
                 
@@ -456,8 +479,8 @@ public class MekanismStructureGenerator {
                 }
                 
                 // Add port block to structure
-                addBlockToStructure(blocksList, palette, paletteMap, pos.x, pos.y, pos.z, portType, paletteIndex);
-                usedBlocks.put(portType, usedBlocks.getOrDefault(portType, 0) + 1);
+                addBlockToStructure(blocksList, palette, paletteMap, pos.x, pos.y, pos.z, currentPortType, paletteIndex);
+                usedBlocks.put(currentPortType, usedBlocks.getOrDefault(currentPortType, 0) + 1);
                 portsPlaced++;
             }
         }
@@ -648,9 +671,9 @@ public class MekanismStructureGenerator {
             return;
         }
         
-        // Place minimum 2 ports (steam input/output), maximum 25% of wall positions
-        int maxPorts = Math.min(wallPositions.size() / 4, availableBlocks.get(portType));
-        int minPorts = Math.min(2, maxPorts);
+        // Use all available turbine valves, but don't exceed available wall positions
+        int availableValves = availableBlocks.get(portType) - usedBlocks.getOrDefault(portType, 0);
+        int portsToPlace = Math.min(availableValves, wallPositions.size());
         
         Collections.shuffle(wallPositions);
         
@@ -658,7 +681,7 @@ public class MekanismStructureGenerator {
         Map<String, Integer> replacedBlockCounts = new HashMap<>();
         
         int portsPlaced = 0;
-        for (int i = 0; i < wallPositions.size() && portsPlaced < minPorts; i++) {
+        for (int i = 0; i < wallPositions.size() && portsPlaced < portsToPlace; i++) {
             BlockPosition pos = wallPositions.get(i);
             
             if (canUseBlock(portType, availableBlocks, usedBlocks)) {

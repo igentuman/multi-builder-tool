@@ -8,6 +8,8 @@ import igentuman.mbtool.container.MultibuilderSelectStructureContainer;
 import igentuman.mbtool.item.MultibuilderItem;
 import igentuman.mbtool.network.NetworkHandler;
 import igentuman.mbtool.util.MultiblocksProvider;
+import igentuman.mbtool.util.BlockEquivalencyManager;
+import igentuman.nc.handler.config.CommonConfig;
 import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -20,6 +22,8 @@ import net.minecraftforge.event.AddReloadListenerEvent;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.config.ModConfig;
+import net.minecraftforge.fml.event.config.ModConfigEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
@@ -68,6 +72,15 @@ public class Mbtool
         event.enqueueWork(() -> {
             NetworkHandler.registerPackets();
         });
+    }
+
+    @SubscribeEvent
+    public static void onModConfigEvent(final ModConfigEvent event) {
+        if (event.getConfig().getType() == ModConfig.Type.COMMON) {
+            CommonConfig.setLoaded();
+            // Reinitialize block equivalency manager when config changes
+            BlockEquivalencyManager.reinitialize();
+        }
     }
 
     public static void init(FMLClientSetupEvent event) {

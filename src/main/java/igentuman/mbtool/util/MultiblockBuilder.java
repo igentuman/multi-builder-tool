@@ -58,6 +58,7 @@ public class MultiblockBuilder {
         }
         
         // Check if we have all required materials (skip for creative mode)
+        Map<Block, Block> blockReplacements = new HashMap<>(); // Maps required block to replacement block
         if (!isCreative) {
             IItemHandler inventory = getInventory(multibuilderStack);
             if (inventory == null) {
@@ -67,14 +68,25 @@ public class MultiblockBuilder {
             Map<Block, Integer> availableBlocks = countAvailableBlocks(inventory);
             
             for (Map.Entry<Block, Integer> entry : requiredBlocks.entrySet()) {
-                Block block = entry.getKey();
+                Block requiredBlock = entry.getKey();
                 int required = entry.getValue();
-                int available = availableBlocks.getOrDefault(block, 0);
                 
+                // Try to find a replacement block (including the original block)
+                Block replacementBlock = BlockEquivalencyManager.findReplacement(requiredBlock, availableBlocks);
+                
+                if (replacementBlock == null) {
+                    return new BuildResult(false, Component.translatable("message.mbtool.insufficient_blocks", 
+                        requiredBlock.getName(), required));
+                }
+                
+                int available = availableBlocks.getOrDefault(replacementBlock, 0);
                 if (available < required) {
                     return new BuildResult(false, Component.translatable("message.mbtool.insufficient_blocks", 
-                        block.getName(), required - available));
+                        requiredBlock.getName(), required - available));
                 }
+                
+                // Store the replacement mapping
+                blockReplacements.put(requiredBlock, replacementBlock);
             }
         }
         
@@ -113,13 +125,14 @@ public class MultiblockBuilder {
         if (!isCreative) {
             IItemHandler inventory = getInventory(multibuilderStack);
             for (Map.Entry<Block, Integer> entry : requiredBlocks.entrySet()) {
-                Block block = entry.getKey();
+                Block requiredBlock = entry.getKey();
+                Block replacementBlock = blockReplacements.get(requiredBlock);
                 int needed = entry.getValue();
                 
-                // Remove items from inventory
+                // Remove replacement items from inventory
                 for (int slot = 0; slot < inventory.getSlots() && needed > 0; slot++) {
                     ItemStack slotStack = inventory.getStackInSlot(slot);
-                    if (!slotStack.isEmpty() && Block.byItem(slotStack.getItem()) == block) {
+                    if (!slotStack.isEmpty() && Block.byItem(slotStack.getItem()) == replacementBlock) {
                         int toExtract = Math.min(needed, slotStack.getCount());
                         inventory.extractItem(slot, toExtract, false);
                         needed -= toExtract;
@@ -143,12 +156,23 @@ public class MultiblockBuilder {
             BlockPos worldPos = centerPos.offset(rotatedRelativePos);
             BlockState rotatedBlockState = rotateBlockState(blockState, rotation);
             
+            // Apply block replacement if needed (skip for creative mode)
+            BlockState finalBlockState = rotatedBlockState;
+            if (!isCreative) {
+                Block originalBlock = rotatedBlockState.getBlock();
+                Block replacementBlock = blockReplacements.get(originalBlock);
+                if (replacementBlock != null && replacementBlock != originalBlock) {
+                    // Create a new BlockState with the replacement block but try to preserve properties
+                    finalBlockState = createReplacementBlockState(rotatedBlockState, replacementBlock);
+                }
+            }
+            
             // Place the block using player-respecting method
-            if (placeBlockAsPlayer(level, player, worldPos, rotatedBlockState)) {
+            if (placeBlockAsPlayer(level, player, worldPos, finalBlockState)) {
                 blocksPlaced++;
                 
                 // Update block entity if needed
-                if (rotatedBlockState.hasBlockEntity()) {
+                if (finalBlockState.hasBlockEntity()) {
                     level.getBlockEntity(worldPos);
                 }
             }
@@ -454,6 +478,48 @@ public class MultiblockBuilder {
                 centerPos.getZ() + 0.5 + offsetZ, 
                 3, 0.1, 0.1, 0.1, 0.05);
         }
+    }
+    
+    /**
+     * Creates a replacement BlockState using the replacement block while trying to preserve compatible properties
+     * @param originalState The original block state
+     * @param replacementBlock The replacement block to use
+     * @return A new BlockState with the replacement block
+     */
+    private static BlockState createReplacementBlockState(BlockState originalState, Block replacementBlock) {
+        BlockState replacementState = replacementBlock.defaultBlockState();
+        
+        // Try to preserve compatible properties
+        for (Property<?> property : originalState.getProperties()) {
+            if (replacementState.hasProperty(property)) {
+                try {
+                    // Use a helper method to handle the generic type casting safely
+                    replacementState = copyPropertyValue(originalState, replacementState, property);
+                } catch (Exception e) {
+                    // If there's any issue with property transfer, just use the default value
+                    // This can happen if the property types don't match exactly
+                }
+            }
+        }
+        
+        return replacementState;
+    }
+    
+    /**
+     * Helper method to safely copy a property value from one BlockState to another
+     */
+    @SuppressWarnings("unchecked")
+    private static <T extends Comparable<T>> BlockState copyPropertyValue(
+            BlockState sourceState, BlockState targetState, Property<?> property) {
+        Property<T> typedProperty = (Property<T>) property;
+        T value = sourceState.getValue(typedProperty);
+        
+        // Check if the target block supports this property value
+        if (typedProperty.getPossibleValues().contains(value)) {
+            return targetState.setValue(typedProperty, value);
+        }
+        
+        return targetState;
     }
     
     /**

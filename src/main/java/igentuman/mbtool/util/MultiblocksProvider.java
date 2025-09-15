@@ -68,9 +68,15 @@ public class MultiblocksProvider implements PreparableReloadListener {
 
     private static List<MultiblockStructure> loadMultiblockStructures(ResourceManager resourceManager) {
         List<MultiblockStructure> loadedStructures = new ArrayList<>();
+        loadedStructures.addAll(loadFromLocation(resourceManager, "mbtool_structures"));
+        loadedStructures.addAll(loadFromLocation(resourceManager, "spatial_structures"));
+        return loadedStructures;
+    }
 
+    private static List<MultiblockStructure> loadFromLocation(ResourceManager resourceManager, String mbtoolStructures) {
+        List<MultiblockStructure> tmp = new ArrayList<>();
         // Get all .nbt files from the structures directory
-        Map<ResourceLocation, Resource> structureFiles = resourceManager.listResources("mbtool_structures",
+        Map<ResourceLocation, Resource> structureFiles = resourceManager.listResources(mbtoolStructures,
                 location -> location.getPath().endsWith(".nbt"));
 
         for (Map.Entry<ResourceLocation, Resource> entry : structureFiles.entrySet()) {
@@ -83,7 +89,7 @@ public class MultiblocksProvider implements PreparableReloadListener {
                 // Validate that all blocks in the structure exist
                 if (validateStructureBlocks(nbt)) {
                     String fileName = location.getPath().substring(location.getPath().lastIndexOf('/') + 1);
-                    loadedStructures.add(new MultiblockStructure(location, nbt, fileName));
+                    tmp.add(new MultiblockStructure(location, nbt, fileName));
                 } else {
                     System.out.println("Skipping structure " + location + " due to missing blocks");
                 }
@@ -95,9 +101,8 @@ public class MultiblocksProvider implements PreparableReloadListener {
         if(isGtLoaded()) {
             //loadGtStructures(loadedStructures); //todo fix BERs rendering, and get this back
         }
-        return loadedStructures;
+        return tmp;
     }
-
 
 
     /**

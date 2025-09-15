@@ -14,6 +14,9 @@ public class MbtoolConfig {
     public static final ForgeConfigSpec.ConfigValue<Integer> ENERGY_TRANSFER_RATE;
     public static final ForgeConfigSpec.ConfigValue<Integer> ENERGY_PER_BLOCK;
     
+    // Block Replacement Configuration
+    public static final ForgeConfigSpec.ConfigValue<java.util.List<? extends String>> BLOCK_EQUIVALENCY_SETS;
+    
 
     
     static {
@@ -30,6 +33,22 @@ public class MbtoolConfig {
         ENERGY_PER_BLOCK = BUILDER
                 .comment("Energy cost per block placed (in FE)")
                 .defineInRange("energyPerBlock", 100, 1, 10000);
+        
+        BUILDER.pop();
+        
+        BUILDER.push("Block Replacement Settings");
+        
+        BLOCK_EQUIVALENCY_SETS = BUILDER
+                .comment("Define sets of equivalent blocks that can be used as replacements.",
+                        "Each line represents a set of equivalent blocks separated by commas.",
+                        "Example: 'mekanism:basic_mechanical_pipe,mekanism:advanced_mechanical_pipe,mekanism:elite_mechanical_pipe'",
+                        "If a structure requires 'elite_mechanical_pipe' but you only have 'basic_mechanical_pipe',",
+                        "the builder will use the basic pipe as a replacement.")
+                .defineList("blockEquivalencySets", 
+                    java.util.Arrays.asList(
+                        "mekanism:basic_mechanical_pipe,mekanism:advanced_mechanical_pipe,mekanism:elite_mechanical_pipe,mekanism:ultimate_mechanical_pipe"
+                    ), 
+                    obj -> obj instanceof String);
         
         BUILDER.pop();
         
@@ -51,5 +70,9 @@ public class MbtoolConfig {
     
     public static int getEnergyPerBlock() {
         return ENERGY_PER_BLOCK.get();
+    }
+    
+    public static java.util.List<? extends String> getBlockEquivalencySets() {
+        return BLOCK_EQUIVALENCY_SETS.get();
     }
 }
