@@ -5,12 +5,21 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import igentuman.mbtool.util.MultiblockStructure;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
+import net.minecraft.client.renderer.block.ModelBlockRenderer;
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.block.EntityBlock;
+import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraftforge.client.RenderTypeHelper;
 import net.minecraftforge.client.model.data.ModelData;
 import org.joml.Quaternionf;
 
@@ -68,6 +77,8 @@ public class MultiblockRenderer {
     private static void renderStructure(MultiblockStructure structure, PoseStack stack) {
         Minecraft minecraft = Minecraft.getInstance();
         BlockRenderDispatcher blockRenderer = minecraft.getBlockRenderer();
+        ModelBlockRenderer modelBlockRenderer = blockRenderer.getModelRenderer();
+        BlockEntityRenderDispatcher blockEntityRenderer = minecraft.getBlockEntityRenderDispatcher();
 
         // Get all blocks and calculate structure center for better positioning
         Map<BlockPos, BlockState> blocks = structure.getBlocks();
@@ -100,26 +111,76 @@ public class MultiblockRenderer {
             stack.translate(pos.getX(), pos.getY(), pos.getZ());
 
             try {
-                // Get ModelData from the block state for proper rendering of complex blocks like GTCEU controllers/ports
-                ModelData modelData = ModelData.EMPTY;
                 try {
-                    BakedModel model = blockRenderer.getBlockModel(state);
+                    // Try to get the block entity
+                    BlockEntity entity = null;
+                    if (state.getBlock() instanceof EntityBlock entityBlock)
+                        entity = entityBlock.newBlockEntity(pos, state);
+
+                    // If block entity exist, try to get its renderer
+                    BlockEntityRenderer<BlockEntity> renderer = null;
+                    if(entity != null)
+                        renderer = blockEntityRenderer.getRenderer(entity);
+
+                    // If the block entity has a renderer, then render the block
+                    if(renderer != null) {
+                        entity.setLevel(minecraft.level);
+                        renderer.render(
+                                entity,
+                                minecraft.getPartialTick(),
+                                stack,
+                                bufferSource,
+                                15728880,
+                                OverlayTexture.NO_OVERLAY
+                        );
+                    }
+                } catch (Exception ignored) {
+                    // Fall back to the block model render if something goes wrong here
+                }
+
+                // Get BakedModel from the block state to render it
+                BakedModel model = blockRenderer.getBlockModel(state);
+
+                // Get ModelData from the block state for proper rendering of complex blocks like GTCEU controllers/ports
+                ModelData modelData;
+                try {
                     // Try to get model data from the block if it supports it
                     modelData = model.getModelData(minecraft.level, pos, state, ModelData.EMPTY);
-                } catch (Exception e) {
+                } catch (Exception ignored) {
                     // Fall back to empty model data if there's any issue
                     modelData = ModelData.EMPTY;
                 }
 
-                blockRenderer.renderSingleBlock(
-                        state,
-                        stack,
-                        bufferSource,
-                        15728880,
-                        OverlayTexture.NO_OVERLAY,
-                        modelData,
-                        null
-                );
+                // Avoid fog color blending on MODEL shapes
+                RenderShape shape = state.getRenderShape();
+                if(shape == RenderShape.MODEL) {
+                    for (RenderType rt : model.getRenderTypes(state, RandomSource.create(42), modelData)) {
+                        modelBlockRenderer.renderModel(
+                                stack.last(),
+                                bufferSource.getBuffer(RenderTypeHelper.getEntityRenderType(rt, false)),
+                                state,
+                                model,
+                                1.0f,
+                                1.0f,
+                                1.0f,
+                                15728880,
+                                OverlayTexture.NO_OVERLAY,
+                                modelData,
+                                rt
+                        );
+                    }
+                } else {
+                    // Render like usual for any other shapes
+                    blockRenderer.renderSingleBlock(
+                            state,
+                            stack,
+                            bufferSource,
+                            15728880,
+                            OverlayTexture.NO_OVERLAY,
+                            modelData,
+                            null
+                    );
+                }
             } catch (Exception e) {
                 System.err.print(e.getMessage());
                 // Skip problematic blocks to prevent crashes
