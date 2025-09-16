@@ -124,7 +124,6 @@ public class MultiblockRenderer {
 
                     // If the block entity has a renderer, then render the block
                     if(renderer != null) {
-                        entity.setLevel(minecraft.level);
                         renderer.render(
                                 entity,
                                 minecraft.getPartialTick(),
