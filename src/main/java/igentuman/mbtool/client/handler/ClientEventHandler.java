@@ -38,9 +38,6 @@ public class ClientEventHandler {
             return;
         }
 
-        // Check if there's any delay (if needed for future implementation)
-        // For now, we'll render the preview immediately
-        
         PreviewRenderer.renderPreview(event.getPoseStack(), event.getPartialTick());
     }
 

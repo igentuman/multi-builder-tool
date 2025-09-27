@@ -109,38 +109,80 @@ public class SyncRuntimeStructurePacket {
         BlockPos hit = rayTrace.getBlockPos();
         net.minecraft.world.level.block.state.BlockState state = player.level().getBlockState(hit);
         
-        // Calculate placement position based on hit side
+        // Calculate placement position based on hit side with new pivot logic
         net.minecraft.core.Direction hitSide = rayTrace.getDirection();
-        int maxSize = Math.max(structure.getWidth(), structure.getDepth()) - 1;
         
         switch (hitSide) {
             case DOWN:
-                hit = hit.offset(0, -structure.getHeight(), 0);
+                // Looking at ground: center horizontally, bottom block at hit position
+                if (!state.canBeReplaced()) {
+                    hit = hit.offset(0, -structure.getHeight(), 0);
+                }
+                // Center horizontally based on rotation
+                if (rotation == 0 || rotation == 2) {
+                    hit = hit.offset(-structure.getWidth() / 2, 0, -structure.getDepth() / 2);
+                } else {
+                    hit = hit.offset(-structure.getDepth() / 2, 0, -structure.getWidth() / 2);
+                }
                 break;
             case UP:
-                if (!state.canBeReplaced()) {
-                    hit = hit.offset(0, 1, 0);
+                // Looking at top: center horizontally, top block at hit position
+                hit = hit.offset(0, 1, 0);
+                // Center horizontally based on rotation
+                if (rotation == 0 || rotation == 2) {
+                    hit = hit.offset(-structure.getWidth() / 2, 0, -structure.getDepth() / 2);
+                } else {
+                    hit = hit.offset(-structure.getDepth() / 2, 0, -structure.getWidth() / 2);
                 }
                 break;
             case EAST:
-                hit = hit.offset(maxSize, 0, 0);
+                // Looking at side: place structure adjacent to the hit face, center vertically and on Z axis
+                if (!state.canBeReplaced()) {
+                    hit = hit.offset(1, 0, 0);
+                }
+                // Center on Z axis based on rotation
+                if (rotation == 0 || rotation == 2) {
+                    hit = hit.offset(0, -structure.getHeight() / 2, -structure.getDepth() / 2);
+                } else {
+                    hit = hit.offset(0, -structure.getHeight() / 2, -structure.getWidth() / 2);
+                }
                 break;
             case WEST:
-                hit = hit.offset(-maxSize, 0, 0);
+                // Looking at side: place structure adjacent to the hit face, center vertically and on Z axis
+                if (!state.canBeReplaced()) {
+                    hit = hit.offset(-1, 0, 0);
+                }
+                // Center on Z axis based on rotation
+                if (rotation == 0 || rotation == 2) {
+                    hit = hit.offset(-structure.getWidth() + 1, -structure.getHeight() / 2, -structure.getDepth() / 2);
+                } else {
+                    hit = hit.offset(-structure.getDepth() + 1, -structure.getHeight() / 2, -structure.getWidth() / 2);
+                }
                 break;
             case NORTH:
-                hit = hit.offset(0, 0, -maxSize);
+                // Looking at side: place structure adjacent to the hit face, center vertically and on X axis
+                if (!state.canBeReplaced()) {
+                    hit = hit.offset(0, 0, -1);
+                }
+                // Center on X axis based on rotation
+                if (rotation == 0 || rotation == 2) {
+                    hit = hit.offset(-structure.getWidth() / 2, -structure.getHeight() / 2, -structure.getDepth() + 1);
+                } else {
+                    hit = hit.offset(-structure.getDepth() / 2, -structure.getHeight() / 2, -structure.getWidth() + 1);
+                }
                 break;
             case SOUTH:
-                hit = hit.offset(0, 0, maxSize);
+                // Looking at side: place structure adjacent to the hit face, center vertically and on X axis
+                if (!state.canBeReplaced()) {
+                    hit = hit.offset(0, 0, 1);
+                }
+                // Center on X axis based on rotation
+                if (rotation == 0 || rotation == 2) {
+                    hit = hit.offset(-structure.getWidth() / 2, -structure.getHeight() / 2, 0);
+                } else {
+                    hit = hit.offset(-structure.getDepth() / 2, -structure.getHeight() / 2, 0);
+                }
                 break;
-        }
-        
-        // Center the structure
-        if (rotation == 0 || rotation == 2) {
-            hit = hit.offset(-structure.getWidth() / 2, 0, -structure.getDepth() / 2);
-        } else {
-            hit = hit.offset(-structure.getDepth() / 2, 0, -structure.getWidth() / 2);
         }
 
         return hit;
