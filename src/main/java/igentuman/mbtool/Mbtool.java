@@ -1,5 +1,6 @@
 package igentuman.mbtool;
 
+import igentuman.mbtool.client.DismantleHandler;
 import igentuman.mbtool.client.screen.MultibuilderScreen;
 import igentuman.mbtool.client.screen.MultibuilderSelectStructureScreen;
 import igentuman.mbtool.config.MbtoolConfig;
@@ -90,6 +91,9 @@ public class Mbtool
                 (MultibuilderSelectStructureContainer container, Inventory inventory, Component title) -> 
                     new MultibuilderSelectStructureScreen(container, inventory, title));
         });
+        
+        // Register client-side event handlers
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(DismantleHandler.class);
     }
 
     private void addCreative(BuildCreativeModeTabContentsEvent event) {

@@ -1,5 +1,6 @@
 package igentuman.mbtool.client.handler;
 
+import igentuman.mbtool.client.DismantleHandler;
 import igentuman.mbtool.item.MultibuilderItem;
 import igentuman.mbtool.util.MultiblocksProvider;
 import net.minecraft.world.item.Item;
@@ -19,6 +20,12 @@ public class ClientHandler
 
     public static boolean canShowPreview(ItemStack mainItem) {
         if(mainItem.isEmpty()) return false;
+        
+        // Hide preview when dismantling
+        if(DismantleHandler.isDismantling()) {
+            return false;
+        }
+        
         Item holding = mainItem.getItem();
         if(holding instanceof MultibuilderItem multibuilderItem) {
             return multibuilderItem.delay < 1;

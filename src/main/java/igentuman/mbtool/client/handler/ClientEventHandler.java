@@ -1,7 +1,10 @@
 package igentuman.mbtool.client.handler;
 
+import igentuman.mbtool.client.DismantleHandler;
+import igentuman.mbtool.client.render.DismantleOverlayRenderer;
 import igentuman.mbtool.client.render.PreviewRenderer;
 import igentuman.mbtool.item.MultibuilderItem;
+import igentuman.mbtool.util.PlacedStructure;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
@@ -29,10 +32,18 @@ public class ClientEventHandler {
         
         if (player == null) return;
 
+        // Render dismantle overlay if dismantling is active
+        if (DismantleHandler.isDismantling()) {
+            PlacedStructure dismantlingStructure = DismantleHandler.getDismantlingStructure();
+            if (dismantlingStructure != null) {
+                DismantleOverlayRenderer.renderDismantleOverlay(event.getPoseStack(), dismantlingStructure, event.getPartialTick());
+            }
+            return; // Don't render preview when dismantling
+        }
+
         ItemStack mainItem = player.getItemInHand(InteractionHand.MAIN_HAND);
 
         boolean main = !mainItem.isEmpty() && mainItem.is(MBTOOL.get()) && ClientHandler.hasStructure(mainItem);
-
 
         if (!main || !ClientHandler.canShowPreview(mainItem)) {
             return;

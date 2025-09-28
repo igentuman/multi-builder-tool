@@ -35,5 +35,11 @@ public class NetworkHandler {
             .decoder(SyncRuntimeStructurePacket::decode)
             .consumerMainThread(SyncRuntimeStructurePacket::handle)
             .add();
+            
+        INSTANCE.messageBuilder(DismantleStructurePacket.class, packetId++)
+            .encoder(DismantleStructurePacket::encode)
+            .decoder(DismantleStructurePacket::decode)
+            .consumerMainThread(DismantleStructurePacket::handle)
+            .add();
     }
 }

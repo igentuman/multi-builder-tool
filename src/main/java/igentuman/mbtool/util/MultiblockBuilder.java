@@ -16,6 +16,7 @@ import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.phys.AABB;
 import net.minecraftforge.items.IItemHandler;
 
 import java.util.HashMap;
@@ -184,6 +185,13 @@ public class MultiblockBuilder {
             if (energyStorage != null) {
                 energyStorage.extractEnergy(totalEnergyCost, false);
             }
+        }
+        
+        // Store the placed structure for dismantling
+        if (blocksPlaced > 0) {
+            AABB structureBounds = calculateStructureBounds(structure, centerPos, rotation);
+            PlacedStructuresManager.addPlacedStructure(multibuilderStack, structure.getName(), 
+                structureBounds, player.getUUID(), rotation);
         }
         
         // Spawn smoke particles around the built structure
@@ -520,6 +528,39 @@ public class MultiblockBuilder {
         }
         
         return targetState;
+    }
+    
+    /**
+     * Calculate the bounding box of a placed structure
+     */
+    private static AABB calculateStructureBounds(MultiblockStructure structure, BlockPos centerPos, int rotation) {
+        int minX = Integer.MAX_VALUE, maxX = Integer.MIN_VALUE;
+        int minY = Integer.MAX_VALUE, maxY = Integer.MIN_VALUE;
+        int minZ = Integer.MAX_VALUE, maxZ = Integer.MIN_VALUE;
+        
+        // Calculate bounds by checking all block positions in the structure
+        for (BlockPos relativePos : structure.getBlocks().keySet()) {
+            BlockState blockState = structure.getBlocks().get(relativePos);
+            
+            // Skip air blocks
+            if (blockState.isAir()) {
+                continue;
+            }
+            
+            // Apply rotation to position
+            BlockPos rotatedRelativePos = rotateBlockPos(relativePos, structure, rotation);
+            BlockPos worldPos = centerPos.offset(rotatedRelativePos);
+            
+            // Update bounds
+            minX = Math.min(minX, worldPos.getX());
+            maxX = Math.max(maxX, worldPos.getX());
+            minY = Math.min(minY, worldPos.getY());
+            maxY = Math.max(maxY, worldPos.getY());
+            minZ = Math.min(minZ, worldPos.getZ());
+            maxZ = Math.max(maxZ, worldPos.getZ());
+        }
+        
+        return new AABB(minX, minY, minZ, maxX, maxY , maxZ);
     }
     
     /**
