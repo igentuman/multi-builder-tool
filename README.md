@@ -16,6 +16,12 @@ MbtoolKJSEvents.InitMbtoolStructures(event => {
         console.log(event.structures[i].getStructureNbt());
 
         event.structures[i].setStructureNbt(CompoundTag.fromJSON({})); // set structure nbt (you can use this to change the structure, but be careful!)
+        var nbt = event.structures[i].getStructureNbt(); // get structure nbt
+        nbt.palette[0].Name = 'minecraft:iron_block'; // change first block in palette to iron block
+        event.structures[i].setStructureNbt(nbt); // set structure nbt again
+        //if you wish to remove structure, then set some non existing block
+        nbt.palette[0].Name = 'minecraft:not_existing_block';
+        event.structures[i].setStructureNbt(nbt); // set structure nbt again
     }
 });
 ```
