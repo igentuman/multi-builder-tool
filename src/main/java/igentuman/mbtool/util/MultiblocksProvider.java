@@ -61,8 +61,16 @@ public class MultiblocksProvider implements PreparableReloadListener {
             if(isKubeJsLoaded()) {
                 MbtoolKubeJsEvents.onInitMbtoolStructures(event);
             }
+            List<MultiblockStructure> structuresToAdd = new ArrayList<>();
+            for (MultiblockStructure structure : event.structures) {
+                if(!validateStructureBlocks(structure.getStructureNbt())) {
+                    System.out.println("Structure " + structure.getName() + " contains invalid blocks and will be skipped.");
+                } else {
+                    structuresToAdd.add(structure);
+                }
+            }
             structures.clear();
-            structures.addAll(loadedStructures);
+            structures.addAll(structuresToAdd);
         }, gameExecutor);
     }
 
