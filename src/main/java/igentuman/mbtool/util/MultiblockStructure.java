@@ -169,4 +169,46 @@ public class MultiblockStructure {
         }
         return outputs;
     }
+
+    /**
+     * Filters out all air blocks from the structure NBT.
+     * This is useful for reducing packet size and ensuring air blocks are not placed.
+     * 
+     * @param nbt The structure NBT to filter
+     * @return A new CompoundTag with air blocks removed
+     */
+    public static CompoundTag filterAirBlocks(CompoundTag nbt) {
+        if (nbt == null || !nbt.contains("blocks", Tag.TAG_LIST) || !nbt.contains("palette", Tag.TAG_LIST)) {
+            return nbt;
+        }
+
+        CompoundTag filteredNbt = nbt.copy();
+        ListTag blocksList = nbt.getList("blocks", Tag.TAG_COMPOUND);
+        ListTag palette = nbt.getList("palette", Tag.TAG_COMPOUND);
+        
+        // Find air block indices in the palette
+        Set<Integer> airIndices = new HashSet<>();
+        for (int i = 0; i < palette.size(); i++) {
+            CompoundTag paletteEntry = palette.getCompound(i);
+            String blockName = paletteEntry.getString("Name");
+            if (blockName != null && (blockName.equals("minecraft:air") || 
+                                      blockName.equals("minecraft:cave_air") || 
+                                      blockName.equals("minecraft:void_air"))) {
+                airIndices.add(i);
+            }
+        }
+        
+        // Filter out blocks that reference air palette entries
+        ListTag filteredBlocksList = new ListTag();
+        for (int i = 0; i < blocksList.size(); i++) {
+            CompoundTag blockTag = blocksList.getCompound(i);
+            int stateIndex = blockTag.getInt("state");
+            if (!airIndices.contains(stateIndex)) {
+                filteredBlocksList.add(blockTag);
+            }
+        }
+        
+        filteredNbt.put("blocks", filteredBlocksList);
+        return filteredNbt;
+    }
 }

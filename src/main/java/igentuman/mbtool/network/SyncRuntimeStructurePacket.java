@@ -93,7 +93,7 @@ public class SyncRuntimeStructurePacket {
         // Perform raycast for 20 blocks
         Vec3 eyePos = player.getEyePosition(1.0f);
         Vec3 lookVec = player.getViewVector(1.0f);
-        Vec3 endPos = eyePos.add(lookVec.scale(20.0));
+        Vec3 endPos = eyePos.add(lookVec.scale(32));
         
         BlockHitResult rayTrace = player.level().clip(new net.minecraft.world.level.ClipContext(
             eyePos, endPos, 

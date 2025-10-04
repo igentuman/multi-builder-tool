@@ -310,6 +310,12 @@ public class ReactorDesignParser {
 
     private static void addBlockToStructure(ListTag blocksList, ListTag palette, Map<String, Integer> paletteMap,
                                      int x, int y, int z, String blockName, AtomicInteger paletteIndex) {
+        // Skip air blocks - they should not be added to the structure
+        if (blockName == null || blockName.equals("minecraft:air") || 
+            blockName.equals("minecraft:cave_air") || blockName.equals("minecraft:void_air")) {
+            return;
+        }
+        
         // Add to palette if new
         if (!paletteMap.containsKey(blockName)) {
             CompoundTag paletteEntry = new CompoundTag();

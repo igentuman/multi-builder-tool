@@ -30,6 +30,12 @@ public class NetworkHandler {
             .consumerMainThread(SyncStructuresPacket::handle)
             .add();
             
+        INSTANCE.messageBuilder(SyncSingleStructurePacket.class, packetId++)
+            .encoder(SyncSingleStructurePacket::encode)
+            .decoder(SyncSingleStructurePacket::decode)
+            .consumerMainThread(SyncSingleStructurePacket::handle)
+            .add();
+            
         INSTANCE.messageBuilder(SyncRuntimeStructurePacket.class, packetId++)
             .encoder(SyncRuntimeStructurePacket::encode)
             .decoder(SyncRuntimeStructurePacket::decode)

@@ -87,9 +87,10 @@ public class MultibuilderItem extends Item {
 
                 MultiblockStructure runtimeStructure = getRuntimeStructure(itemStack);
                 if(runtimeStructure != null) {
-                    // Send runtimeStructure to server to build
+                    // Send runtimeStructure to server to build (with air blocks filtered out)
+                    CompoundTag filteredNbt = MultiblockStructure.filterAirBlocks(runtimeStructure.getStructureNbt());
                     NetworkHandler.INSTANCE.sendToServer(
-                            new SyncRuntimeStructurePacket(runtimeStructure.getStructureNbt(), rotation, hand));
+                            new SyncRuntimeStructurePacket(filteredNbt, rotation, hand));
                     if(itemStack.getOrCreateTag().getInt("recipe") > 0) {
                         setRuntimeStructure(itemStack, null);
                     }
@@ -471,12 +472,15 @@ public class MultibuilderItem extends Item {
 
     /**
      * Set the runtime structure in the ItemStack's NBT
+     * Air blocks are automatically filtered out to reduce data size
      */
     public void setRuntimeStructure(ItemStack stack, MultiblockStructure structure) {
         CompoundTag tag = stack.getOrCreateTag();
         if (structure != null) {
             tag.remove("recipe");
-            tag.put("runtimeStructure", structure.getStructureNbt());
+            // Filter out air blocks before storing
+            CompoundTag filteredNbt = MultiblockStructure.filterAirBlocks(structure.getStructureNbt());
+            tag.put("runtimeStructure", filteredNbt);
         } else {
             tag.remove("runtimeStructure");
         }

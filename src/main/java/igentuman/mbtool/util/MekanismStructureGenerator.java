@@ -401,6 +401,12 @@ public class MekanismStructureGenerator {
                                           Map<String, Integer> paletteMap,
                                           int x, int y, int z, String blockType, 
                                           AtomicInteger paletteIndex) {
+        // Skip air blocks - they should not be added to the structure
+        if (blockType == null || blockType.equals("minecraft:air") || 
+            blockType.equals("minecraft:cave_air") || blockType.equals("minecraft:void_air")) {
+            return;
+        }
+        
         // Add to palette if new
         if (!paletteMap.containsKey(blockType)) {
             CompoundTag paletteEntry = new CompoundTag();
