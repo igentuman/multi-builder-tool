@@ -76,7 +76,12 @@ repositories {
     maven { url "https://minecraft.curseforge.com/api/maven/" }
     maven { url "https://maven.blamejared.com" }
     maven { url "https://jitpack.io" }
-    maven { url "https://www.cursemaven.com" }
+    maven {
+        url "https://cursemaven.com"
+        content {
+            includeGroup "curse.maven"
+        }
+    }
     maven { url "https://squiddev.cc/maven/" }
     maven { url "https://maven.tterrag.com/" }
     maven { url "https://modmaven.dev/" }
@@ -110,6 +115,8 @@ repositories {
 dependencies {
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
     minecraft "net.minecraftforge:forge:${mc_version}-${forge_version}"
+    //runtimeOnly fg.deobf("curse.maven:immersive-petroleum-268250:7512547")
+    //runtimeOnly fg.deobf("curse.maven:mct-immersive-technology-359407:7696590")
     runtimeOnly fg.deobf("curse.maven:nbtedit-reborn-678133:5984630")
     compileOnly fg.deobf("com.gregtechceu.gtceu:gtceu-${mc_version}:${gtm_version}"){
         transitive = false
