@@ -80,13 +80,13 @@ public class MultiblockBuilder {
                 
                 if (replacementBlock == null) {
                     return new BuildResult(false, Component.translatable("message.mbtool.insufficient_blocks", 
-                        requiredBlock.getName(), required));
+                       required, requiredBlock.getName()));
                 }
                 
                 int available = availableBlocks.getOrDefault(replacementBlock, 0);
                 if (available < required) {
                     return new BuildResult(false, Component.translatable("message.mbtool.insufficient_blocks", 
-                        requiredBlock.getName(), required - available));
+                        required - available, requiredBlock.getName()));
                 }
                 
                 // Store the replacement mapping
