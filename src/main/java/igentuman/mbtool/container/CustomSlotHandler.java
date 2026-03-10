@@ -11,9 +11,13 @@ public class CustomSlotHandler extends SlotItemHandler {
     }
 
     @Override
+    public int getMaxStackSize()
+    {
+        return 512;
+    }
+
+    @Override
     public int getMaxStackSize(@NotNull ItemStack stack) {
-        // Return the custom stack size of 512 for all items in this slot
-        // This allows stacks larger than the default 64
         return 512;
     }
 }

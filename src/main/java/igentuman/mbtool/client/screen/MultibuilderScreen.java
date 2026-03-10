@@ -28,6 +28,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.IntTag;
+import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.NotNull;
 
@@ -96,6 +97,14 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
                 selectedStructure = multibuilderItem.getSelectedStructureId(multibuilderStack);
             }
         }
+    }
+
+    @Override
+    public boolean keyPressed(int pKeyCode, int pScanCode, int pModifiers) {
+        if (List.of(49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59).contains(pKeyCode)) {
+            return false;
+        }
+        return super.keyPressed(pKeyCode, pScanCode, pModifiers);
     }
     
     private void onChooseButtonClick(Button button) {

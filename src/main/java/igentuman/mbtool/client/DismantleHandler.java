@@ -216,7 +216,7 @@ public class DismantleHandler {
         }
         
         // Perform ray tracing to see what the player is looking at
-        BlockHitResult blockHitResult = performExtendedRayTrace(mc, 48.0);
+        BlockHitResult blockHitResult = performExtendedRayTrace(mc, 64.0);
         if (blockHitResult == null) {
             currentLookedAtStructure = null;
             currentMultibuilderStack = null;
@@ -286,7 +286,7 @@ public class DismantleHandler {
         }
         
         // Perform extended ray tracing (up to 48 blocks for large structures)
-        BlockHitResult blockHitResult = performExtendedRayTrace(mc, 48.0);
+        BlockHitResult blockHitResult = performExtendedRayTrace(mc, 64.0);
         if (blockHitResult == null) {
             return;
         }

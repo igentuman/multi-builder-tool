@@ -115,7 +115,7 @@ repositories {
 dependencies {
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
     minecraft "net.minecraftforge:forge:${mc_version}-${forge_version}"
-    //runtimeOnly fg.deobf("curse.maven:immersive-petroleum-268250:7512547")
+    runtimeOnly fg.deobf("curse.maven:immersive-petroleum-268250:7512547")
     //runtimeOnly fg.deobf("curse.maven:mct-immersive-technology-359407:7696590")
     runtimeOnly fg.deobf("curse.maven:nbtedit-reborn-678133:5984630")
     compileOnly fg.deobf("com.gregtechceu.gtceu:gtceu-${mc_version}:${gtm_version}"){
@@ -127,6 +127,8 @@ dependencies {
     implementation fg.deobf("curse.maven:just-enough-mekanism-multiblocks-898746:6170219"){
         transitive = false
     }
+    implementation fg.deobf("curse.maven:masterful-machinery-423476:7042768")
+
     /*runtimeOnly fg.deobf("curse.maven:blood-magic-224791:5290993") {
         transitive = false
     }*/

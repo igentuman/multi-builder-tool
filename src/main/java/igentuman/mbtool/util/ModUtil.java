@@ -14,6 +14,7 @@ public class ModUtil {
     protected static boolean kubeJsLoaded;
     protected static boolean isJEMMLoaded;
     protected static boolean isNCNLoaded;
+    protected static boolean isMMLoaded;
     protected static void initialize()
     {
         if(initialized)
@@ -29,8 +30,13 @@ public class ModUtil {
         gtLoaded = ModList.get().isLoaded("gtceu");
         kubeJsLoaded = ModList.get().isLoaded("kubejs");
         isNCNLoaded = ModList.get().isLoaded("nuclearcraft");
+        isMMLoaded = ModList.get().isLoaded("mm");
     }
 
+    public static boolean isMMLoaded() {
+        initialize();
+        return isMMLoaded;
+    }
     public static boolean isKubeJsLoaded() {
         initialize();
         return kubeJsLoaded;

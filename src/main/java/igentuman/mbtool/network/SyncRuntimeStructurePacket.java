@@ -90,10 +90,10 @@ public class SyncRuntimeStructurePacket {
     private static BlockPos getBuildPosition(ServerPlayer player, MultiblockStructure structure, int rotation) {
         if (player == null || player.level() == null) return null;
         
-        // Perform raycast for 20 blocks
+        // Perform raycast for 64 blocks
         Vec3 eyePos = player.getEyePosition(1.0f);
         Vec3 lookVec = player.getViewVector(1.0f);
-        Vec3 endPos = eyePos.add(lookVec.scale(32));
+        Vec3 endPos = eyePos.add(lookVec.scale(64));
         
         BlockHitResult rayTrace = player.level().clip(new net.minecraft.world.level.ClipContext(
             eyePos, endPos, 

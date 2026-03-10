@@ -100,7 +100,7 @@ public class SyncMultibuilderParamsPacket {
         
         Vec3 eyePos = player.getEyePosition(1.0f);
         Vec3 lookVec = player.getViewVector(1.0f);
-        Vec3 endPos = eyePos.add(lookVec.scale(32.0));
+        Vec3 endPos = eyePos.add(lookVec.scale(64.0));
         
         BlockHitResult rayTrace = player.level().clip(new net.minecraft.world.level.ClipContext(
             eyePos, endPos, 

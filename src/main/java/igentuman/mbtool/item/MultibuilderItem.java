@@ -1,5 +1,6 @@
 package igentuman.mbtool.item;
 
+import igentuman.mbtool.Mbtool;
 import igentuman.mbtool.util.MultiblocksProvider;
 import igentuman.mbtool.config.MbtoolConfig;
 import igentuman.mbtool.container.MultibuilderContainer;
@@ -35,6 +36,7 @@ import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.network.NetworkHooks;
+import net.minecraftforge.network.PacketDistributor;
 
 import javax.annotation.Nonnull;
 import java.util.List;
@@ -387,10 +389,10 @@ public class MultibuilderItem extends Item {
         
         if (player == null || world == null) return null;
         
-        // Perform raycast for 20 blocks
+        // Perform raycast for 64 blocks
         Vec3 eyePos = player.getEyePosition(1.0f);
         Vec3 lookVec = player.getViewVector(1.0f);
-        Vec3 endPos = eyePos.add(lookVec.scale(20.0));
+        Vec3 endPos = eyePos.add(lookVec.scale(64.0));
         
         BlockHitResult rayTrace = world.clip(new net.minecraft.world.level.ClipContext(
             eyePos, endPos, 
@@ -531,6 +533,16 @@ public class MultibuilderItem extends Item {
             return multibuilderStack.getOrCreateTag().getUUID("uuid");
         } catch(Exception e) {
             return null;
+        }
+    }
+
+    /**
+     * Syncs the inventory to the client player after building
+     */
+    public static void syncInventoryToClient(ServerPlayer player, ItemStack multibuilderStack, InteractionHand hand) {
+        if (player != null && player.containerMenu instanceof MultibuilderContainer container) {
+            // Force a full sync of the container
+            player.initMenu(player.containerMenu);
         }
     }
 }

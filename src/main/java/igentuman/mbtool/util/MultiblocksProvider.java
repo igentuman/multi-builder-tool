@@ -1,5 +1,6 @@
 package igentuman.mbtool.util;
 
+import igentuman.mbtool.config.MbtoolConfig;
 import igentuman.mbtool.integration.kubejs.MbtoolKubeJsEvents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -23,8 +24,7 @@ import java.util.concurrent.Executor;
 
 import static igentuman.mbtool.Mbtool.rlFromString;
 import static igentuman.mbtool.util.GTUtils.loadGtStructures;
-import static igentuman.mbtool.util.ModUtil.isGtLoaded;
-import static igentuman.mbtool.util.ModUtil.isKubeJsLoaded;
+import static igentuman.mbtool.util.ModUtil.*;
 
 public class MultiblocksProvider implements PreparableReloadListener {
 
@@ -78,6 +78,12 @@ public class MultiblocksProvider implements PreparableReloadListener {
         List<MultiblockStructure> loadedStructures = new ArrayList<>();
         loadedStructures.addAll(loadFromLocation(resourceManager, "mbtool_structures"));
         loadedStructures.addAll(loadFromLocation(resourceManager, "spatial_structures"));
+        if(isGtLoaded()) {
+            //loadGtStructures(loadedStructures); //todo fix BERs rendering, and get this back
+        }
+        /*if(isMMLoaded() && MbtoolConfig.AUTOMATICALLY_ADD_MM_STRUCTURES.get()) {
+            MMUtil.loadMMStructures(loadedStructures);
+        }*/
         return loadedStructures;
     }
 
@@ -106,9 +112,7 @@ public class MultiblocksProvider implements PreparableReloadListener {
                 System.err.println("Failed to load structure from " + location + ": " + e.getMessage());
             }
         }
-        if(isGtLoaded()) {
-            //loadGtStructures(loadedStructures); //todo fix BERs rendering, and get this back
-        }
+
         return tmp;
     }
 

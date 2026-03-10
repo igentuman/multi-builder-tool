@@ -13,7 +13,8 @@ public class MbtoolConfig {
     public static final ForgeConfigSpec.ConfigValue<Integer> MAX_ENERGY;
     public static final ForgeConfigSpec.ConfigValue<Integer> ENERGY_TRANSFER_RATE;
     public static final ForgeConfigSpec.ConfigValue<Integer> ENERGY_PER_BLOCK;
-    
+    //public static final ForgeConfigSpec.ConfigValue<Boolean> AUTOMATICALLY_ADD_MM_STRUCTURES;
+
     // Block Replacement Configuration
     public static final ForgeConfigSpec.ConfigValue<java.util.List<? extends String>> BLOCK_EQUIVALENCY_SETS;
     
@@ -51,7 +52,15 @@ public class MbtoolConfig {
                     obj -> obj instanceof String);
         
         BUILDER.pop();
-        
+
+       /* BUILDER.push("Integration Settings");
+
+        AUTOMATICALLY_ADD_MM_STRUCTURES = BUILDER
+                .comment("Add Masterful Machinery structures automatically if the mod is present")
+                .define("add_masterful_machinery_structures", true);
+
+        BUILDER.pop();*/
+
         SPEC = BUILDER.build();
     }
     

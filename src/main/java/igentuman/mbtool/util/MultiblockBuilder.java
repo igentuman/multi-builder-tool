@@ -1,10 +1,13 @@
 package igentuman.mbtool.util;
 
 import igentuman.mbtool.config.MbtoolConfig;
+import igentuman.mbtool.item.MultibuilderItem;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -198,6 +201,11 @@ public class MultiblockBuilder {
         if (level instanceof ServerLevel serverLevel) {
             spawnSmokeParticles(serverLevel, structure, centerPos, rotation);
             sendPlacementSoundEvent(level, centerPos);
+        }
+        
+        // Sync inventory to client after building
+        if (player instanceof ServerPlayer && blocksPlaced > 0) {
+            MultibuilderItem.syncInventoryToClient((ServerPlayer) player, multibuilderStack, InteractionHand.MAIN_HAND);
         }
         
         return new BuildResult(true, Component.translatable("message.mbtool.multiblock_built", 

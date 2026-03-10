@@ -47,6 +47,7 @@ public class ItemCapabilityProvider implements ICapabilityProvider {
             public void setStackInSlot(int slot, @NotNull ItemStack stack) {
                 super.setStackInSlot(slot, stack);
                 saveToNBT();
+
             }
             
             @Override

@@ -47,5 +47,11 @@ public class NetworkHandler {
             .decoder(DismantleStructurePacket::decode)
             .consumerMainThread(DismantleStructurePacket::handle)
             .add();
+            
+        INSTANCE.messageBuilder(MultibuilderContainerSetContentPacket.class, packetId++)
+            .encoder(MultibuilderContainerSetContentPacket::encode)
+            .decoder(MultibuilderContainerSetContentPacket::decode)
+            .consumerMainThread(MultibuilderContainerSetContentPacket::handle)
+            .add();
     }
 }

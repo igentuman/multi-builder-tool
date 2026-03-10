@@ -52,10 +52,10 @@ public class PreviewRenderer {
         
         if (player == null || world == null) return null;
         
-        // Perform raycast for 20 blocks
+        // Perform raycast for 64 blocks
         Vec3 eyePos = player.getEyePosition(1.0f);
         Vec3 lookVec = player.getViewVector(1.0f);
-        Vec3 endPos = eyePos.add(lookVec.scale(20.0));
+        Vec3 endPos = eyePos.add(lookVec.scale(64.0));
         
         BlockHitResult rayTrace = world.clip(new net.minecraft.world.level.ClipContext(
             eyePos, endPos, 
