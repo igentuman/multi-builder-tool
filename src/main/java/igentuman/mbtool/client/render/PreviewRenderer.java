@@ -5,6 +5,7 @@ import com.mojang.blaze3d.vertex.*;
 import igentuman.mbtool.client.handler.ClientHandler;
 import igentuman.mbtool.item.MultibuilderItem;
 import igentuman.mbtool.util.MultiblockStructure;
+import igentuman.mbtool.registration.MbtoolDataComponents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.RenderType;
@@ -86,7 +87,7 @@ public class PreviewRenderer {
         if (structure == null) return null;
         
         // Get rotation from item (if supported in the future)
-        rotation = multibuilderStack.getOrCreateTag().getInt("rotation");
+        rotation = multibuilderStack.getOrDefault(MbtoolDataComponents.STRUCTURE_ROTATION.get(), 0);
 
         // Calculate placement position based on hit side with new pivot logic
         Direction hitSide = rayTrace.getDirection();
@@ -201,16 +202,14 @@ public class PreviewRenderer {
         Level world = mc.level;
         if (world == null) return;
         
-        Tesselator tessellator = Tesselator.getInstance();
-        BufferBuilder buffer = tessellator.getBuilder();
-        
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
         RenderSystem.enableBlend();
         RenderSystem.disableCull();
         RenderSystem.defaultBlendFunc();
         RenderSystem.lineWidth(2.0f);
-        
-        buffer.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
+
+        Tesselator tessellator = Tesselator.getInstance();
+        BufferBuilder buffer = tessellator.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
         Matrix4f matrix = poseStack.last().pose();
         
         int bWidth = length;
@@ -253,43 +252,46 @@ public class PreviewRenderer {
                         
                         // Draw wireframe cube
                         if (!isEmpty || h == height-1) { // top face
-                            buffer.vertex(matrix, x - 0.5f, y + 0.5f, z - 0.5f).color(r, g, b, alpha).endVertex();
-                            buffer.vertex(matrix, x + 0.5f, y + 0.5f, z - 0.5f).color(r, g, b, alpha).endVertex();
-                            buffer.vertex(matrix, x + 0.5f, y + 0.5f, z - 0.5f).color(r, g, b, alpha).endVertex();
-                            buffer.vertex(matrix, x + 0.5f, y + 0.5f, z + 0.5f).color(r, g, b, alpha).endVertex();
-                            buffer.vertex(matrix, x + 0.5f, y + 0.5f, z + 0.5f).color(r, g, b, alpha).endVertex();
-                            buffer.vertex(matrix, x - 0.5f, y + 0.5f, z + 0.5f).color(r, g, b, alpha).endVertex();
-                            buffer.vertex(matrix, x - 0.5f, y + 0.5f, z + 0.5f).color(r, g, b, alpha).endVertex();
-                            buffer.vertex(matrix, x - 0.5f, y + 0.5f, z - 0.5f).color(r, g, b, alpha).endVertex();
+                            buffer.addVertex(matrix, x - 0.5f, y + 0.5f, z - 0.5f).setColor(r, g, b, alpha);
+                            buffer.addVertex(matrix, x + 0.5f, y + 0.5f, z - 0.5f).setColor(r, g, b, alpha);
+                            buffer.addVertex(matrix, x + 0.5f, y + 0.5f, z - 0.5f).setColor(r, g, b, alpha);
+                            buffer.addVertex(matrix, x + 0.5f, y + 0.5f, z + 0.5f).setColor(r, g, b, alpha);
+                            buffer.addVertex(matrix, x + 0.5f, y + 0.5f, z + 0.5f).setColor(r, g, b, alpha);
+                            buffer.addVertex(matrix, x - 0.5f, y + 0.5f, z + 0.5f).setColor(r, g, b, alpha);
+                            buffer.addVertex(matrix, x - 0.5f, y + 0.5f, z + 0.5f).setColor(r, g, b, alpha);
+                            buffer.addVertex(matrix, x - 0.5f, y + 0.5f, z - 0.5f).setColor(r, g, b, alpha);
                         }
                         
                         if (!isEmpty) { // vertical edges
-                            buffer.vertex(matrix, x - 0.5f, y + 0.5f, z - 0.5f).color(r, g, b, alpha).endVertex();
-                            buffer.vertex(matrix, x - 0.5f, y - 0.5f, z - 0.5f).color(r, g, b, alpha).endVertex();
-                            buffer.vertex(matrix, x + 0.5f, y + 0.5f, z - 0.5f).color(r, g, b, alpha).endVertex();
-                            buffer.vertex(matrix, x + 0.5f, y - 0.5f, z - 0.5f).color(r, g, b, alpha).endVertex();
-                            buffer.vertex(matrix, x - 0.5f, y + 0.5f, z + 0.5f).color(r, g, b, alpha).endVertex();
-                            buffer.vertex(matrix, x - 0.5f, y - 0.5f, z + 0.5f).color(r, g, b, alpha).endVertex();
-                            buffer.vertex(matrix, x + 0.5f, y + 0.5f, z + 0.5f).color(r, g, b, alpha).endVertex();
-                            buffer.vertex(matrix, x + 0.5f, y - 0.5f, z + 0.5f).color(r, g, b, alpha).endVertex();
+                            buffer.addVertex(matrix, x - 0.5f, y + 0.5f, z - 0.5f).setColor(r, g, b, alpha);
+                            buffer.addVertex(matrix, x - 0.5f, y - 0.5f, z - 0.5f).setColor(r, g, b, alpha);
+                            buffer.addVertex(matrix, x + 0.5f, y + 0.5f, z - 0.5f).setColor(r, g, b, alpha);
+                            buffer.addVertex(matrix, x + 0.5f, y - 0.5f, z - 0.5f).setColor(r, g, b, alpha);
+                            buffer.addVertex(matrix, x - 0.5f, y + 0.5f, z + 0.5f).setColor(r, g, b, alpha);
+                            buffer.addVertex(matrix, x - 0.5f, y - 0.5f, z + 0.5f).setColor(r, g, b, alpha);
+                            buffer.addVertex(matrix, x + 0.5f, y + 0.5f, z + 0.5f).setColor(r, g, b, alpha);
+                            buffer.addVertex(matrix, x + 0.5f, y - 0.5f, z + 0.5f).setColor(r, g, b, alpha);
                         }
                         
                         if (!isEmpty || h == 0) { // bottom face
-                            buffer.vertex(matrix, x - 0.5f, y - 0.5f, z - 0.5f).color(r, g, b, alpha).endVertex();
-                            buffer.vertex(matrix, x + 0.5f, y - 0.5f, z - 0.5f).color(r, g, b, alpha).endVertex();
-                            buffer.vertex(matrix, x + 0.5f, y - 0.5f, z - 0.5f).color(r, g, b, alpha).endVertex();
-                            buffer.vertex(matrix, x + 0.5f, y - 0.5f, z + 0.5f).color(r, g, b, alpha).endVertex();
-                            buffer.vertex(matrix, x + 0.5f, y - 0.5f, z + 0.5f).color(r, g, b, alpha).endVertex();
-                            buffer.vertex(matrix, x - 0.5f, y - 0.5f, z + 0.5f).color(r, g, b, alpha).endVertex();
-                            buffer.vertex(matrix, x - 0.5f, y - 0.5f, z + 0.5f).color(r, g, b, alpha).endVertex();
-                            buffer.vertex(matrix, x - 0.5f, y - 0.5f, z - 0.5f).color(r, g, b, alpha).endVertex();
+                            buffer.addVertex(matrix, x - 0.5f, y - 0.5f, z - 0.5f).setColor(r, g, b, alpha);
+                            buffer.addVertex(matrix, x + 0.5f, y - 0.5f, z - 0.5f).setColor(r, g, b, alpha);
+                            buffer.addVertex(matrix, x + 0.5f, y - 0.5f, z - 0.5f).setColor(r, g, b, alpha);
+                            buffer.addVertex(matrix, x + 0.5f, y - 0.5f, z + 0.5f).setColor(r, g, b, alpha);
+                            buffer.addVertex(matrix, x + 0.5f, y - 0.5f, z + 0.5f).setColor(r, g, b, alpha);
+                            buffer.addVertex(matrix, x - 0.5f, y - 0.5f, z + 0.5f).setColor(r, g, b, alpha);
+                            buffer.addVertex(matrix, x - 0.5f, y - 0.5f, z + 0.5f).setColor(r, g, b, alpha);
+                            buffer.addVertex(matrix, x - 0.5f, y - 0.5f, z - 0.5f).setColor(r, g, b, alpha);
                         }
                     }
                 }
             }
         }
         
-        tessellator.end();
+        MeshData meshData = buffer.build();
+        if (meshData != null) {
+            BufferUploader.drawWithShader(meshData);
+        }
         RenderSystem.enableCull();
         RenderSystem.disableBlend();
     }
@@ -401,7 +403,6 @@ public class PreviewRenderer {
                                            List<BakedQuad> quads, float alpha, 
                                            int light, int overlay) {
         Matrix4f pose = poseStack.last().pose();
-        Matrix3f normal = poseStack.last().normal();
         
         for (BakedQuad quad : quads) {
             int[] vertices = quad.getVertices();
@@ -429,13 +430,12 @@ public class PreviewRenderer {
                 float v = Float.intBitsToFloat(vertices[vertexIndex + 5]);
                 
                 // Add vertex with custom alpha
-                buffer.vertex(pose, x, y, z)
-                      .color(r, g, b, alpha)
-                      .uv(u, v)
-                      .overlayCoords(overlay)
-                      .uv2(light)
-                      .normal(normal, (float)quadNormal.x, (float)quadNormal.y, (float)quadNormal.z)
-                      .endVertex();
+                buffer.addVertex(pose, x, y, z)
+                      .setColor(r, g, b, alpha)
+                      .setUv(u, v)
+                      .setOverlay(overlay)
+                      .setLight(light)
+                      .setNormal(poseStack.last(), (float)quadNormal.x, (float)quadNormal.y, (float)quadNormal.z);
             }
         }
     }
@@ -508,11 +508,10 @@ public class PreviewRenderer {
     private static void renderSimpleCube(PoseStack poseStack, net.minecraft.client.renderer.MultiBufferSource bufferSource) {
         // Fallback method to render a simple translucent cube
         Tesselator tessellator = Tesselator.getInstance();
-        BufferBuilder buffer = tessellator.getBuilder();
+        BufferBuilder buffer = tessellator.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
         
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
         
-        buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
         Matrix4f matrix = poseStack.last().pose();
         
         float alpha = interpolatedAlpha;
@@ -520,41 +519,44 @@ public class PreviewRenderer {
         
         // Render all 6 faces of the cube
         // Bottom face
-        buffer.vertex(matrix, 0, 0, 0).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, 1, 0, 0).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, 1, 0, 1).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, 0, 0, 1).color(r, g, b, alpha).endVertex();
+        buffer.addVertex(matrix, 0, 0, 0).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, 1, 0, 0).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, 1, 0, 1).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, 0, 0, 1).setColor(r, g, b, alpha);
         
         // Top face
-        buffer.vertex(matrix, 0, 1, 1).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, 1, 1, 1).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, 1, 1, 0).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, 0, 1, 0).color(r, g, b, alpha).endVertex();
+        buffer.addVertex(matrix, 0, 1, 1).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, 1, 1, 1).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, 1, 1, 0).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, 0, 1, 0).setColor(r, g, b, alpha);
         
         // North face
-        buffer.vertex(matrix, 0, 0, 0).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, 0, 1, 0).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, 1, 1, 0).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, 1, 0, 0).color(r, g, b, alpha).endVertex();
+        buffer.addVertex(matrix, 0, 0, 0).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, 0, 1, 0).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, 1, 1, 0).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, 1, 0, 0).setColor(r, g, b, alpha);
         
         // South face
-        buffer.vertex(matrix, 1, 0, 1).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, 1, 1, 1).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, 0, 1, 1).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, 0, 0, 1).color(r, g, b, alpha).endVertex();
+        buffer.addVertex(matrix, 1, 0, 1).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, 1, 1, 1).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, 0, 1, 1).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, 0, 0, 1).setColor(r, g, b, alpha);
         
         // West face
-        buffer.vertex(matrix, 0, 0, 1).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, 0, 1, 1).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, 0, 1, 0).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, 0, 0, 0).color(r, g, b, alpha).endVertex();
+        buffer.addVertex(matrix, 0, 0, 1).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, 0, 1, 1).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, 0, 1, 0).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, 0, 0, 0).setColor(r, g, b, alpha);
         
         // East face
-        buffer.vertex(matrix, 1, 0, 0).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, 1, 1, 0).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, 1, 1, 1).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, 1, 0, 1).color(r, g, b, alpha).endVertex();
+        buffer.addVertex(matrix, 1, 0, 0).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, 1, 1, 0).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, 1, 1, 1).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, 1, 0, 1).setColor(r, g, b, alpha);
         
-        tessellator.end();
+        MeshData meshData = buffer.build();
+        if (meshData != null) {
+            BufferUploader.drawWithShader(meshData);
+        }
     }
 }

@@ -1,20 +1,31 @@
 package igentuman.mbtool.network;
 
+import igentuman.mbtool.Mbtool;
 import igentuman.mbtool.item.MultibuilderItem;
 import igentuman.mbtool.util.PlacedStructure;
 import igentuman.mbtool.util.PlacedStructuresManager;
 import igentuman.mbtool.util.StructureDismantler;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-import java.util.function.Supplier;
+public class DismantleStructurePacket implements CustomPacketPayload {
+    public static final Type<DismantleStructurePacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(Mbtool.MODID, "dismantle_structure"));
 
-public class DismantleStructurePacket {
+    public static final StreamCodec<RegistryFriendlyByteBuf, DismantleStructurePacket> STREAM_CODEC = StreamCodec.composite(
+        BlockPos.STREAM_CODEC, DismantleStructurePacket::targetPos,
+        ByteBufCodecs.VAR_INT.map(i -> InteractionHand.values()[i], InteractionHand::ordinal), DismantleStructurePacket::hand,
+        DismantleStructurePacket::new
+    );
+
     private final BlockPos targetPos;
     private final InteractionHand hand;
     
@@ -23,30 +34,31 @@ public class DismantleStructurePacket {
         this.hand = hand;
     }
     
-    public static void encode(DismantleStructurePacket packet, FriendlyByteBuf buffer) {
-        buffer.writeBlockPos(packet.targetPos);
-        buffer.writeEnum(packet.hand);
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
-    
-    public static DismantleStructurePacket decode(FriendlyByteBuf buffer) {
-        BlockPos targetPos = buffer.readBlockPos();
-        InteractionHand hand = buffer.readEnum(InteractionHand.class);
-        return new DismantleStructurePacket(targetPos, hand);
+
+    public BlockPos targetPos() {
+        return targetPos;
     }
-    
-    public static void handle(DismantleStructurePacket packet, Supplier<NetworkEvent.Context> contextSupplier) {
-        NetworkEvent.Context context = contextSupplier.get();
+
+    public InteractionHand hand() {
+        return hand;
+    }
+
+    public void handle(IPayloadContext context) {
         context.enqueueWork(() -> {
-            ServerPlayer player = context.getSender();
+            ServerPlayer player = (ServerPlayer) context.player();
             if (player == null) return;
             
-            ItemStack itemStack = player.getItemInHand(packet.hand);
+            ItemStack itemStack = player.getItemInHand(this.hand);
             if (!(itemStack.getItem() instanceof MultibuilderItem)) {
                 return;
             }
             
             // Find the structure at the target position
-            PlacedStructure structure = PlacedStructuresManager.findStructureAt(itemStack, packet.targetPos);
+            PlacedStructure structure = PlacedStructuresManager.findStructureAt(itemStack, this.targetPos);
             if (structure == null) {
                 player.sendSystemMessage(Component.translatable("message.mbtool.no_structure_found"));
                 return;
@@ -70,6 +82,5 @@ public class DismantleStructurePacket {
                 PlacedStructuresManager.removePlacedStructure(itemStack, structure);
             }
         });
-        context.setPacketHandled(true);
     }
 }

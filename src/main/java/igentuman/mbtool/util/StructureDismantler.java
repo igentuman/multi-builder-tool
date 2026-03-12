@@ -13,7 +13,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
-import net.minecraftforge.items.IItemHandler;
+import net.neoforged.neoforge.items.IItemHandler;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -108,7 +108,7 @@ public class StructureDismantler {
         
         // Check if we have enough inventory space (skip for creative mode)
         if (!isCreative) {
-            IItemHandler inventory = getInventory(multibuilderStack);
+            IItemHandler inventory = getInventory(multibuilderStack, level.registryAccess());
             if (inventory == null) {
                 return new DismantleResult(false, Component.translatable("message.mbtool.no_inventory"));
             }
@@ -138,7 +138,7 @@ public class StructureDismantler {
         
         // Add items to inventory (skip for creative mode)
         if (!isCreative) {
-            IItemHandler inventory = getInventory(multibuilderStack);
+            IItemHandler inventory = getInventory(multibuilderStack, level.registryAccess());
             for (ItemStack itemStack : collectedItems) {
                 // Insert into inventory
                 insertItemIntoInventory(inventory, itemStack, false);
@@ -172,9 +172,11 @@ public class StructureDismantler {
     /**
      * Get inventory from multibuilder item
      */
-    private static IItemHandler getInventory(ItemStack stack) {
-        return (IItemHandler) CapabilityUtils.getPresentCapability(stack, 
-            net.minecraftforge.common.capabilities.ForgeCapabilities.ITEM_HANDLER);
+    private static IItemHandler getInventory(ItemStack stack, net.minecraft.core.HolderLookup.Provider provider) {
+        if (stack.getItem() instanceof MultibuilderItem item) {
+            return item.getInventory(stack, provider);
+        }
+        return null;
     }
     
     /**

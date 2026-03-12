@@ -1,57 +1,46 @@
 package igentuman.mbtool.network;
 
 import igentuman.mbtool.Mbtool;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.network.NetworkRegistry;
-import net.minecraftforge.network.simple.SimpleChannel;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
+import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
+@EventBusSubscriber(modid = Mbtool.MODID, bus = EventBusSubscriber.Bus.MOD)
 public class NetworkHandler {
-    private static final String PROTOCOL_VERSION = "1";
     
-    public static final SimpleChannel INSTANCE = NetworkRegistry.newSimpleChannel(
-        ResourceLocation.fromNamespaceAndPath(Mbtool.MODID, "main"),
-        () -> PROTOCOL_VERSION,
-        PROTOCOL_VERSION::equals,
-        PROTOCOL_VERSION::equals
-    );
-    
-    private static int packetId = 0;
-    
-    public static void registerPackets() {
-        INSTANCE.messageBuilder(SyncMultibuilderParamsPacket.class, packetId++)
-            .encoder(SyncMultibuilderParamsPacket::encode)
-            .decoder(SyncMultibuilderParamsPacket::decode)
-            .consumerMainThread(SyncMultibuilderParamsPacket::handle)
-            .add();
+    @SubscribeEvent
+    public static void register(final RegisterPayloadHandlersEvent event) {
+        final PayloadRegistrar registrar = event.registrar(Mbtool.MODID).versioned("1");
+        
+        registrar.playToServer(
+            SyncMultibuilderParamsPacket.TYPE,
+            SyncMultibuilderParamsPacket.STREAM_CODEC,
+            SyncMultibuilderParamsPacket::handle
+        );
             
-        INSTANCE.messageBuilder(SyncStructuresPacket.class, packetId++)
-            .encoder(SyncStructuresPacket::encode)
-            .decoder(SyncStructuresPacket::decode)
-            .consumerMainThread(SyncStructuresPacket::handle)
-            .add();
+        registrar.playToClient(
+            SyncStructuresPacket.TYPE,
+            SyncStructuresPacket.STREAM_CODEC,
+            SyncStructuresPacket::handle
+        );
             
-        INSTANCE.messageBuilder(SyncSingleStructurePacket.class, packetId++)
-            .encoder(SyncSingleStructurePacket::encode)
-            .decoder(SyncSingleStructurePacket::decode)
-            .consumerMainThread(SyncSingleStructurePacket::handle)
-            .add();
+        registrar.playToClient(
+            SyncSingleStructurePacket.TYPE,
+            SyncSingleStructurePacket.STREAM_CODEC,
+            SyncSingleStructurePacket::handle
+        );
             
-        INSTANCE.messageBuilder(SyncRuntimeStructurePacket.class, packetId++)
-            .encoder(SyncRuntimeStructurePacket::encode)
-            .decoder(SyncRuntimeStructurePacket::decode)
-            .consumerMainThread(SyncRuntimeStructurePacket::handle)
-            .add();
+        registrar.playToServer(
+            SyncRuntimeStructurePacket.TYPE,
+            SyncRuntimeStructurePacket.STREAM_CODEC,
+            SyncRuntimeStructurePacket::handle
+        );
             
-        INSTANCE.messageBuilder(DismantleStructurePacket.class, packetId++)
-            .encoder(DismantleStructurePacket::encode)
-            .decoder(DismantleStructurePacket::decode)
-            .consumerMainThread(DismantleStructurePacket::handle)
-            .add();
-            
-        INSTANCE.messageBuilder(MultibuilderContainerSetContentPacket.class, packetId++)
-            .encoder(MultibuilderContainerSetContentPacket::encode)
-            .decoder(MultibuilderContainerSetContentPacket::decode)
-            .consumerMainThread(MultibuilderContainerSetContentPacket::handle)
-            .add();
+        registrar.playToServer(
+            DismantleStructurePacket.TYPE,
+            DismantleStructurePacket.STREAM_CODEC,
+            DismantleStructurePacket::handle
+        );
     }
 }

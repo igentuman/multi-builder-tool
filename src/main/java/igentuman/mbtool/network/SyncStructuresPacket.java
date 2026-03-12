@@ -1,72 +1,74 @@
 package igentuman.mbtool.network;
 
+import igentuman.mbtool.Mbtool;
 import igentuman.mbtool.util.MultiblockStructure;
 import igentuman.mbtool.util.MultiblocksProvider;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-import java.util.function.Supplier;
 
-import static igentuman.mbtool.Mbtool.rl;
+public class SyncStructuresPacket implements CustomPacketPayload {
+    public static final Type<SyncStructuresPacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(Mbtool.MODID, "sync_structures"));
 
-public class SyncStructuresPacket {
+    public record StructureData(ResourceLocation id, CompoundTag nbt, String name) {
+        public static final StreamCodec<RegistryFriendlyByteBuf, StructureData> STREAM_CODEC = StreamCodec.composite(
+            ResourceLocation.STREAM_CODEC, StructureData::id,
+            ByteBufCodecs.COMPOUND_TAG, StructureData::nbt,
+            ByteBufCodecs.STRING_UTF8, StructureData::name,
+            StructureData::new
+        );
+    }
+
+    public static final StreamCodec<RegistryFriendlyByteBuf, SyncStructuresPacket> STREAM_CODEC = StreamCodec.composite(
+        StructureData.STREAM_CODEC.apply(ByteBufCodecs.list()), SyncStructuresPacket::structures,
+        SyncStructuresPacket::new
+    );
+
     private final List<StructureData> structures;
     
-    public SyncStructuresPacket(List<MultiblockStructure> structures) {
-        this.structures = new ArrayList<>();
+    public static SyncStructuresPacket of(List<MultiblockStructure> structures) {
+        List<StructureData> data = new ArrayList<>();
         for (MultiblockStructure structure : structures) {
-            this.structures.add(new StructureData(
+            data.add(new StructureData(
                 structure.getId(),
                 structure.getStructureNbt(),
                 structure.getName()
             ));
         }
+        return new SyncStructuresPacket(data);
     }
     
     // Private constructor for decoding
-    private SyncStructuresPacket() {
-        this.structures = new ArrayList<>();
+    private SyncStructuresPacket(List<StructureData> structures) {
+        this.structures = structures;
     }
     
-    public static void encode(SyncStructuresPacket packet, FriendlyByteBuf buffer) {
-        buffer.writeInt(packet.structures.size());
-        for (StructureData structure : packet.structures) {
-            buffer.writeResourceLocation(Objects.requireNonNullElseGet(structure.id, () -> rl("unknown")));
-            buffer.writeNbt(Objects.requireNonNullElseGet(structure.nbt, CompoundTag::new));
-            buffer.writeUtf(Objects.requireNonNullElseGet(structure.name, () -> ""));
-        }
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
-    
-    public static SyncStructuresPacket decode(FriendlyByteBuf buffer) {
-        SyncStructuresPacket packet = new SyncStructuresPacket();
-        int size = buffer.readInt();
-        
-        for (int i = 0; i < size; i++) {
-            ResourceLocation id = buffer.readResourceLocation();
-            CompoundTag nbt = buffer.readNbt();
-            String name = buffer.readUtf();
-            packet.structures.add(new StructureData(id, nbt, name));
-        }
-        
-        return packet;
+
+    public List<StructureData> structures() {
+        return structures;
     }
-    
-    public static void handle(SyncStructuresPacket packet, Supplier<NetworkEvent.Context> contextSupplier) {
-        NetworkEvent.Context context = contextSupplier.get();
+
+    public void handle(IPayloadContext context) {
         context.enqueueWork(() -> {
             // This runs on the client side
             List<MultiblockStructure> clientStructures = new ArrayList<>();
             
-            for (StructureData structureData : packet.structures) {
+            for (StructureData structureData : this.structures) {
                 MultiblockStructure structure = new MultiblockStructure(
-                    structureData.id, 
-                    structureData.nbt, 
-                    structureData.name
+                    structureData.id(), 
+                    structureData.nbt(), 
+                    structureData.name()
                 );
                 clientStructures.add(structure);
             }
@@ -74,18 +76,5 @@ public class SyncStructuresPacket {
             // Replace client structures with server structures
             MultiblocksProvider.setStructures(clientStructures);
         });
-        context.setPacketHandled(true);
-    }
-    
-    private static class StructureData {
-        final ResourceLocation id;
-        final CompoundTag nbt;
-        final String name;
-        
-        StructureData(ResourceLocation id, CompoundTag nbt, String name) {
-            this.id = id;
-            this.nbt = nbt;
-            this.name = name;
-        }
     }
 }

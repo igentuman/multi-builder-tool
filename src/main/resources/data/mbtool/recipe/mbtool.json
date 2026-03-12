@@ -1,5 +1,6 @@
 {
   "type": "minecraft:crafting_shaped",
+  "category": "misc",
   "pattern": [
     "PAS",
     "GBG",
@@ -26,6 +27,7 @@
     }
   },
   "result": {
-    "item": "mbtool:mbtool"
+    "count": 1,
+    "id": "mbtool:mbtool"
   }
 }

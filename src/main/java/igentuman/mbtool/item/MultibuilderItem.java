@@ -5,10 +5,11 @@ import igentuman.mbtool.util.MultiblocksProvider;
 import igentuman.mbtool.config.MbtoolConfig;
 import igentuman.mbtool.container.MultibuilderContainer;
 import igentuman.mbtool.util.MultiblockStructure;
-import igentuman.mbtool.network.NetworkHandler;
 import igentuman.mbtool.network.SyncMultibuilderParamsPacket;
 import igentuman.mbtool.network.SyncRuntimeStructurePacket;
 import igentuman.mbtool.util.*;
+import igentuman.mbtool.registration.MbtoolDataComponents;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -32,11 +33,9 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.common.capabilities.ICapabilityProvider;
-import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.network.NetworkHooks;
-import net.minecraftforge.network.PacketDistributor;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 import javax.annotation.Nonnull;
 import java.util.List;
@@ -64,7 +63,7 @@ public class MultibuilderItem extends Item {
         if(player.isSteppingCarefully()) {
             // Open GUI when sneaking - only on server side
             if (!level.isClientSide) {
-                NetworkHooks.openScreen((ServerPlayer) player, new MenuProvider() {
+                player.openMenu(new MenuProvider() {
                     @Override
                     public Component getDisplayName() {
                         return Component.translatable("gui.mbtool.multibuilder");
@@ -87,20 +86,20 @@ public class MultibuilderItem extends Item {
             if (level.isClientSide) {
                 int rotation = getRotation(itemStack);
 
-                MultiblockStructure runtimeStructure = getRuntimeStructure(itemStack);
+                    MultiblockStructure runtimeStructure = getRuntimeStructure(itemStack);
                 if(runtimeStructure != null) {
                     // Send runtimeStructure to server to build (with air blocks filtered out)
                     CompoundTag filteredNbt = MultiblockStructure.filterAirBlocks(runtimeStructure.getStructureNbt());
-                    NetworkHandler.INSTANCE.sendToServer(
+                    PacketDistributor.sendToServer(
                             new SyncRuntimeStructurePacket(filteredNbt, rotation, hand));
-                    if(itemStack.getOrCreateTag().getInt("recipe") > 0) {
+                    if(itemStack.getOrDefault(MbtoolDataComponents.STRUCTURE_RECIPE.get(), -1) >= 0) {
                         setRuntimeStructure(itemStack, null);
                     }
                     return InteractionResultHolder.success(itemStack);
                 }
                 // Client side: validate and send packet to server
                 if(hasRecipe(itemStack)) {
-                    int recipeIndex = itemStack.getOrCreateTag().getInt("recipe");
+                    int recipeIndex = itemStack.getOrDefault(MbtoolDataComponents.STRUCTURE_RECIPE.get(), -1);
                     // Ensure structures are loaded on client
                     if (MultiblocksProvider.structures.isEmpty()) {
                         MultiblocksProvider.getStructures();
@@ -110,7 +109,7 @@ public class MultibuilderItem extends Item {
                     if (recipeIndex >= 0 && recipeIndex < MultiblocksProvider.structures.size()) {
                         // Send packet to server with current parameters
                         setRuntimeStructure(itemStack, null);
-                        NetworkHandler.INSTANCE.sendToServer(
+                        PacketDistributor.sendToServer(
                             new SyncMultibuilderParamsPacket(recipeIndex, rotation, hand));
                         return InteractionResultHolder.success(itemStack);
                     } else {
@@ -160,21 +159,20 @@ public class MultibuilderItem extends Item {
         return INVENTORY_SIZE;
     }
 
-    @Override
-    public ICapabilityProvider initCapabilities(ItemStack stack, CompoundTag nbt) {
-        return new ItemCapabilityProvider(stack, getEnergyMaxStorage(), getEnergyTransferRate(), getInventorySize(), STACK_SIZE);
-    }
-
     public CustomEnergyStorage getEnergy(ItemStack stack) {
-        return (CustomEnergyStorage) CapabilityUtils.getPresentCapability(stack, ForgeCapabilities.ENERGY);
+        return new CustomEnergyStorage(stack, getEnergyMaxStorage(), getEnergyTransferRate(), getEnergyTransferRate());
     }
     
     public IItemHandler getInventory(ItemStack stack) {
-        return (IItemHandler) CapabilityUtils.getPresentCapability(stack, ForgeCapabilities.ITEM_HANDLER);
+        return getInventory(stack, null);
+    }
+
+    public IItemHandler getInventory(ItemStack stack, HolderLookup.Provider provider) {
+        return new ItemInventoryHandler(stack, getInventorySize(), provider);
     }
     
-    public ItemInventoryHandler getInventoryHandler(ItemStack stack) {
-        IItemHandler handler = getInventory(stack);
+    public ItemInventoryHandler getInventoryHandler(ItemStack stack, HolderLookup.Provider provider) {
+        IItemHandler handler = getInventory(stack, provider);
         if (handler instanceof ItemInventoryHandler) {
             return (ItemInventoryHandler) handler;
         }
@@ -195,13 +193,13 @@ public class MultibuilderItem extends Item {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, @javax.annotation.Nullable Level world, List<Component> list, TooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> list, TooltipFlag flag) {
         CustomEnergyStorage energyStorage = getEnergy(stack);
         if (energyStorage != null) {
             if(isGtLoaded()) {
-                list.add(TextUtils.__("tooltip.mbtool.energy_stored",
+               /* list.add(TextUtils.__("tooltip.mbtool.energy_stored",
                         GTUtils.formatEUEnergy(energyStorage.getEnergyStored()),
-                        GTUtils.formatEUEnergy(getEnergyMaxStorage())).withStyle(ChatFormatting.BLUE));
+                        GTUtils.formatEUEnergy(getEnergyMaxStorage())).withStyle(ChatFormatting.BLUE));*/
             } else {
                 list.add(TextUtils.__("tooltip.mbtool.energy_stored",
                         TextUtils.formatEnergy(energyStorage.getEnergyStored()),
@@ -210,7 +208,7 @@ public class MultibuilderItem extends Item {
         }
         
         // Show inventory information
-        IItemHandler inventory = getInventory(stack);
+        IItemHandler inventory = getInventory(stack, context.registries());
         if (inventory != null) {
             int usedSlots = 0;
             for (int i = 0; i < inventory.getSlots(); i++) {
@@ -257,8 +255,8 @@ public class MultibuilderItem extends Item {
     /**
      * Get an item from the inventory
      */
-    public ItemStack getInventoryItem(ItemStack multibuilderStack, int slot) {
-        IItemHandler inventory = getInventory(multibuilderStack);
+    public ItemStack getInventoryItem(ItemStack multibuilderStack, int slot, HolderLookup.Provider provider) {
+        IItemHandler inventory = getInventory(multibuilderStack, provider);
         if (inventory != null && slot >= 0 && slot < inventory.getSlots()) {
             return inventory.getStackInSlot(slot);
         }
@@ -268,8 +266,8 @@ public class MultibuilderItem extends Item {
     /**
      * Insert an item into the inventory
      */
-    public ItemStack insertInventoryItem(ItemStack multibuilderStack, ItemStack itemToInsert, boolean simulate) {
-        IItemHandler inventory = getInventory(multibuilderStack);
+    public ItemStack insertInventoryItem(ItemStack multibuilderStack, ItemStack itemToInsert, boolean simulate, HolderLookup.Provider provider) {
+        IItemHandler inventory = getInventory(multibuilderStack, provider);
         if (inventory != null) {
             // Try to insert into any available slot
             for (int i = 0; i < inventory.getSlots(); i++) {
@@ -285,8 +283,8 @@ public class MultibuilderItem extends Item {
     /**
      * Extract an item from the inventory
      */
-    public ItemStack extractInventoryItem(ItemStack multibuilderStack, int slot, int amount, boolean simulate) {
-        IItemHandler inventory = getInventory(multibuilderStack);
+    public ItemStack extractInventoryItem(ItemStack multibuilderStack, int slot, int amount, boolean simulate, HolderLookup.Provider provider) {
+        IItemHandler inventory = getInventory(multibuilderStack, provider);
         if (inventory != null && slot >= 0 && slot < inventory.getSlots()) {
             return inventory.extractItem(slot, amount, simulate);
         }
@@ -299,83 +297,60 @@ public class MultibuilderItem extends Item {
      * @return
      */
     public int getRotation(ItemStack stack) {
-        try {
-            if (!stack.getOrCreateTag().contains("rotation")) {
-                return 0;
-            }
-
-            return stack.getOrCreateTag().getInt("rotation");
-        } catch (Exception ignored) {
-            return 0;
-        }
+        return stack.getOrDefault(MbtoolDataComponents.STRUCTURE_ROTATION.get(), 0);
     }
 
     public void rotate(ItemStack stack, int dir) {
-        try {
-            CompoundTag tag = stack.getOrCreateTag();
-            int rotation = getRotation(stack);
-            if(rotation + dir < 0) {
-                rotation = 3;
-            } else {
-                rotation = (rotation + dir) % 4;
-            }
-            tag.putInt("rotation", rotation);
-        } catch (Exception ignored) {
+        int rotation = getRotation(stack);
+        if(rotation + dir < 0) {
+            rotation = 3;
+        } else {
+            rotation = (rotation + dir) % 4;
         }
+        stack.set(MbtoolDataComponents.STRUCTURE_ROTATION.get(), rotation);
     }
     
     /**
      * Check if the item has a recipe stored
      */
     public boolean hasRecipe(ItemStack stack) {
-        try {
-            MultibuilderItem multibuilderItem = (MultibuilderItem)stack.getItem();
-            if (multibuilderItem.getRuntimeStructure(stack) != null) {
-                return true;
-            }
-            CompoundTag tag = stack.getOrCreateTag();
-            if (tag == null || !tag.contains("recipe")) {
-                return false;
-            }
-            
-            // Ensure structures are loaded
-            if (MultiblocksProvider.structures.isEmpty()) {
-                MultiblocksProvider.getStructures();
-            }
-            
-            int recipeIndex = tag.getInt("recipe");
-            return recipeIndex >= 0 && recipeIndex < MultiblocksProvider.structures.size();
-        } catch (Exception ignored) {
+        if (getRuntimeStructure(stack) != null) {
+            return true;
+        }
+        
+        Integer recipeIndex = stack.get(MbtoolDataComponents.STRUCTURE_RECIPE.get());
+        if (recipeIndex == null) {
             return false;
         }
+        
+        // Ensure structures are loaded
+        if (MultiblocksProvider.structures.isEmpty()) {
+            MultiblocksProvider.getStructures();
+        }
+        
+        return recipeIndex >= 0 && recipeIndex < MultiblocksProvider.structures.size();
     }
     
     /**
      * Get the selected multiblock structure from the item
      */
     public MultiblockStructure getSelectedStructure(ItemStack stack) {
-        try {
-            if (!hasRecipe(stack)) {
-                return null;
-            }
+        if (!hasRecipe(stack)) {
+            return null;
+        }
 
-            if(stack.getItem() instanceof  MultibuilderItem multibuilderItem) {
-                CompoundTag tag = stack.getOrCreateTag();
-                if (tag == null || !tag.contains("recipe")) {
-                    return null;
-                }
+        Integer recipeIndex = stack.get(MbtoolDataComponents.STRUCTURE_RECIPE.get());
+        if (recipeIndex == null) {
+            return null;
+        }
 
-                // Ensure structures are loaded
-                if (MultiblocksProvider.structures.isEmpty()) {
-                    MultiblocksProvider.getStructures();
-                }
+        // Ensure structures are loaded
+        if (MultiblocksProvider.structures.isEmpty()) {
+            MultiblocksProvider.getStructures();
+        }
 
-                int recipeIndex = tag.getInt("recipe");
-                return MultiblocksProvider.structures.get(recipeIndex);
-            }
-
-        } catch (Exception ignored) {
-            // Fall through to return null
+        if (recipeIndex >= 0 && recipeIndex < MultiblocksProvider.structures.size()) {
+            return MultiblocksProvider.structures.get(recipeIndex);
         }
         return null;
     }
@@ -418,7 +393,7 @@ public class MultibuilderItem extends Item {
 
         // Get the selected structure
         ItemStack multibuilderStack = main ? mainItem : offItem;
-        int recipeIndex = multibuilderStack.getOrCreateTag().getInt("recipe");
+        int recipeIndex = multibuilderStack.getOrDefault(MbtoolDataComponents.STRUCTURE_RECIPE.get(), -1);
         
         // Ensure structures are loaded
         if (MultiblocksProvider.structures.isEmpty()) {
@@ -433,7 +408,7 @@ public class MultibuilderItem extends Item {
         if (structure == null) return null;
         
         // Get rotation from item (if supported in the future)
-        int rotation = multibuilderStack.getOrCreateTag().getInt("rotation");
+        int rotation = getRotation(multibuilderStack);
 
         // Calculate placement position based on hit side
         Direction hitSide = rayTrace.getDirection();
@@ -477,14 +452,13 @@ public class MultibuilderItem extends Item {
      * Air blocks are automatically filtered out to reduce data size
      */
     public void setRuntimeStructure(ItemStack stack, MultiblockStructure structure) {
-        CompoundTag tag = stack.getOrCreateTag();
         if (structure != null) {
-            tag.remove("recipe");
+            stack.remove(MbtoolDataComponents.STRUCTURE_RECIPE.get());
             // Filter out air blocks before storing
             CompoundTag filteredNbt = MultiblockStructure.filterAirBlocks(structure.getStructureNbt());
-            tag.put("runtimeStructure", filteredNbt);
+            stack.set(MbtoolDataComponents.RUNTIME_STRUCTURE.get(), filteredNbt);
         } else {
-            tag.remove("runtimeStructure");
+            stack.remove(MbtoolDataComponents.RUNTIME_STRUCTURE.get());
         }
     }
 
@@ -498,14 +472,9 @@ public class MultibuilderItem extends Item {
      * Get the runtime structure from the ItemStack's NBT
      */
     public MultiblockStructure getRuntimeStructure(ItemStack stack) {
-        try {
-            CompoundTag tag = stack.getOrCreateTag();
-            if (tag != null && tag.contains("runtimeStructure")) {
-                CompoundTag structureNbt = tag.getCompound("runtimeStructure");
-                return new MultiblockStructure(structureNbt);
-            }
-        } catch (Exception ignored) {
-            // Fall through to return null
+        CompoundTag structureNbt = stack.get(MbtoolDataComponents.RUNTIME_STRUCTURE.get());
+        if (structureNbt != null) {
+            return new MultiblockStructure(structureNbt);
         }
         return null;
     }
@@ -519,21 +488,16 @@ public class MultibuilderItem extends Item {
     }
 
     public int getSelectedStructureId(ItemStack multibuilderStack) {
-        if(multibuilderStack.getOrCreateTag().contains("recipe")) {
-            return  multibuilderStack.getOrCreateTag().getInt("recipe");
-        }
-        return -1;
+        return multibuilderStack.getOrDefault(MbtoolDataComponents.STRUCTURE_RECIPE.get(), -1);
     }
 
     public UUID getUUID(ItemStack multibuilderStack) {
-        try {
-            if(!multibuilderStack.getOrCreateTag().contains("uuid")) {
-                multibuilderStack.getOrCreateTag().putUUID("uuid", UUID.randomUUID());
-            }
-            return multibuilderStack.getOrCreateTag().getUUID("uuid");
-        } catch(Exception e) {
-            return null;
+        UUID uuid = multibuilderStack.get(MbtoolDataComponents.UUID.get());
+        if (uuid == null) {
+            uuid = UUID.randomUUID();
+            multibuilderStack.set(MbtoolDataComponents.UUID.get(), uuid);
         }
+        return uuid;
     }
 
     /**
@@ -542,7 +506,7 @@ public class MultibuilderItem extends Item {
     public static void syncInventoryToClient(ServerPlayer player, ItemStack multibuilderStack, InteractionHand hand) {
         if (player != null && player.containerMenu instanceof MultibuilderContainer container) {
             // Force a full sync of the container
-            player.initMenu(player.containerMenu);
+            player.initInventoryMenu();
         }
     }
 }

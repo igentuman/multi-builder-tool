@@ -20,7 +20,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.phys.AABB;
-import net.minecraftforge.items.IItemHandler;
+import net.neoforged.neoforge.items.IItemHandler;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -64,7 +64,7 @@ public class MultiblockBuilder {
         // Check if we have all required materials (skip for creative mode)
         Map<Block, Block> blockReplacements = new HashMap<>(); // Maps required block to replacement block
         if (!isCreative) {
-            IItemHandler inventory = getInventory(multibuilderStack);
+            IItemHandler inventory = getInventory(multibuilderStack, level.registryAccess());
             if (inventory == null) {
                 return new BuildResult(false, Component.translatable("message.mbtool.no_inventory"));
             }
@@ -127,7 +127,7 @@ public class MultiblockBuilder {
         
         // Consume materials from inventory (skip for creative mode)
         if (!isCreative) {
-            IItemHandler inventory = getInventory(multibuilderStack);
+            IItemHandler inventory = getInventory(multibuilderStack, level.registryAccess());
             for (Map.Entry<Block, Integer> entry : requiredBlocks.entrySet()) {
                 Block requiredBlock = entry.getKey();
                 Block replacementBlock = blockReplacements.get(requiredBlock);
@@ -398,16 +398,20 @@ public class MultiblockBuilder {
      * Get energy storage from multibuilder item
      */
     private static CustomEnergyStorage getEnergyStorage(ItemStack stack) {
-        return (CustomEnergyStorage) CapabilityUtils.getPresentCapability(stack, 
-            net.minecraftforge.common.capabilities.ForgeCapabilities.ENERGY);
+        if (stack.getItem() instanceof MultibuilderItem item) {
+            return item.getEnergy(stack);
+        }
+        return null;
     }
     
     /**
      * Get inventory from multibuilder item
      */
-    private static IItemHandler getInventory(ItemStack stack) {
-        return (IItemHandler) CapabilityUtils.getPresentCapability(stack, 
-            net.minecraftforge.common.capabilities.ForgeCapabilities.ITEM_HANDLER);
+    private static IItemHandler getInventory(ItemStack stack, net.minecraft.core.HolderLookup.Provider provider) {
+        if (stack.getItem() instanceof MultibuilderItem item) {
+            return item.getInventory(stack, provider);
+        }
+        return null;
     }
     
     /**

@@ -1,5 +1,6 @@
 package igentuman.mbtool.util;
 
+import igentuman.mbtool.registration.MbtoolDataComponents;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -18,27 +19,28 @@ public class PlacedStructuresManager {
     private static final String NBT_KEY = "placedStructures";
     
     /**
-     * Add a placed structure to the multibuilder tool's NBT data
+     * Add a placed structure to the multibuilder tool's Data Components
      */
     public static void addPlacedStructure(ItemStack multibuilderStack, String structureId, AABB boundingBox, UUID placedBy, int rotation) {
         if(structureId == null) return;
-        CompoundTag tag = multibuilderStack.getOrCreateTag();
+        CompoundTag tag = multibuilderStack.getOrDefault(MbtoolDataComponents.PLACED_STRUCTURES.get(), new CompoundTag());
         ListTag structuresList = tag.getList(NBT_KEY, Tag.TAG_COMPOUND);
         
         PlacedStructure structure = new PlacedStructure(structureId, boundingBox, placedBy, rotation);
         structuresList.add(structure.toNBT());
         
         tag.put(NBT_KEY, structuresList);
+        multibuilderStack.set(MbtoolDataComponents.PLACED_STRUCTURES.get(), tag);
     }
     
     /**
-     * Get all placed structures from the multibuilder tool's NBT data
+     * Get all placed structures from the multibuilder tool's Data Components
      */
     public static List<PlacedStructure> getPlacedStructures(ItemStack multibuilderStack) {
         List<PlacedStructure> structures = new ArrayList<>();
-        CompoundTag tag = multibuilderStack.getOrCreateTag();
+        CompoundTag tag = multibuilderStack.get(MbtoolDataComponents.PLACED_STRUCTURES.get());
         
-        if (tag.contains(NBT_KEY)) {
+        if (tag != null && tag.contains(NBT_KEY)) {
             ListTag structuresList = tag.getList(NBT_KEY, Tag.TAG_COMPOUND);
             for (int i = 0; i < structuresList.size(); i++) {
                 CompoundTag structureTag = structuresList.getCompound(i);
@@ -65,12 +67,12 @@ public class PlacedStructuresManager {
     }
     
     /**
-     * Remove a placed structure from the multibuilder tool's NBT data
+     * Remove a placed structure from the multibuilder tool's Data Components
      */
     public static boolean removePlacedStructure(ItemStack multibuilderStack, PlacedStructure structureToRemove) {
-        CompoundTag tag = multibuilderStack.getOrCreateTag();
+        CompoundTag tag = multibuilderStack.get(MbtoolDataComponents.PLACED_STRUCTURES.get());
         
-        if (!tag.contains(NBT_KEY)) {
+        if (tag == null || !tag.contains(NBT_KEY)) {
             return false;
         }
         
@@ -92,14 +94,14 @@ public class PlacedStructuresManager {
         }
         
         tag.put(NBT_KEY, newStructuresList);
+        multibuilderStack.set(MbtoolDataComponents.PLACED_STRUCTURES.get(), tag);
         return removed;
     }
     
     /**
-     * Clear all placed structures from the multibuilder tool's NBT data
+     * Clear all placed structures from the multibuilder tool's Data Components
      */
     public static void clearPlacedStructures(ItemStack multibuilderStack) {
-        CompoundTag tag = multibuilderStack.getOrCreateTag();
-        tag.remove(NBT_KEY);
+        multibuilderStack.remove(MbtoolDataComponents.PLACED_STRUCTURES.get());
     }
 }

@@ -8,6 +8,7 @@ import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.drawable.IDrawable;
 import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
+import mezz.jei.api.gui.inputs.IJeiUserInput;
 import mezz.jei.api.helpers.IGuiHelper;
 import mezz.jei.api.recipe.IFocusGroup;
 import mezz.jei.api.recipe.RecipeIngredientRole;
@@ -25,23 +26,22 @@ import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.client.model.data.ModelData;
+import net.neoforged.neoforge.client.model.data.ModelData;
 import org.joml.Quaternionf;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.Map;
 
+import static com.mojang.blaze3d.platform.InputConstants.Type.MOUSE;
 import static igentuman.mbtool.Mbtool.MBTOOL;
 import static igentuman.mbtool.Mbtool.MODID;
 import static igentuman.mbtool.util.TextUtils.__;
 
-
-@SuppressWarnings("removal")
+@SuppressWarnings("deprecation")
 public class MultiblockStructureCategory implements IRecipeCategory<MultiblockStructureRecipe> {
-    public static final ResourceLocation UID = new ResourceLocation(MODID, "multiblock_structure");
+    public static final ResourceLocation UID = ResourceLocation.fromNamespaceAndPath(MODID, "multiblock_structure");
     public static final RecipeType<MultiblockStructureRecipe> TYPE = RecipeType.create(MODID, "multiblock_structure", MultiblockStructureRecipe.class);
     private boolean isMouseDragging = false;
     private double lastMouseX = 0;
@@ -103,7 +103,7 @@ public class MultiblockStructureCategory implements IRecipeCategory<MultiblockSt
         if(ingredientsButton.isMouseOver(mouseX, mouseY)) {
             ingredientsButton.drawTooltips(graphics, (int) mouseX, (int) mouseY);
         }
-        graphics.drawString(font, __(recipe.getName()), 5, 2, 0xFFFFFFFF);
+        graphics.drawString(font, __(recipe.getName()), 5, 2, 0xFFFFFFFF, false);
         long window = Minecraft.getInstance().getWindow().getWindow();
         boolean leftMouseDown = GLFW.glfwGetMouseButton(window, GLFW.GLFW_MOUSE_BUTTON_LEFT)
                 == GLFW.GLFW_PRESS;
@@ -201,7 +201,6 @@ public class MultiblockStructureCategory implements IRecipeCategory<MultiblockSt
 
             // Set up rendering
             MultiBufferSource.BufferSource bufferSource = Minecraft.getInstance().renderBuffers().bufferSource();
-            RandomSource random = RandomSource.create();
 
             // Render each block
             for (Map.Entry<BlockPos, BlockState> entry : blocks.entrySet()) {
@@ -245,10 +244,9 @@ public class MultiblockStructureCategory implements IRecipeCategory<MultiblockSt
     }
 
     @Override
-    public boolean handleInput(MultiblockStructureRecipe recipe, double mouseX, double mouseY, InputConstants.Key input) {
-        if(input.getType().equals(InputConstants.Type.MOUSE)) {
-            mouseClicked(mouseX, mouseY, input.getValue());
-            return true;
+    public boolean handleInput(MultiblockStructureRecipe recipe,  double mouseX, double mouseY, InputConstants.Key input) {
+        if (input.getType() == MOUSE) {
+            return mouseClicked(mouseX, mouseY, input.getValue());
         }
         return false;
     }
@@ -256,27 +254,6 @@ public class MultiblockStructureCategory implements IRecipeCategory<MultiblockSt
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button == 1 && isMouseInRotationArea(mouseX, mouseY)) {
             sliceMode = true;
-            return true;
-        }
-        return false;
-    }
-
-
-    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
-        if (isMouseDragging && button == 0) {
-            // Convert mouse movement to rotation (horizontal drag = rotation)
-            float sensitivity = 0.01f;
-            float delta = (float) (mouseX - lastMouseX) * sensitivity;
-            manualRotationAngle += delta;
-            lastMouseX = mouseX;
-            return true;
-        }
-        return false;
-    }
-
-    public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        if (button == 0 && isMouseDragging) {
-            isMouseDragging = false;
             return true;
         }
         return false;

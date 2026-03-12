@@ -1,122 +1,37 @@
 package igentuman.mbtool.util;
 
-import net.minecraft.core.NonNullList;
-import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.common.util.INBTSerializable;
-import net.minecraftforge.items.IItemHandlerModifiable;
-import net.minecraftforge.items.ItemHandlerHelper;
-import org.jetbrains.annotations.NotNull;
+import net.neoforged.neoforge.items.ItemStackHandler;
 
-import javax.annotation.Nonnull;
+import static igentuman.mbtool.registration.MbtoolDataComponents.INVENTORY;
 
-import static igentuman.mbtool.item.MultibuilderItem.INVENTORY_SIZE;
+public class ItemInventoryHandler extends ItemStackHandler {
 
+    protected ItemStack stack;
+    protected HolderLookup.Provider provider;
 
-public class ItemInventoryHandler implements IItemHandlerModifiable, INBTSerializable<CompoundTag> {
-
-    protected int slots;
-    protected int stackSize;
-    protected NonNullList<ItemStack> stacks;
-
-    public ItemInventoryHandler(int slots, int stackSize) {
-        this.slots = slots;
-        this.stackSize = stackSize;
-        stacks = NonNullList.withSize(slots, ItemStack.EMPTY);
+    public ItemInventoryHandler(int slots) {
+        super(slots);
     }
 
-    @Override
-    public void setStackInSlot(int slot, @NotNull ItemStack stack) {
-        validateSlotIndex(slot);
-        this.stacks.set(slot, stack);
-    //    onContentsChanged(slot);
+    public ItemInventoryHandler(ItemStack stack, int slots, HolderLookup.Provider provider) {
+        super(slots);
+        this.stack = stack;
+        this.provider = provider;
+        load();
     }
 
-    @Override
-    public int getSlots() {
-        return stacks.size();
-    }
-
-    @Override
-    @NotNull
-    public ItemStack getStackInSlot(int slot) {
-        validateSlotIndex(slot);
-        return this.stacks.get(slot);
-    }
-    public ItemStack extractItem(int slot, int amount, boolean simulate) {
-        if (amount == 0)
-            return ItemStack.EMPTY;
-
-        validateSlotIndex(slot);
-
-        ItemStack existing = this.stacks.get(slot);
-
-        if (existing.isEmpty())
-            return ItemStack.EMPTY;
-
-        int toExtract = Math.min(amount, existing.getCount());
-
-        if (existing.getCount() <= toExtract) {
-            if (!simulate) {
-                this.stacks.set(slot, ItemStack.EMPTY);
-              //  onContentsChanged(slot);
-                return existing;
-            } else {
-                return existing.copy();
-            }
-        } else {
-            if (!simulate) {
-                this.stacks.set(slot, ItemHandlerHelper.copyStackWithSize(existing, existing.getCount() - toExtract));
-               // onContentsChanged(slot);
-            }
-
-            return ItemHandlerHelper.copyStackWithSize(existing, toExtract);
-        }
-    }
-
-    public ItemStack insertItemInternal(int slot, @Nonnull ItemStack stack, boolean simulate) {
-        if (stack.isEmpty())
-            return ItemStack.EMPTY;
-        if (!isItemValid(slot, stack))
-            return stack;
-
-        validateSlotIndex(slot);
-
-        ItemStack existing = this.stacks.get(slot);
-
-        int limit = getSlotLimit(slot);
-
-        if (!existing.isEmpty()) {
-            if (!ItemHandlerHelper.canItemStacksStack(stack, existing))
-                return stack;
-
-            limit -= existing.getCount();
-        }
-
-        if (limit <= 0)
-            return stack;
-
-        boolean reachedLimit = stack.getCount() > limit;
-
-        if (!simulate) {
-            if (existing.isEmpty()) {
-                this.stacks.set(slot, reachedLimit ? ItemHandlerHelper.copyStackWithSize(stack, limit) : stack);
-            } else {
-                existing.grow(reachedLimit ? limit : stack.getCount());
+    private void load() {
+        if (stack != null && stack.has(INVENTORY.get())) {
+            CompoundTag tag = stack.get(INVENTORY.get());
+            if (tag != null) {
+                deserializeNBT(provider, tag);
             }
         }
-
-        return reachedLimit ? ItemHandlerHelper.copyStackWithSize(stack, stack.getCount() - limit) : ItemStack.EMPTY;
-    }
-
-    @Override
-    @NotNull
-    public ItemStack insertItem(int slot, @NotNull ItemStack stack, boolean simulate) {
-        return insertItemInternal(slot, stack, simulate);
     }
 
     @Override
@@ -124,39 +39,25 @@ public class ItemInventoryHandler implements IItemHandlerModifiable, INBTSeriali
         return 512;
     }
 
-    protected int getStackLimit(int slot, @NotNull ItemStack stack) {
-        // Always use our custom slot limit of 512, ignoring the item's default max stack size
-        return getSlotLimit(slot);
+    @Override
+    public void onContentsChanged(int slot) {
+        if (stack != null) {
+            stack.set(INVENTORY.get(), serializeNBT(provider));
+        }
     }
 
     @Override
-    public boolean isItemValid(int slot, @NotNull ItemStack stack) {
-        return true;
-    }
-
-    /**
-     * Custom method to save ItemStack to NBT with support for large stack counts (up to Integer.MAX_VALUE).
-     * This is needed because the default ItemStack.save() method uses putByte() for count, limiting it to 127.
-     * 
-     * @param stack The ItemStack to save
-     * @param compoundTag The NBT tag to save to
-     * @return The NBT tag with the ItemStack data
-     */
-    private CompoundTag saveItemStackWithLargeCount(ItemStack stack, CompoundTag compoundTag) {
-        CompoundTag saveTag = stack.save(compoundTag);
-        saveTag.putInt("RealCount", stack.getCount());
-        return saveTag;
-    }
-
-    @Override
-    public CompoundTag serializeNBT() {
+    public CompoundTag serializeNBT(HolderLookup.Provider provider) {
         ListTag nbtTagList = new ListTag();
         for (int i = 0; i < stacks.size(); i++) {
-            if (!stacks.get(i).isEmpty()) {
-                CompoundTag itemTag = new CompoundTag();
-                itemTag.putInt("Slot", i);
-                // Use custom save method to support large stack counts
-                saveItemStackWithLargeCount(stacks.get(i), itemTag);
+            ItemStack stack = stacks.get(i);
+            if (!stack.isEmpty()) {
+                int realCount = stack.getCount();
+                stack.setCount(1);
+                CompoundTag itemTag = (CompoundTag) stack.save(provider);
+                stack.setCount(realCount);
+                itemTag.putInt("count", realCount);
+                itemTag.putByte("Slot", (byte) i);
                 nbtTagList.add(itemTag);
             }
         }
@@ -166,41 +67,23 @@ public class ItemInventoryHandler implements IItemHandlerModifiable, INBTSeriali
         return nbt;
     }
 
-    public void setSize(int size) {
-        stacks = NonNullList.withSize(size, ItemStack.EMPTY);
-    }
-
     @Override
-    public void deserializeNBT(CompoundTag nbt) {
-        // Clear existing stacks first
-        for (int i = 0; i < stacks.size(); i++) {
-            stacks.set(i, ItemStack.EMPTY);
-        }
-        
-        // Load items from NBT
+    public void deserializeNBT(HolderLookup.Provider provider, CompoundTag nbt) {
+        setSize(nbt.contains("Size", Tag.TAG_INT) ? nbt.getInt("Size") : stacks.size());
         ListTag tagList = nbt.getList("Items", Tag.TAG_COMPOUND);
         for (int i = 0; i < tagList.size(); i++) {
-            CompoundTag itemTags = tagList.getCompound(i);
-            int slot = itemTags.getInt("Slot");
-
-            if (slot >= 0 && slot < stacks.size()) {
-                // Load ItemStack preserving large stack counts
-                // First create the stack normally
-                ItemStack stack = ItemStack.of(itemTags);
-                
-                // Then force the count to the original value if it was larger than the item's max stack size
-                if (itemTags.contains("RealCount")) {
-                    int originalCount = itemTags.getInt("RealCount");
-                    // Always set the count to the original value, bypassing any validation
-                    stack.setCount(originalCount);
+            CompoundTag itemTag = tagList.getCompound(i);
+            int slot = itemTag.getByte("Slot") & 255;
+            if (slot < stacks.size()) {
+                int realCount = itemTag.getInt("count");
+                itemTag.putInt("count", 1);
+                ItemStack parsed = ItemStack.parseOptional(provider, itemTag);
+                if (!parsed.isEmpty()) {
+                    parsed.setCount(realCount);
                 }
-                stacks.set(slot, stack);
+                stacks.set(slot, parsed);
             }
         }
-    }
-
-    protected void validateSlotIndex(int slot) {
-        if (slot < 0 || slot >= stacks.size())
-            throw new RuntimeException("Slot " + slot + " not in valid range - [0," + stacks.size() + ")");
+        onContentsChanged(0);
     }
 }

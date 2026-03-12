@@ -3,10 +3,13 @@ package igentuman.mbtool.util;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.IntTag;
 import net.minecraft.nbt.Tag;
-import net.minecraftforge.energy.EnergyStorage;
+import igentuman.mbtool.registration.MbtoolDataComponents;
+import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.energy.EnergyStorage;
 
 public class CustomEnergyStorage extends EnergyStorage {
 
+    private ItemStack stack;
     public boolean wasUpdated = true;
     private int receivedEnergy = 0;
     private boolean limit = false;
@@ -17,6 +20,11 @@ public class CustomEnergyStorage extends EnergyStorage {
 
     public static final long[] V = new long[] { 8, 32, 128, 512, 2048, 8192, 32768, 131072, 524288, 2097152, 8388608,
             33554432, 134217728, 536870912, 2147483648L };
+    public CustomEnergyStorage(ItemStack stack, int capacity, int maxTransfer, int maxExtract) {
+        this(capacity, maxTransfer, maxExtract);
+        this.stack = stack;
+    }
+
     public CustomEnergyStorage(int capacity, int maxTransfer) {
         this(capacity, maxTransfer, 0);
     }
@@ -64,7 +72,19 @@ public class CustomEnergyStorage extends EnergyStorage {
         if (limit && receivedEnergy >= maxReceive) {
             return 0;
         }
-        int rc = super.receiveEnergy(maxReceive, simulate);
+        int rc;
+        if (stack != null) {
+            int stored = getEnergyStored();
+            rc = Math.min(getMaxEnergyStored() - stored, Math.min(maxReceive, maxReceive)); // simplifying for now
+            // actually EnergyStorage uses maxReceive and capacity
+            rc = Math.min(getMaxEnergyStored() - stored, maxReceive);
+            if (!simulate && rc > 0) {
+                setEnergy(stored + rc);
+            }
+        } else {
+            rc = super.receiveEnergy(maxReceive, simulate);
+        }
+        
         if (rc > 0 && !simulate) {
             receivedEnergy += rc;
             onEnergyChanged();
@@ -74,19 +94,41 @@ public class CustomEnergyStorage extends EnergyStorage {
 
     @Override
     public int extractEnergy(int maxExtract, boolean simulate) {
-        int rc = super.extractEnergy(maxExtract, simulate);
+        int rc;
+        if (stack != null) {
+            int stored = getEnergyStored();
+            rc = Math.min(stored, maxExtract);
+            if (!simulate && rc > 0) {
+                setEnergy(stored - rc);
+            }
+        } else {
+            rc = super.extractEnergy(maxExtract, simulate);
+        }
+        
         if (rc > 0 && !simulate) {
             onEnergyChanged();
         }
         return rc;
     }
 
+    @Override
+    public int getEnergyStored() {
+        if (stack != null) {
+            return stack.getOrDefault(MbtoolDataComponents.ENERGY.get(), 0);
+        }
+        return super.getEnergyStored();
+    }
+
     public void setEnergy(int energy) {
-        int wasEnergy = this.energy;
-        this.energy = energy;
-        this.energy = Math.max(this.energy, 0);
-        this.energy = Math.min(this.energy, getMaxEnergyStored());
-        if(energy != wasEnergy) {
+        int wasEnergy = getEnergyStored();
+        int newEnergy = Math.max(0, Math.min(energy, getMaxEnergyStored()));
+        if (stack != null) {
+            stack.set(MbtoolDataComponents.ENERGY.get(), newEnergy);
+        } else {
+            this.energy = newEnergy;
+        }
+        
+        if(newEnergy != wasEnergy) {
             onEnergyChanged();
         }
     }

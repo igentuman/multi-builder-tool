@@ -1,9 +1,9 @@
 package igentuman.mbtool.util;
 
-import igentuman.mbtool.config.MbtoolConfig;
-import igentuman.mbtool.integration.kubejs.MbtoolKubeJsEvents;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
@@ -11,9 +11,7 @@ import net.minecraft.server.packs.resources.PreparableReloadListener;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.util.profiling.ProfilerFiller;
-import net.minecraft.world.level.block.Block;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.neoforge.common.NeoForge;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -23,8 +21,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
 import static igentuman.mbtool.Mbtool.rlFromString;
-import static igentuman.mbtool.util.GTUtils.loadGtStructures;
-import static igentuman.mbtool.util.ModUtil.*;
+import static igentuman.mbtool.util.ModUtil.isGtLoaded;
+import static igentuman.mbtool.util.ModUtil.isKubeJsLoaded;
 
 public class MultiblocksProvider implements PreparableReloadListener {
 
@@ -57,10 +55,10 @@ public class MultiblocksProvider implements PreparableReloadListener {
             return loadMultiblockStructures(resourceManager);
         }, backgroundExecutor).thenCompose(preparationBarrier::wait).thenAcceptAsync(loadedStructures -> {
             InitMbtoolStructuresEvent event = new InitMbtoolStructuresEvent(loadedStructures);
-            MinecraftForge.EVENT_BUS.post(event);
-            if(isKubeJsLoaded()) {
+            NeoForge.EVENT_BUS.post(event);
+/*            if(isKubeJsLoaded()) {
                 MbtoolKubeJsEvents.onInitMbtoolStructures(event);
-            }
+            }*/
             List<MultiblockStructure> structuresToAdd = new ArrayList<>();
             for (MultiblockStructure structure : event.structures) {
                 if(!validateStructureBlocks(structure.getStructureNbt())) {
@@ -98,7 +96,7 @@ public class MultiblocksProvider implements PreparableReloadListener {
             Resource resource = entry.getValue();
 
             try {
-                CompoundTag nbt = NbtIo.readCompressed(resource.open());
+                CompoundTag nbt = NbtIo.readCompressed(resource.open(), NbtAccounter.unlimitedHeap());
 
                 // Validate that all blocks in the structure exist
                 if (validateStructureBlocks(nbt)) {
@@ -148,9 +146,7 @@ public class MultiblocksProvider implements PreparableReloadListener {
 
             try {
                 ResourceLocation blockLocation = rlFromString(blockId);
-                Block block = ForgeRegistries.BLOCKS.getValue(blockLocation);
-
-                if (block == null || !blockLocation.getPath().equals(block.asItem().toString())) {
+                if (!BuiltInRegistries.BLOCK.containsKey(blockLocation)) {
                     System.out.println("Missing block in structure: " + blockId);
                     return false;
                 }

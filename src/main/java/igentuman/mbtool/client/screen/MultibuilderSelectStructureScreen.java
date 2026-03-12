@@ -6,6 +6,7 @@ import igentuman.mbtool.item.MultibuilderItem;
 import igentuman.mbtool.util.MultiblocksProvider;
 import igentuman.mbtool.container.MultibuilderSelectStructureContainer;
 import igentuman.mbtool.util.MultiblockStructure;
+import igentuman.mbtool.registration.MbtoolDataComponents;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
@@ -139,7 +140,7 @@ public class MultibuilderSelectStructureScreen extends AbstractContainerScreen<M
 
     @Override
     public void render(GuiGraphics pGuiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
-        this.renderBackground(pGuiGraphics);
+        this.renderBackground(pGuiGraphics, pMouseX, pMouseY, pPartialTick);
         
         // Temporarily disable tooltips for multiblock buttons to prevent double tooltips
         List<Tooltip> savedTooltips = new ArrayList<>();
@@ -249,7 +250,7 @@ public class MultibuilderSelectStructureScreen extends AbstractContainerScreen<M
     protected void containerTick() {
         super.containerTick();
         if (this.searchField != null) {
-            this.searchField.tick();
+            //this.searchField.tick();
         }
     }
     
@@ -422,7 +423,7 @@ public class MultibuilderSelectStructureScreen extends AbstractContainerScreen<M
                 }
                 
                 if (multibuilderStack.is(MBTOOL.get())) {
-                    multibuilderStack.getOrCreateTag().putInt("recipe", originalIndex);
+                    multibuilderStack.set(MbtoolDataComponents.STRUCTURE_RECIPE.get(), originalIndex);
                     
                     // Nullify runtimeStructure when player chooses a structure
                     MultibuilderItem multibuilderItem = (MultibuilderItem) multibuilderStack.getItem();

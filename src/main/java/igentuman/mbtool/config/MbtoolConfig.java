@@ -1,22 +1,22 @@
 package igentuman.mbtool.config;
 
-import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.fml.ModLoadingContext;
-import net.minecraftforge.fml.config.ModConfig;
+import net.neoforged.neoforge.common.ModConfigSpec;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.config.ModConfig;
 
 public class MbtoolConfig {
     
-    public static final ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
-    public static final ForgeConfigSpec SPEC;
+    public static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
+    public static final ModConfigSpec SPEC;
     
     // Energy Configuration
-    public static final ForgeConfigSpec.ConfigValue<Integer> MAX_ENERGY;
-    public static final ForgeConfigSpec.ConfigValue<Integer> ENERGY_TRANSFER_RATE;
-    public static final ForgeConfigSpec.ConfigValue<Integer> ENERGY_PER_BLOCK;
-    //public static final ForgeConfigSpec.ConfigValue<Boolean> AUTOMATICALLY_ADD_MM_STRUCTURES;
+    public static final ModConfigSpec.ConfigValue<Integer> MAX_ENERGY;
+    public static final ModConfigSpec.ConfigValue<Integer> ENERGY_TRANSFER_RATE;
+    public static final ModConfigSpec.ConfigValue<Integer> ENERGY_PER_BLOCK;
+    //public static final ModConfigSpec.ConfigValue<Boolean> AUTOMATICALLY_ADD_MM_STRUCTURES;
 
     // Block Replacement Configuration
-    public static final ForgeConfigSpec.ConfigValue<java.util.List<? extends String>> BLOCK_EQUIVALENCY_SETS;
+    public static final ModConfigSpec.ConfigValue<java.util.List<? extends String>> BLOCK_EQUIVALENCY_SETS;
     
 
     
@@ -64,8 +64,8 @@ public class MbtoolConfig {
         SPEC = BUILDER.build();
     }
     
-    public static void register() {
-        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, SPEC, "mbtool-common.toml");
+    public static void register(ModContainer container) {
+        container.registerConfig(ModConfig.Type.COMMON, SPEC, "mbtool-common.toml");
     }
     
     // Convenience methods for getting config values

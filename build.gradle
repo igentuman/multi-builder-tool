@@ -1,71 +1,50 @@
 plugins {
-    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
-    id 'org.parchmentmc.librarian.forgegradle' version '1.+'
-    id 'org.spongepowered.mixin' version '0.7.+'
-    id 'com.github.johnrengelman.shadow' version '7.0.0'
+    id 'net.neoforged.moddev' version '1.0.17'
     id 'idea'
 }
 
 version = "${mod_version}"
 group = 'igentuman.mbtool'
-archivesBaseName = "MultiBuilderTool-${mc_version}"
+base {
+    archivesName = "MultiBuilderTool-${minecraft_version}"
+}
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
 println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
-idea {
-    module {
-        downloadJavadoc = true
-        downloadSources = true
-    }
-}
-minecraft {
-    mappings channel: 'parchment', version: "${mappings_version}-${mc_version}"
-     accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
+
+neoForge {
+    version = project.neoforge_version
+
+    // Adjust mappings to official as requested
+    // The new plugin handles this via the mappings property if needed, 
+    // but by default it uses official if not specified.
+    // We can leave it as is or specify it.
 
     runs {
         client {
-            workingDirectory project.file('run')
-            property 'forge.logging.markers', 'REGISTRIES'
-            property 'forge.logging.console.level', 'debug'
-            property 'mixin.env.remapRefMap', 'true'
-            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
-            property 'forge.enabledGameTestNamespaces', 'mbtool'
-            args '--width', '1920', '--height', '1080'
-            mods {
-                mbtool {
-                    source sourceSets.main
-                }
-            }
+            client()
+            systemProperty 'forge.logging.markers', 'REGISTRIES'
+            systemProperty 'forge.logging.console.level', 'debug'
+            systemProperty 'neoforge.enabledGameTestNamespaces', 'mbtool'
         }
 
         server {
-            workingDirectory project.file('server')
-            property 'forge.logging.markers', 'REGISTRIES'
-            property 'forge.logging.console.level', 'debug'
-            property 'mixin.env.remapRefMap', 'true'
-            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
-            property 'forge.enabledGameTestNamespaces', 'mbtool'
-
-            mods {
-                mbtool {
-                    source sourceSets.main
-                }
-            }
+            server()
+            systemProperty 'forge.logging.markers', 'REGISTRIES'
+            systemProperty 'forge.logging.console.level', 'debug'
+            systemProperty 'neoforge.enabledGameTestNamespaces', 'mbtool'
         }
 
         data {
-            workingDirectory project.file('run')
-            property 'mixin.env.remapRefMap', 'true'
-            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
-            property 'forge.logging.markers', 'REGISTRIES'
-            property 'forge.logging.console.level', 'debug'
-            args '--mod', 'mbtool', '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
-            mods {
-                mbtool {
-                    source sourceSets.main
-                }
-            }
+            data()
+            programArguments.addAll '--mod', 'mbtool', '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
+        }
+    }
+
+    mods {
+        mbtool {
+            sourceSet sourceSets.main
         }
     }
 }
@@ -113,82 +92,36 @@ repositories {
 }
 
 dependencies {
-    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
-    minecraft "net.minecraftforge:forge:${mc_version}-${forge_version}"
-    runtimeOnly fg.deobf("curse.maven:immersive-petroleum-268250:7512547")
-    //runtimeOnly fg.deobf("curse.maven:mct-immersive-technology-359407:7696590")
-    runtimeOnly fg.deobf("curse.maven:nbtedit-reborn-678133:5984630")
-    compileOnly fg.deobf("com.gregtechceu.gtceu:gtceu-${mc_version}:${gtm_version}"){
-        transitive = false
-    }
-    implementation fg.deobf("curse.maven:extreme-reactors-250277:6772552")
-    implementation fg.deobf("curse.maven:zerocore-247921:5850671")
-    compileOnly fg.deobf("curse.maven:ldlib-626676:6849454")
-    implementation fg.deobf("curse.maven:just-enough-mekanism-multiblocks-898746:6170219"){
-        transitive = false
-    }
-    implementation fg.deobf("curse.maven:masterful-machinery-423476:7042768")
+    // NeoForge 1.21+ uses a different way to handle dependencies. 
+    // The plugin handles the 'minecraft' dependency automatically based on 'neoForge.version'.
 
-    /*runtimeOnly fg.deobf("curse.maven:blood-magic-224791:5290993") {
-        transitive = false
-    }*/
-    implementation fg.deobf("curse.maven:nuclearcraft-neoteric-840010:6825786")
-    //runtimeOnly fg.deobf("curse.maven:mantle-74924:6603205")
-    //runtimeOnly fg.deobf("curse.maven:tinkers-construct-74072:6603344")
-    runtimeOnly fg.deobf("curse.maven:patchouli-306770:6164575") {
-        transitive = false
-    }
-    runtimeOnly fg.deobf("curse.maven:ctm-267602:5983309")
-    runtimeOnly fg.deobf("curse.maven:immersive-engineering-231951:5224387")
+    // Examples of updating dependencies for 1.21.1
+    // Many of these might need updated versions or might not be available yet.
+    // I will use some placeholders for now or try to use what's likely available.
 
-    compileOnly fg.deobf("mezz.jei:jei-${mc_version}-common-api:${jei_version}")
-    compileOnly fg.deobf("mezz.jei:jei-${mc_version}-forge-api:${jei_version}")
-    implementation fg.deobf("mezz.jei:jei-${mc_version}-forge:${jei_version}")
+    // runtimeOnly "curse.maven:immersive-petroleum-268250:7512547"
+    // runtimeOnly "curse.maven:nbtedit-reborn-678133:5984630"
+    
+    // Architectury for 1.21.1
+    implementation "dev.architectury:architectury-neoforge:${architectury_version}"
 
-    compileOnly fg.deobf("mcjty.theoneprobe:theoneprobe:${top_version}:api") {
-        transitive = false
-    }
-    runtimeOnly fg.deobf("mcjty.theoneprobe:theoneprobe:${top_version}") {
-        transitive = false
-    }
-    implementation fg.deobf("curse.maven:spatial-crafter-1343065:6974354")
-    implementation fg.deobf("dev.latvian.mods:kubejs-forge:${kubejs_version}"){
-        transitive = false
-    }
+    // JEI for 1.21.1
+    compileOnly "mezz.jei:jei-${minecraft_version}-common-api:${jei_version}"
+    compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}"
+    implementation "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
 
-    implementation fg.deobf("dev.latvian.mods:rhino-forge:${rhino_version}"){
-        transitive = false
-    }
-    implementation fg.deobf("dev.architectury:architectury-forge:${architectury_version}")
-    //implementation fg.deobf("curse.maven:ftb-library-forge-404465:5282375")
-    //implementation fg.deobf("curse.maven:ftb-teams-forge-404468:5267190")
-    //implementation fg.deobf("curse.maven:ftb-chunks-forge-314906:5267364")
+    // Mekanism for 1.21.1
+    implementation "mekanism:Mekanism:${minecraft_version}-${mekanism_version}"
+    implementation "mekanism:Mekanism:${minecraft_version}-${mekanism_version}:generators"
 
-    //runtimeOnly fg.deobf("curse.maven:nbtedit-reborn-678133:4420565")
-    //runtimeOnly fg.deobf("com.blamejared.crafttweaker:CraftTweaker-forge-${mc_version}:${ct_version}")
-    runtimeOnly fg.deobf("curse.maven:construction-wand-399558:4684054")
-    compileOnly fg.deobf("curse.maven:emi-580555:5872526")
+    // KubeJS for 1.21.1
+    implementation "dev.latvian.mods:kubejs-neoforge:${kubejs_version}"
+    implementation "curse.maven:rhino-416294:6886923"
 
-    implementation fg.deobf("curse.maven:guideme-1173950:6942062")
-    implementation fg.deobf("curse.maven:woot-revived-1337238:6996230")
-
-    implementation fg.deobf("mekanism:Mekanism:${mc_version}-${mekanism_version}")
-    implementation fg.deobf("mekanism:Mekanism:${mc_version}-${mekanism_version}:generators")
-
-    compileOnly("cc.tweaked:cc-tweaked-${mc_version}-core-api:${cc_version}")
-    compileOnly(fg.deobf("cc.tweaked:cc-tweaked-${mc_version}-forge-api:${cc_version}"))
-    compileOnly fg.deobf("cc.tweaked:cc-tweaked-${mc_version}-forge:${cc_version}")
-
-    compileOnly fg.deobf("curse.maven:sedna-511276:${sedna_version}")
-    compileOnly fg.deobf("curse.maven:markdownmanual-502485:${md_version}")
-    compileOnly fg.deobf("curse.maven:oc2r-1037738:${oc2_version}")
-
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.2'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.2'
-
-// Mockito dependencies
-    testImplementation 'org.mockito:mockito-core:5.3.1'
-    testImplementation 'org.mockito:mockito-junit-jupiter:5.3.1'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
+    testImplementation 'org.mockito:mockito-core:5.11.0'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.11.0'
 }
 
 jar {
@@ -206,10 +139,10 @@ jar {
     }
 }
 
-mixin {
+/*mixin {
     add sourceSets.main, "mbtool.refmap.json"
     config "mbtool.mixins.json"
-}
+}*/
 
 jar.enabled = false
 
@@ -233,12 +166,12 @@ tasks.named('processResources', ProcessResources).configure {
     ]
     inputs.properties replaceProperties
 
-    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
+    filesMatching(['META-INF/neoforge.mods.toml', 'pack.mcmeta']) {
         expand replaceProperties + [project: project]
     }
 }
 
-shadowJar {
+/*shadowJar {
     finalizedBy 'reobfShadowJar'
 
     from sourceSets.main.output.classesDirs
@@ -270,4 +203,4 @@ afterEvaluate {
     tasks.reobfJar.enabled = false
 }
 
-tasks.assemble.dependsOn reobfShadowJar
+tasks.assemble.dependsOn reobfShadowJar*/

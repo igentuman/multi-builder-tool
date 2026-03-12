@@ -8,102 +8,114 @@ import igentuman.mbtool.container.MultibuilderContainer;
 import igentuman.mbtool.container.MultibuilderSelectStructureContainer;
 import igentuman.mbtool.item.MultibuilderItem;
 import igentuman.mbtool.network.NetworkHandler;
+import igentuman.mbtool.registration.MbtoolDataComponents;
 import igentuman.mbtool.util.MultiblocksProvider;
 import igentuman.mbtool.util.BlockEquivalencyManager;
-import igentuman.nc.handler.config.CommonConfig;
-import net.minecraft.client.gui.screens.MenuScreens;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
-import net.minecraftforge.common.extensions.IForgeMenuType;
-import net.minecraftforge.event.AddReloadListenerEvent;
-import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.config.ModConfig;
-import net.minecraftforge.fml.event.config.ModConfigEvent;
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.config.ModConfig;
+import net.neoforged.fml.event.config.ModConfigEvent;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.capabilities.ItemCapability;
+import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
+import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.common.extensions.IMenuTypeExtension;
+import net.neoforged.neoforge.event.AddReloadListenerEvent;
+import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
+import net.neoforged.neoforge.registries.DeferredRegister;
+import net.neoforged.neoforge.registries.DeferredHolder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 
-@Mod(
-       igentuman.mbtool.Mbtool.MODID
-)
-@Mod.EventBusSubscriber
+@Mod(Mbtool.MODID)
 public class Mbtool
 {
     public static final String MODID = "mbtool";
     public static final Logger logger = LogManager.getLogger();
 
-    public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MODID);
+    public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(Registries.ITEM, MODID);
     public static final Item.Properties ONE_ITEM_PROPERTIES = new Item.Properties().stacksTo(1);
-    public static final DeferredRegister<MenuType<?>> CONTAINERS = DeferredRegister.create(ForgeRegistries.MENU_TYPES, MODID);
-    public static final RegistryObject<MultibuilderItem> MBTOOL = ITEMS.register("mbtool", () -> new MultibuilderItem(ONE_ITEM_PROPERTIES));
-    public static final RegistryObject<MenuType<MultibuilderContainer>> MULTIBUILDER_CONTAINER = CONTAINERS.register("mbtool_container",
-            () -> IForgeMenuType.create((windowId, inv, data) -> new MultibuilderContainer(windowId, data.readBlockPos(), inv, data.readInt())));
-    public static final RegistryObject<MenuType<MultibuilderSelectStructureContainer>> MULTIBUILDER_STRUCTURE_CONTAINER = CONTAINERS.register("mbtool_structure_container",
-            () -> IForgeMenuType.create((windowId, inv, data) -> new MultibuilderSelectStructureContainer(windowId, data.readBlockPos(), inv, data.readInt())));
+    public static final DeferredRegister<MenuType<?>> CONTAINERS = DeferredRegister.create(Registries.MENU, MODID);
+    public static final DeferredHolder<Item, MultibuilderItem> MBTOOL = ITEMS.register("mbtool", () -> new MultibuilderItem(ONE_ITEM_PROPERTIES));
+    public static final DeferredHolder<MenuType<?>, MenuType<MultibuilderContainer>> MULTIBUILDER_CONTAINER = CONTAINERS.register("mbtool_container",
+            () -> IMenuTypeExtension.create((windowId, inv, data) -> new MultibuilderContainer(windowId, data.readBlockPos(), inv, data.readInt())));
+    public static final DeferredHolder<MenuType<?>, MenuType<MultibuilderSelectStructureContainer>> MULTIBUILDER_STRUCTURE_CONTAINER = CONTAINERS.register("mbtool_structure_container",
+            () -> IMenuTypeExtension.create((windowId, inv, data) -> new MultibuilderSelectStructureContainer(windowId, data.readBlockPos(), inv, data.readInt())));
 
 
-    public Mbtool() {
-        this(FMLJavaModLoadingContext.get());
-    }
-
-    public Mbtool(FMLJavaModLoadingContext context) {
-        ITEMS.register(context.getModEventBus());
-        CONTAINERS.register(context.getModEventBus());
-        context.getModEventBus().addListener(this::commonSetup);
-        context.getModEventBus().addListener(Mbtool::init);
-        context.getModEventBus().addListener(this::addCreative);
+    public Mbtool(IEventBus modEventBus, ModContainer modContainer) {
+        ITEMS.register(modEventBus);
+        CONTAINERS.register(modEventBus);
+        MbtoolDataComponents.DATA_COMPONENT_TYPES.register(modEventBus);
+        
+        modEventBus.addListener(this::clientSetup);
+        modEventBus.addListener(this::registerScreens);
+        modEventBus.addListener(this::addCreative);
+        modEventBus.addListener(this::registerCapabilities);
+        modEventBus.addListener(this::onModConfigEvent);
         
         // Register configuration
-        MbtoolConfig.register();
+        MbtoolConfig.register(modContainer);
+
+        NeoForge.EVENT_BUS.register(this);
     }
     
-    private void commonSetup(FMLCommonSetupEvent event) {
-        event.enqueueWork(() -> {
-            NetworkHandler.registerPackets();
-        });
-    }
-
-    @SubscribeEvent
-    public static void onModConfigEvent(final ModConfigEvent event) {
+    public void onModConfigEvent(final ModConfigEvent event) {
         if (event.getConfig().getType() == ModConfig.Type.COMMON) {
-            CommonConfig.setLoaded();
             // Reinitialize block equivalency manager when config changes
             BlockEquivalencyManager.reinitialize();
         }
     }
 
-    public static void init(FMLClientSetupEvent event) {
-        event.enqueueWork(() -> {
-            MenuScreens.register(MULTIBUILDER_CONTAINER.get(), MultibuilderScreen::new);
-            MenuScreens.register(MULTIBUILDER_STRUCTURE_CONTAINER.get(), 
-                (MultibuilderSelectStructureContainer container, Inventory inventory, Component title) -> 
-                    new MultibuilderSelectStructureScreen(container, inventory, title));
-        });
-        
+    public void clientSetup(FMLClientSetupEvent event) {
         // Register client-side event handlers
-        net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(DismantleHandler.class);
+        NeoForge.EVENT_BUS.register(DismantleHandler.class);
+    }
+
+    public void registerScreens(RegisterMenuScreensEvent event) {
+        event.register(MULTIBUILDER_CONTAINER.get(), MultibuilderScreen::new);
+        event.register(MULTIBUILDER_STRUCTURE_CONTAINER.get(),
+                (MultibuilderSelectStructureContainer container, Inventory inventory, Component title) ->
+                        new MultibuilderSelectStructureScreen(container, inventory, title));
+    }
+
+    private void registerCapabilities(RegisterCapabilitiesEvent event) {
+        event.registerItem(Capabilities.EnergyStorage.ITEM, (stack, context) -> {
+            if (stack.getItem() instanceof MultibuilderItem item) {
+                return item.getEnergy(stack);
+            }
+            return null;
+        }, MBTOOL.get());
+
+        event.registerItem(Capabilities.ItemHandler.ITEM, (stack, context) -> {
+            if (stack.getItem() instanceof MultibuilderItem item) {
+                return item.getInventory(stack);
+            }
+            return null;
+        }, MBTOOL.get());
     }
 
     private void addCreative(BuildCreativeModeTabContentsEvent event) {
         if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
-            event.accept(MBTOOL);
+            event.accept(MBTOOL.get());
         }
     }
 
     @SubscribeEvent
-    public static void onAddReloadListeners(AddReloadListenerEvent event) {
+    public void onAddReloadListeners(AddReloadListenerEvent event) {
         event.addListener(MultiblocksProvider.getInstance());
     }
 

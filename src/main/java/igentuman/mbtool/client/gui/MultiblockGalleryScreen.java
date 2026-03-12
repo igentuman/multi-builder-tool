@@ -187,7 +187,7 @@ public class MultiblockGalleryScreen extends Screen {
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         // Render background
-        this.renderBackground(guiGraphics);
+        this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
         
         // Render title
         guiGraphics.drawCenteredString(

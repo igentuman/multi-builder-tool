@@ -37,9 +37,7 @@ public class DismantleOverlayRenderer {
         long time = System.currentTimeMillis();
         
         Tesselator tessellator = Tesselator.getInstance();
-        BufferBuilder buffer = tessellator.getBuilder();
-        
-        buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+        BufferBuilder buffer = tessellator.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
         Matrix4f matrix = poseStack.last().pose();
         
         // Red color with pulsing transparency for lit box effect
@@ -60,42 +58,45 @@ public class DismantleOverlayRenderer {
         
         // Draw filled faces of the box
         // Bottom face (Y-)
-        buffer.vertex(matrix, minX, minY, minZ).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, minX, minY, maxZ).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, maxX, minY, maxZ).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, maxX, minY, minZ).color(r, g, b, alpha).endVertex();
+        buffer.addVertex(matrix, minX, minY, minZ).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, minX, minY, maxZ).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, maxX, minY, maxZ).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, maxX, minY, minZ).setColor(r, g, b, alpha);
         
         // Top face (Y+)
-        buffer.vertex(matrix, minX, maxY, minZ).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, maxX, maxY, minZ).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, maxX, maxY, maxZ).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, minX, maxY, maxZ).color(r, g, b, alpha).endVertex();
+        buffer.addVertex(matrix, minX, maxY, minZ).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, maxX, maxY, minZ).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, maxX, maxY, maxZ).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, minX, maxY, maxZ).setColor(r, g, b, alpha);
         
         // North face (Z-)
-        buffer.vertex(matrix, minX, minY, minZ).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, maxX, minY, minZ).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, maxX, maxY, minZ).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, minX, maxY, minZ).color(r, g, b, alpha).endVertex();
+        buffer.addVertex(matrix, minX, minY, minZ).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, maxX, minY, minZ).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, maxX, maxY, minZ).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, minX, maxY, minZ).setColor(r, g, b, alpha);
         
         // South face (Z+)
-        buffer.vertex(matrix, minX, minY, maxZ).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, minX, maxY, maxZ).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, maxX, maxY, maxZ).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, maxX, minY, maxZ).color(r, g, b, alpha).endVertex();
+        buffer.addVertex(matrix, minX, minY, maxZ).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, minX, maxY, maxZ).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, maxX, maxY, maxZ).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, maxX, minY, maxZ).setColor(r, g, b, alpha);
         
         // West face (X-)
-        buffer.vertex(matrix, minX, minY, minZ).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, minX, maxY, minZ).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, minX, maxY, maxZ).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, minX, minY, maxZ).color(r, g, b, alpha).endVertex();
+        buffer.addVertex(matrix, minX, minY, minZ).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, minX, maxY, minZ).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, minX, maxY, maxZ).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, minX, minY, maxZ).setColor(r, g, b, alpha);
         
         // East face (X+)
-        buffer.vertex(matrix, maxX, minY, minZ).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, maxX, minY, maxZ).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, maxX, maxY, maxZ).color(r, g, b, alpha).endVertex();
-        buffer.vertex(matrix, maxX, maxY, minZ).color(r, g, b, alpha).endVertex();
+        buffer.addVertex(matrix, maxX, minY, minZ).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, maxX, minY, maxZ).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, maxX, maxY, maxZ).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, maxX, maxY, minZ).setColor(r, g, b, alpha);
         
-        tessellator.end();
+        MeshData meshData = buffer.build();
+        if (meshData != null) {
+            BufferUploader.drawWithShader(meshData);
+        }
         
         RenderSystem.enableCull();
         RenderSystem.enableDepthTest();

@@ -2,7 +2,6 @@ package igentuman.mbtool.client;
 
 import igentuman.mbtool.item.MultibuilderItem;
 import igentuman.mbtool.network.DismantleStructurePacket;
-import igentuman.mbtool.network.NetworkHandler;
 import igentuman.mbtool.util.PlacedStructuresManager;
 import igentuman.mbtool.util.PlacedStructure;
 import igentuman.mbtool.util.MultiblocksProvider;
@@ -19,19 +18,17 @@ import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.client.event.InputEvent;
-import net.minecraftforge.client.event.RenderGuiOverlayEvent;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.eventbus.api.Event;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.InputEvent;
+import net.neoforged.neoforge.client.event.RenderGuiLayerEvent;
+import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.network.PacketDistributor;
 import org.lwjgl.glfw.GLFW;
 
-@OnlyIn(Dist.CLIENT)
-@Mod.EventBusSubscriber(value = Dist.CLIENT)
+@EventBusSubscriber(modid = igentuman.mbtool.Mbtool.MODID, value = Dist.CLIENT)
 public class DismantleHandler {
     private static boolean isDismantling = false;
     private static long dismantleStartTime = 0;
@@ -126,7 +123,7 @@ public class DismantleHandler {
         }
         
         // Get the inventory handler
-        IItemHandler inventory = multibuilderItem.getInventory(multibuilderStack);
+        IItemHandler inventory = multibuilderItem.getInventory(multibuilderStack, Minecraft.getInstance().level.registryAccess());
         if (inventory == null) return false;
         
         // Find the structure definition by ID
@@ -334,7 +331,7 @@ public class DismantleHandler {
         if (elapsedTime >= DISMANTLE_DURATION) {
             // Dismantle completed, send packet to server
             if (targetPos != null && targetHand != null) {
-                NetworkHandler.INSTANCE.sendToServer(new DismantleStructurePacket(targetPos, targetHand));
+                PacketDistributor.sendToServer(new DismantleStructurePacket(targetPos, targetHand));
             }
         }
         
@@ -346,9 +343,7 @@ public class DismantleHandler {
     }
     
     @SubscribeEvent
-    public static void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.START) return;
-        
+    public static void onClientTick(ClientTickEvent.Pre event) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.level == null) return;
         
@@ -366,7 +361,7 @@ public class DismantleHandler {
     }
     
     @SubscribeEvent
-    public static void onRenderGuiOverlay(RenderGuiOverlayEvent.Post event) {
+    public static void onRenderGuiLayer(RenderGuiLayerEvent.Post event) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
         

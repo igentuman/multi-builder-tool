@@ -1,18 +1,29 @@
 package igentuman.mbtool.network;
 
+import igentuman.mbtool.Mbtool;
 import igentuman.mbtool.util.MultiblockStructure;
 import igentuman.mbtool.util.MultiblocksProvider;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-import java.util.Objects;
-import java.util.function.Supplier;
+public class SyncSingleStructurePacket implements CustomPacketPayload {
+    public static final Type<SyncSingleStructurePacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(Mbtool.MODID, "sync_single_structure"));
 
-import static igentuman.mbtool.Mbtool.rl;
+    public static final StreamCodec<RegistryFriendlyByteBuf, SyncSingleStructurePacket> STREAM_CODEC = StreamCodec.composite(
+        ResourceLocation.STREAM_CODEC, SyncSingleStructurePacket::id,
+        ByteBufCodecs.COMPOUND_TAG, SyncSingleStructurePacket::nbt,
+        ByteBufCodecs.STRING_UTF8, SyncSingleStructurePacket::name,
+        ByteBufCodecs.INT, SyncSingleStructurePacket::index,
+        ByteBufCodecs.INT, SyncSingleStructurePacket::total,
+        ByteBufCodecs.BOOL, SyncSingleStructurePacket::isLast,
+        SyncSingleStructurePacket::new
+    );
 
-public class SyncSingleStructurePacket {
     private final ResourceLocation id;
     private final CompoundTag nbt;
     private final String name;
@@ -39,38 +50,46 @@ public class SyncSingleStructurePacket {
         this.isLast = isLast;
     }
     
-    public static void encode(SyncSingleStructurePacket packet, FriendlyByteBuf buffer) {
-        buffer.writeResourceLocation(Objects.requireNonNullElseGet(packet.id, () -> rl("unknown")));
-        buffer.writeNbt(Objects.requireNonNullElseGet(packet.nbt, CompoundTag::new));
-        buffer.writeUtf(Objects.requireNonNullElseGet(packet.name, () -> ""));
-        buffer.writeInt(packet.index);
-        buffer.writeInt(packet.total);
-        buffer.writeBoolean(packet.isLast);
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
-    
-    public static SyncSingleStructurePacket decode(FriendlyByteBuf buffer) {
-        ResourceLocation id = buffer.readResourceLocation();
-        CompoundTag nbt = buffer.readNbt();
-        String name = buffer.readUtf();
-        int index = buffer.readInt();
-        int total = buffer.readInt();
-        boolean isLast = buffer.readBoolean();
-        
-        return new SyncSingleStructurePacket(id, nbt, name, index, total, isLast);
+
+    public ResourceLocation id() {
+        return id;
     }
-    
-    public static void handle(SyncSingleStructurePacket packet, Supplier<NetworkEvent.Context> contextSupplier) {
-        NetworkEvent.Context context = contextSupplier.get();
+
+    public CompoundTag nbt() {
+        return nbt;
+    }
+
+    public String name() {
+        return name;
+    }
+
+    public int index() {
+        return index;
+    }
+
+    public int total() {
+        return total;
+    }
+
+    public boolean isLast() {
+        return isLast;
+    }
+
+    public void handle(IPayloadContext context) {
         context.enqueueWork(() -> {
             // This runs on the client side
             MultiblockStructure structure = new MultiblockStructure(
-                packet.id, 
-                packet.nbt, 
-                packet.name
+                this.id, 
+                this.nbt, 
+                this.name
             );
             
             // If this is the first structure, clear the list
-            if (packet.index == 0) {
+            if (this.index == 0) {
                 MultiblocksProvider.getStructures().clear();
             }
             
@@ -78,12 +97,11 @@ public class SyncSingleStructurePacket {
             MultiblocksProvider.getStructures().add(structure);
             
             // Log progress
-            System.out.println("Synced structure " + (packet.index + 1) + "/" + packet.total + ": " + packet.name);
+            System.out.println("Synced structure " + (this.index + 1) + "/" + this.total + ": " + this.name);
             
-            if (packet.isLast) {
-                System.out.println("All structures synced successfully! Total: " + packet.total);
+            if (this.isLast) {
+                System.out.println("All structures synced successfully! Total: " + this.total);
             }
         });
-        context.setPacketHandled(true);
     }
 }

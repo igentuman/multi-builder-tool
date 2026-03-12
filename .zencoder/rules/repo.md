@@ -20,14 +20,14 @@ MultiBuilder Tool (mbtool) is a Minecraft mod that adds a tool for building mult
 **Version**: Java 21
 **Build System**: Gradle
 **Package Manager**: Gradle/Maven
-**Minecraft Version**: 1.21.8
-**NeoForge Version**: 21.8.35
+**Minecraft Version**: 1.21.1
+**NeoForge Version**: 21.1.65
 
 ## Dependencies
 **Main Dependencies**:
-- NeoForge (21.8.35)
-- Architectury API (6803291)
-- JEI (6832478)
+- NeoForge (21.1.65)
+- Architectury API (9.2.14)
+- JEI (15.20.0.105)
 
 **Optional Integration Dependencies**:
 - Immersive Engineering

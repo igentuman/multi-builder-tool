@@ -8,7 +8,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.items.IItemHandler;
+import net.neoforged.neoforge.items.IItemHandler;
 import org.jetbrains.annotations.Nullable;
 
 import static igentuman.mbtool.Mbtool.MBTOOL;
@@ -31,7 +31,7 @@ public class MultibuilderSelectStructureContainer extends AbstractContainerMenu 
         this.playerInventory = pPlayerInventory;
         ItemStack item = playerInventory.player.getItemInHand(InteractionHand.MAIN_HAND);
         if(item.getItem() instanceof MultibuilderItem multibuilderItem) {
-            inventory = multibuilderItem.getInventory(item);
+            inventory = multibuilderItem.getInventory(item, playerInventory.player.level().registryAccess());
         }
     }
     

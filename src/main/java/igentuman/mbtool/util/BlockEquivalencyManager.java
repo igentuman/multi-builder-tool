@@ -1,9 +1,10 @@
 package igentuman.mbtool.util;
 
 import igentuman.mbtool.config.MbtoolConfig;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.world.level.block.Blocks;
 
 import java.util.*;
 import org.apache.logging.log4j.LogManager;
@@ -44,8 +45,8 @@ public class BlockEquivalencyManager {
                             LOGGER.warn("Invalid block ID format in equivalency set: {}", blockId);
                             continue;
                         }
-                        Block block = ForgeRegistries.BLOCKS.getValue(resourceLocation);
-                        if (block != null && block != net.minecraft.world.level.block.Blocks.AIR) {
+                        Block block = BuiltInRegistries.BLOCK.get(resourceLocation);
+                        if (block != Blocks.AIR) {
                             blockSet.add(block);
                         }
                     } catch (Exception e) {

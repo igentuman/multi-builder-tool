@@ -9,16 +9,16 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.InputEvent;
-import net.minecraftforge.client.event.RenderLevelStageEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.InputEvent;
+import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 
 import static igentuman.mbtool.Mbtool.MODID;
 import static igentuman.mbtool.Mbtool.MBTOOL;
 
-@Mod.EventBusSubscriber(modid = MODID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
+@EventBusSubscriber(modid = MODID, bus = EventBusSubscriber.Bus.GAME, value = Dist.CLIENT)
 public class ClientEventHandler {
 
     @SubscribeEvent
@@ -36,7 +36,7 @@ public class ClientEventHandler {
         if (DismantleHandler.isDismantling()) {
             PlacedStructure dismantlingStructure = DismantleHandler.getDismantlingStructure();
             if (dismantlingStructure != null) {
-                DismantleOverlayRenderer.renderDismantleOverlay(event.getPoseStack(), dismantlingStructure, event.getPartialTick());
+                DismantleOverlayRenderer.renderDismantleOverlay(event.getPoseStack(), dismantlingStructure, event.getPartialTick().getRealtimeDeltaTicks());
             }
             return; // Don't render preview when dismantling
         }
@@ -49,7 +49,7 @@ public class ClientEventHandler {
             return;
         }
 
-        PreviewRenderer.renderPreview(event.getPoseStack(), event.getPartialTick());
+        PreviewRenderer.renderPreview(event.getPoseStack(), event.getPartialTick().getRealtimeDeltaTicks());
     }
 
     @SubscribeEvent
@@ -74,7 +74,7 @@ public class ClientEventHandler {
         
         // Get the MultibuilderItem instance
         if (multibuilderStack.getItem() instanceof MultibuilderItem multibuilderItem) {
-            double scrollDelta = event.getScrollDelta();
+            double scrollDelta = event.getScrollDeltaY();
             
             if (scrollDelta > 0) {
                 // Scroll up - rotate clockwise

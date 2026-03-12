@@ -1,6 +1,7 @@
 package igentuman.mbtool.util;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -8,7 +9,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.*;
 
@@ -42,9 +42,9 @@ public class MultiblockStructure {
                         
                         BlockPos pos = new BlockPos(x, y, z);
                         String blockId = state.getString("Name");
-                        Block block = ForgeRegistries.BLOCKS.getValue(rlFromString(blockId));
-                        
-                        if (block != null) {
+                        ResourceLocation rl = rlFromString(blockId);
+                        if (rl != null && BuiltInRegistries.BLOCK.getOptional(rl).isPresent()) {
+                            Block block = BuiltInRegistries.BLOCK.getOptional(rl).get();
                             BlockState bs = block.defaultBlockState();
                             
                             // Handle block state properties if they exist

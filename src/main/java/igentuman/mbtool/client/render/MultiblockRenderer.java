@@ -19,8 +19,8 @@ import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.client.RenderTypeHelper;
-import net.minecraftforge.client.model.data.ModelData;
+import net.neoforged.neoforge.client.RenderTypeHelper;
+import net.neoforged.neoforge.client.model.data.ModelData;
 import org.joml.Quaternionf;
 
 import java.util.Map;
@@ -126,7 +126,7 @@ public class MultiblockRenderer {
                     if(renderer != null) {
                         renderer.render(
                                 entity,
-                                minecraft.getPartialTick(),
+                                minecraft.getTimer().getGameTimeDeltaPartialTick(false),
                                 stack,
                                 bufferSource,
                                 15728880,
