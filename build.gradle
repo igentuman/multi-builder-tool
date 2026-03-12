@@ -16,11 +16,6 @@ println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty '
 neoForge {
     version = project.neoforge_version
 
-    // Adjust mappings to official as requested
-    // The new plugin handles this via the mappings property if needed, 
-    // but by default it uses official if not specified.
-    // We can leave it as is or specify it.
-
     runs {
         client {
             client()
@@ -81,40 +76,30 @@ repositories {
             includeGroup "com.github.rtyley"
         }
     }
-
-    maven {
-        name = 'GTCEu Maven'
-        url = 'https://maven.gtceu.com'
-        content {
-            includeGroup 'com.gregtechceu.gtceu'
-        }
-    }
 }
 
 dependencies {
-    // NeoForge 1.21+ uses a different way to handle dependencies. 
-    // The plugin handles the 'minecraft' dependency automatically based on 'neoForge.version'.
 
-    // Examples of updating dependencies for 1.21.1
-    // Many of these might need updated versions or might not be available yet.
-    // I will use some placeholders for now or try to use what's likely available.
+    runtimeOnly "curse.maven:immersive-engineering-231951:6733669"
 
-    // runtimeOnly "curse.maven:immersive-petroleum-268250:7512547"
-    // runtimeOnly "curse.maven:nbtedit-reborn-678133:5984630"
-    
-    // Architectury for 1.21.1
+    runtimeOnly "curse.maven:extreme-reactors-250277:7344744"
+    runtimeOnly "curse.maven:zerocore-247921:7344742"
+
+    runtimeOnly "curse.maven:nbtedit-reborn-678133:6125444"
+
+    compileOnly "curse.maven:gregtechceu-modern-890405:6766269"
+
     implementation "dev.architectury:architectury-neoforge:${architectury_version}"
 
-    // JEI for 1.21.1
+    implementation "curse.maven:emi-580555:6420931"
+
+    compileOnly "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
     compileOnly "mezz.jei:jei-${minecraft_version}-common-api:${jei_version}"
     compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}"
-    implementation "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
 
-    // Mekanism for 1.21.1
     implementation "mekanism:Mekanism:${minecraft_version}-${mekanism_version}"
     implementation "mekanism:Mekanism:${minecraft_version}-${mekanism_version}:generators"
 
-    // KubeJS for 1.21.1
     implementation "dev.latvian.mods:kubejs-neoforge:${kubejs_version}"
     implementation "curse.maven:rhino-416294:6886923"
 
@@ -138,11 +123,6 @@ jar {
         ])
     }
 }
-
-/*mixin {
-    add sourceSets.main, "mbtool.refmap.json"
-    config "mbtool.mixins.json"
-}*/
 
 jar.enabled = true
 
@@ -170,37 +150,3 @@ tasks.named('processResources', ProcessResources).configure {
         expand replaceProperties + [project: project]
     }
 }
-
-/*shadowJar {
-    finalizedBy 'reobfShadowJar'
-
-    from sourceSets.main.output.classesDirs
-    from sourceSets.main.output.resourcesDir
-
-    manifest {
-        attributes([
-                "Specification-Title"   : "NuclearCraft",
-                "Specification-Vendor"  : "igentuman",
-                "Specification-Version" : "${project.version}",
-                "Implementation-Title"  : "${project.name}",
-                "Implementation-Version": "${version}",
-                "Implementation-Vendor" : "igentuman",
-                "MixinConfigs"          : "mbtool.mixins.json"
-        ])
-    }
-
-    configurations = [project.configurations.shaded]
-    archiveClassifier = null
-}
-
-
-
-reobf {
-    shadowJar {}
-}
-
-afterEvaluate {
-    tasks.reobfJar.enabled = false
-}
-
-tasks.assemble.dependsOn reobfShadowJar*/
