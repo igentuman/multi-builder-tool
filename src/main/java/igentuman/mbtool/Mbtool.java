@@ -1,13 +1,11 @@
 package igentuman.mbtool;
 
-import igentuman.mbtool.client.DismantleHandler;
 import igentuman.mbtool.client.screen.MultibuilderScreen;
 import igentuman.mbtool.client.screen.MultibuilderSelectStructureScreen;
 import igentuman.mbtool.config.MbtoolConfig;
 import igentuman.mbtool.container.MultibuilderContainer;
 import igentuman.mbtool.container.MultibuilderSelectStructureContainer;
 import igentuman.mbtool.item.MultibuilderItem;
-import igentuman.mbtool.network.NetworkHandler;
 import igentuman.mbtool.registration.MbtoolDataComponents;
 import igentuman.mbtool.util.MultiblocksProvider;
 import igentuman.mbtool.util.BlockEquivalencyManager;
@@ -18,9 +16,11 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
+import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.config.ModConfigEvent;
@@ -61,8 +61,6 @@ public class Mbtool
         CONTAINERS.register(modEventBus);
         MbtoolDataComponents.DATA_COMPONENT_TYPES.register(modEventBus);
         
-        modEventBus.addListener(this::clientSetup);
-        modEventBus.addListener(this::registerScreens);
         modEventBus.addListener(this::addCreative);
         modEventBus.addListener(this::registerCapabilities);
         modEventBus.addListener(this::onModConfigEvent);
@@ -78,18 +76,6 @@ public class Mbtool
             // Reinitialize block equivalency manager when config changes
             BlockEquivalencyManager.reinitialize();
         }
-    }
-
-    public void clientSetup(FMLClientSetupEvent event) {
-        // Register client-side event handlers
-        NeoForge.EVENT_BUS.register(DismantleHandler.class);
-    }
-
-    public void registerScreens(RegisterMenuScreensEvent event) {
-        event.register(MULTIBUILDER_CONTAINER.get(), MultibuilderScreen::new);
-        event.register(MULTIBUILDER_STRUCTURE_CONTAINER.get(),
-                (MultibuilderSelectStructureContainer container, Inventory inventory, Component title) ->
-                        new MultibuilderSelectStructureScreen(container, inventory, title));
     }
 
     private void registerCapabilities(RegisterCapabilitiesEvent event) {
@@ -124,5 +110,20 @@ public class Mbtool
     }
     public static ResourceLocation rl(String name) {
         return ResourceLocation.fromNamespaceAndPath(MODID, name);
+    }
+
+    @EventBusSubscriber(modid = MODID, value = Dist.CLIENT)
+    public static class ClientModEvents {
+        @SubscribeEvent
+        public static void onClientSetup(FMLClientSetupEvent event) {
+        }
+
+        @SubscribeEvent
+        public static void onRegisterScreens(RegisterMenuScreensEvent event) {
+            event.register(MULTIBUILDER_CONTAINER.get(), MultibuilderScreen::new);
+            event.register(MULTIBUILDER_STRUCTURE_CONTAINER.get(),
+                    (MultibuilderSelectStructureContainer container, Inventory inventory, Component title) ->
+                            new MultibuilderSelectStructureScreen(container, inventory, title));
+        }
     }
 }
