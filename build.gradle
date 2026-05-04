@@ -121,6 +121,13 @@ dependencies {
     compileOnly fg.deobf("com.gregtechceu.gtceu:gtceu-${mc_version}:${gtm_version}"){
         transitive = false
     }
+    implementation fg.deobf("curse.maven:applied-energistics-2-223794:7148487"){
+        transitive = false
+    }
+
+    implementation fg.deobf("curse.maven:curios-309927:6418456"){
+        transitive = false
+    }
     implementation fg.deobf("curse.maven:extreme-reactors-250277:6772552")
     implementation fg.deobf("curse.maven:zerocore-247921:5850671")
     compileOnly fg.deobf("curse.maven:ldlib-626676:6849454")
@@ -129,9 +136,9 @@ dependencies {
     }
     implementation fg.deobf("curse.maven:masterful-machinery-423476:7042768")
 
-    /*runtimeOnly fg.deobf("curse.maven:blood-magic-224791:5290993") {
+    runtimeOnly fg.deobf("curse.maven:blood-magic-224791:5290993") {
         transitive = false
-    }*/
+    }
     implementation fg.deobf("curse.maven:nuclearcraft-neoteric-840010:6825786")
     //runtimeOnly fg.deobf("curse.maven:mantle-74924:6603205")
     //runtimeOnly fg.deobf("curse.maven:tinkers-construct-74072:6603344")

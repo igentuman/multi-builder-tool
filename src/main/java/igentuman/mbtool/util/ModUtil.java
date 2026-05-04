@@ -15,6 +15,9 @@ public class ModUtil {
     protected static boolean isJEMMLoaded;
     protected static boolean isNCNLoaded;
     protected static boolean isMMLoaded;
+    protected static boolean isAe2Loaded;
+    protected static boolean isCuriosLoaded;
+
     protected static void initialize()
     {
         if(initialized)
@@ -31,6 +34,18 @@ public class ModUtil {
         kubeJsLoaded = ModList.get().isLoaded("kubejs");
         isNCNLoaded = ModList.get().isLoaded("nuclearcraft");
         isMMLoaded = ModList.get().isLoaded("mm");
+        isAe2Loaded = ModList.get().isLoaded("ae2");
+        isCuriosLoaded = ModList.get().isLoaded("curios");
+    }
+
+    public static boolean isCuriosLoaded() {
+        initialize();
+        return isCuriosLoaded;
+    }
+
+    public static boolean isAe2Loaded() {
+        initialize();
+        return isAe2Loaded;
     }
 
     public static boolean isMMLoaded() {

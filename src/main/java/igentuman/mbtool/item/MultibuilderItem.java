@@ -545,4 +545,8 @@ public class MultibuilderItem extends Item {
             player.initMenu(player.containerMenu);
         }
     }
+
+    public boolean isMeAccessAllowed(ItemStack multibuilderStack) {
+         return multibuilderStack.getOrCreateTag().getBoolean("meAccessAllowed");
+    }
 }

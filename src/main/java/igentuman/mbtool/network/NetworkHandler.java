@@ -53,5 +53,11 @@ public class NetworkHandler {
             .decoder(MultibuilderContainerSetContentPacket::decode)
             .consumerMainThread(MultibuilderContainerSetContentPacket::handle)
             .add();
+
+        INSTANCE.messageBuilder(ToggleMeAccessPacket.class, packetId++)
+            .encoder(ToggleMeAccessPacket::encode)
+            .decoder(ToggleMeAccessPacket::decode)
+            .consumerMainThread(ToggleMeAccessPacket::handle)
+            .add();
     }
 }

@@ -136,5 +136,9 @@
   "mbtool.structure.solid_burner": "IT Boiler Solid Fuel Burner",
   "mbtool.structure.steam_turbine": "IT Steam Turbine",
   "mbtool.structure.steel_fluid_tank": "IT Steel Fluid Tank",
-  "mbtool.structure.supercooler": "PA Supercooler"
+  "mbtool.structure.supercooler": "PA Supercooler",
+  "gui.mbtool.me_access": "Use ME Wireless Inventory",
+  "gui.mbtool.me_access.descr": "Requires player to have a wireless terminal in their inventory.",
+  "gui.mbtool.me_access.enabled": "Enabled",
+  "gui.mbtool.me_access.disabled": "Disabled"
 }

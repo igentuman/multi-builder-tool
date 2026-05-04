@@ -1,6 +1,7 @@
 package igentuman.mbtool.util;
 
 import igentuman.mbtool.config.MbtoolConfig;
+import igentuman.mbtool.integration.ae2.AE2Helper;
 import igentuman.mbtool.item.MultibuilderItem;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -79,14 +80,29 @@ public class MultiblockBuilder {
                 Block replacementBlock = BlockEquivalencyManager.findReplacement(requiredBlock, availableBlocks);
                 
                 if (replacementBlock == null) {
-                    return new BuildResult(false, Component.translatable("message.mbtool.insufficient_blocks", 
-                       required, requiredBlock.getName()));
+                    if(!isAllowedMEAccess(multibuilderStack) || !AE2Helper.hasAe2Terminal((ServerPlayer) player)) {
+                        return new BuildResult(false, Component.translatable("message.mbtool.insufficient_blocks",
+                                required, requiredBlock.getName()));
+                    } else {
+                        if(!isAllowedMEAccess(multibuilderStack) || !AE2Helper.hasEnough((ServerPlayer) player, requiredBlock, required)) {
+                            return new BuildResult(false, Component.translatable("message.mbtool.insufficient_blocks",
+                                    required, requiredBlock.getName()));
+                        }
+                    }
                 }
                 
                 int available = availableBlocks.getOrDefault(replacementBlock, 0);
                 if (available < required) {
-                    return new BuildResult(false, Component.translatable("message.mbtool.insufficient_blocks", 
-                        required - available, requiredBlock.getName()));
+                    if(!isAllowedMEAccess(multibuilderStack) || !AE2Helper.hasAe2Terminal((ServerPlayer) player)) {
+                        return new BuildResult(false, Component.translatable("message.mbtool.insufficient_blocks",
+                                required - available, requiredBlock.getName()));
+                    }
+                    else {
+                        if(!isAllowedMEAccess(multibuilderStack) || !AE2Helper.hasEnough((ServerPlayer) player, requiredBlock, required - available)) {
+                            return new BuildResult(false, Component.translatable("message.mbtool.insufficient_blocks",
+                                    required - available, requiredBlock.getName()));
+                        }
+                    }
                 }
                 
                 // Store the replacement mapping
@@ -140,6 +156,15 @@ public class MultiblockBuilder {
                         int toExtract = Math.min(needed, slotStack.getCount());
                         inventory.extractItem(slot, toExtract, false);
                         needed -= toExtract;
+                    }
+                }
+
+                if(needed > 0) {
+                    // Try to extract remaining items from ME network
+                    if (isAllowedMEAccess(multibuilderStack) && AE2Helper.hasAe2Terminal((ServerPlayer) player)) {
+                        Block blockToExtract = replacementBlock != null ? replacementBlock : requiredBlock;
+                        long extracted = AE2Helper.extractItems((ServerPlayer) player, blockToExtract, needed);
+                        needed -= (int) extracted;
                     }
                 }
             }
@@ -210,6 +235,16 @@ public class MultiblockBuilder {
         
         return new BuildResult(true, Component.translatable("message.mbtool.multiblock_built", 
             blocksPlaced, Component.translatable(structure.getName())));
+    }
+
+    private static boolean isAllowedMEAccess(ItemStack multibuilderStack) {
+        if (!ModUtil.isAe2Loaded()) {
+            return false;
+        }
+        if (multibuilderStack.getItem() instanceof MultibuilderItem item) {
+            return item.isMeAccessAllowed(multibuilderStack);
+        }
+        return false;
     }
 
     private static void sendPlacementSoundEvent(Level level, BlockPos centerPos) {

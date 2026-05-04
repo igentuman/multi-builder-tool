@@ -2,6 +2,8 @@ package igentuman.mbtool.client.screen;
 
 import igentuman.mbtool.client.render.MultiblockRenderer;
 import igentuman.mbtool.item.MultibuilderItem;
+import igentuman.mbtool.network.NetworkHandler;
+import igentuman.mbtool.network.ToggleMeAccessPacket;
 import igentuman.mbtool.util.ModUtil;
 import igentuman.mbtool.util.MultiblocksProvider;
 import igentuman.mbtool.container.MultibuilderContainer;
@@ -11,6 +13,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -19,6 +22,7 @@ import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -35,6 +39,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static igentuman.mbtool.Mbtool.rl;
@@ -46,6 +51,12 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
     private static final ResourceLocation PASTE_ICON = rl("textures/gui/paste.png");
     private Button chooseButton;
     private ImageButton pasteButton;
+    private boolean meAccessEnabled = false;
+    // ME access toggle button area (16x16), relative to GUI top-left
+    private static final int ME_BTN_REL_X = 168;
+    private static final int ME_BTN_REL_Y = 107;
+    private static final int ME_BTN_SIZE = 16;
+    private ItemStack meIconStack = ItemStack.EMPTY;
     public int selectedStructure = -1;
     
     public MultibuilderScreen(MultibuilderContainer pMenu, Inventory pPlayerInventory, Component pTitle) {
@@ -57,9 +68,20 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
     @Override
     protected void init() {
         super.init();
-        
-        // Load selected structure from item NBT
+
+        // Load selected structure and ME access state from item NBT
         loadSelectedStructure();
+        loadMeAccessState();
+
+        // Create icon stack for the ME button (ae2 wireless terminal)
+        try {
+            var item = ForgeRegistries.ITEMS.getValue(ResourceLocation.fromNamespaceAndPath("ae2", "wireless_terminal"));
+            if (item != null) {
+                meIconStack = new ItemStack(item);
+            }
+        } catch (Exception ignored) {
+            // AE2 not loaded
+        }
         
         // Position the button in the GUI
         int x = this.leftPos + 150;
@@ -88,6 +110,17 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
         this.addRenderableWidget(this.pasteButton);
     }
     
+    private void loadMeAccessState() {
+        if (!ModUtil.isAe2Loaded()) return;
+        if (this.minecraft != null && this.minecraft.player != null) {
+            Player player = this.minecraft.player;
+            ItemStack multibuilderStack = player.getInventory().getItem(player.getInventory().selected);
+            if (multibuilderStack.getItem() instanceof MultibuilderItem multibuilderItem) {
+                meAccessEnabled = multibuilderItem.isMeAccessAllowed(multibuilderStack);
+            }
+        }
+    }
+
     private void loadSelectedStructure() {
         if (this.minecraft != null && this.minecraft.player != null) {
             Player player = this.minecraft.player;
@@ -97,6 +130,28 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
                 selectedStructure = multibuilderItem.getSelectedStructureId(multibuilderStack);
             }
         }
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        // Check if ME access toggle button was clicked
+        int btnX = this.leftPos + ME_BTN_REL_X;
+        int btnY = this.topPos + ME_BTN_REL_Y;
+        if (button == 0 && mouseX >= btnX && mouseX < btnX + ME_BTN_SIZE && mouseY >= btnY && mouseY < btnY + ME_BTN_SIZE) {
+            if (!ModUtil.isAe2Loaded()) return super.mouseClicked(mouseX, mouseY, button);
+            meAccessEnabled = !meAccessEnabled;
+            // Send packet to server
+            if (this.minecraft != null && this.minecraft.player != null) {
+                Player player = this.minecraft.player;
+                InteractionHand hand = player.getMainHandItem().is(MBTOOL.get()) ? InteractionHand.MAIN_HAND : InteractionHand.OFF_HAND;
+                NetworkHandler.INSTANCE.sendToServer(new ToggleMeAccessPacket(meAccessEnabled, hand));
+                // Also update client-side ItemStack for immediate visual feedback
+                ItemStack stack = player.getItemInHand(hand);
+                stack.getOrCreateTag().putBoolean("meAccessAllowed", meAccessEnabled);
+            }
+            return true;
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
@@ -206,6 +261,37 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
                 pGuiGraphics.pose(),
                 x + 148, y + 9, 60, 60
         );
+
+        // Render ME access toggle button
+        renderMeAccessButton(pGuiGraphics, x, y, pMouseX, pMouseY);
+    }
+
+    private void renderMeAccessButton(GuiGraphics guiGraphics, int guiX, int guiY, int mouseX, int mouseY) {
+        if (!ModUtil.isAe2Loaded()) return;
+        int btnX = guiX + ME_BTN_REL_X;
+        int btnY = guiY + ME_BTN_REL_Y;
+
+        // Draw button background with border
+        int bgColor = meAccessEnabled ? 0xFF00AA00 : 0xFF555555;
+        int innerColor = meAccessEnabled ? 0xFF003300 : 0xFF222222;
+        guiGraphics.fill(btnX - 1, btnY - 1, btnX + ME_BTN_SIZE + 1, btnY + ME_BTN_SIZE + 1, bgColor);
+        guiGraphics.fill(btnX, btnY, btnX + ME_BTN_SIZE, btnY + ME_BTN_SIZE, innerColor);
+
+        // Render the wireless terminal item icon
+        if (!meIconStack.isEmpty()) {
+            guiGraphics.renderItem(meIconStack, btnX, btnY);
+        }
+
+        // Render tooltip on hover
+        if (mouseX >= btnX && mouseX < btnX + ME_BTN_SIZE && mouseY >= btnY && mouseY < btnY + ME_BTN_SIZE) {
+            String stateKey = meAccessEnabled ? "gui.mbtool.me_access.enabled" : "gui.mbtool.me_access.disabled";
+            ChatFormatting color = meAccessEnabled ? ChatFormatting.GREEN : ChatFormatting.RED;
+            guiGraphics.renderTooltip(this.font,
+                List.of(Component.translatable("gui.mbtool.me_access"),
+                        Component.translatable("gui.mbtool.me_access.descr").withStyle(ChatFormatting.GOLD),
+                        Component.translatable(stateKey).withStyle(color)),
+                Optional.empty(), mouseX, mouseY);
+        }
     }
 
     @Override
