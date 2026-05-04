@@ -42,5 +42,11 @@ public class NetworkHandler {
             DismantleStructurePacket.STREAM_CODEC,
             DismantleStructurePacket::handle
         );
+
+        registrar.playToServer(
+            ToggleMeAccessPacket.TYPE,
+            ToggleMeAccessPacket.STREAM_CODEC,
+            ToggleMeAccessPacket::handle
+        );
     }
 }

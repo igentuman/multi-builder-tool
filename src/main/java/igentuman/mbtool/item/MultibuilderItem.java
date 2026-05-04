@@ -509,4 +509,8 @@ public class MultibuilderItem extends Item {
             player.initInventoryMenu();
         }
     }
+
+    public boolean isMeAccessAllowed(ItemStack multibuilderStack) {
+        return multibuilderStack.getOrDefault(MbtoolDataComponents.ME_ACCESS.get(), false);
+    }
 }

@@ -1,7 +1,5 @@
 package igentuman.mbtool;
 
-import igentuman.mbtool.client.screen.MultibuilderScreen;
-import igentuman.mbtool.client.screen.MultibuilderSelectStructureScreen;
 import igentuman.mbtool.config.MbtoolConfig;
 import igentuman.mbtool.container.MultibuilderContainer;
 import igentuman.mbtool.container.MultibuilderSelectStructureContainer;
@@ -10,26 +8,18 @@ import igentuman.mbtool.registration.MbtoolDataComponents;
 import igentuman.mbtool.util.MultiblocksProvider;
 import igentuman.mbtool.util.BlockEquivalencyManager;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
-import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.config.ModConfigEvent;
-import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
-import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.capabilities.Capabilities;
-import net.neoforged.neoforge.capabilities.ItemCapability;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
-import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.common.extensions.IMenuTypeExtension;
 import net.neoforged.neoforge.event.AddReloadListenerEvent;
@@ -110,20 +100,5 @@ public class Mbtool
     }
     public static ResourceLocation rl(String name) {
         return ResourceLocation.fromNamespaceAndPath(MODID, name);
-    }
-
-    @EventBusSubscriber(modid = MODID, value = Dist.CLIENT)
-    public static class ClientModEvents {
-        @SubscribeEvent
-        public static void onClientSetup(FMLClientSetupEvent event) {
-        }
-
-        @SubscribeEvent
-        public static void onRegisterScreens(RegisterMenuScreensEvent event) {
-            event.register(MULTIBUILDER_CONTAINER.get(), MultibuilderScreen::new);
-            event.register(MULTIBUILDER_STRUCTURE_CONTAINER.get(),
-                    (MultibuilderSelectStructureContainer container, Inventory inventory, Component title) ->
-                            new MultibuilderSelectStructureScreen(container, inventory, title));
-        }
     }
 }

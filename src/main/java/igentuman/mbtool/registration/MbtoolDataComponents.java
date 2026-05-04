@@ -20,6 +20,7 @@ public class MbtoolDataComponents {
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<Integer>> ENERGY = register("energy", builder -> builder.persistent(ExtraCodecs.NON_NEGATIVE_INT));
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<CompoundTag>> INVENTORY = register("inventory", builder -> builder.persistent(CompoundTag.CODEC));
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<CompoundTag>> PLACED_STRUCTURES = register("placed_structures", builder -> builder.persistent(CompoundTag.CODEC));
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<Boolean>> ME_ACCESS = register("me_access", builder -> builder.persistent(com.mojang.serialization.Codec.BOOL));
 
     private static <T> DeferredHolder<DataComponentType<?>, DataComponentType<T>> register(String name, UnaryOperator<DataComponentType.Builder<T>> builder) {
         return DATA_COMPONENT_TYPES.register(name, () -> builder.apply(DataComponentType.builder()).build());

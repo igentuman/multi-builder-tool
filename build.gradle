@@ -92,7 +92,7 @@ dependencies {
     implementation "dev.architectury:architectury-neoforge:${architectury_version}"
 
     implementation "curse.maven:emi-580555:6420931"
-
+    implementation "curse.maven:curios-309927:6529130"
     compileOnly "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
     compileOnly "mezz.jei:jei-${minecraft_version}-common-api:${jei_version}"
     compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}"
@@ -103,6 +103,9 @@ dependencies {
     implementation "dev.latvian.mods:kubejs-neoforge:${kubejs_version}"
     implementation "curse.maven:rhino-416294:6886923"
 
+    implementation "curse.maven:applied-energistics-2-223794:7027323"
+    implementation "curse.maven:guideme-1173950:7127444"
+    implementation "curse.maven:applied-energistics-2-wireless-terminals-459929:7693114"
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
     testImplementation 'org.mockito:mockito-core:5.11.0'
