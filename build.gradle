@@ -22,6 +22,7 @@ neoForge {
             systemProperty 'forge.logging.markers', 'REGISTRIES'
             systemProperty 'forge.logging.console.level', 'debug'
             systemProperty 'neoforge.enabledGameTestNamespaces', 'mbtool'
+            programArguments.addAll '--width', '1920', '--height', '1080'
         }
 
         server {
@@ -47,6 +48,7 @@ neoForge {
 sourceSets.main.resources { srcDir 'src/generated/resources' }
 
 repositories {
+    flatDir { dirs 'libs' }
     maven { url "https://minecraft.curseforge.com/api/maven/" }
     maven { url "https://maven.blamejared.com" }
     maven { url "https://jitpack.io" }
@@ -103,6 +105,10 @@ dependencies {
     implementation "dev.latvian.mods:kubejs-neoforge:${kubejs_version}"
     implementation "curse.maven:rhino-416294:6886923"
 
+    implementation "curse.maven:patchouli-306770:7730942"
+
+    implementation files("libs/nuclearcraftneohaul-1.21.1-0.9.11.jar")
+    implementation "curse.maven:terrablender-neoforge-940057:6054947"
     implementation "curse.maven:applied-energistics-2-223794:7027323"
     implementation "curse.maven:guideme-1173950:7127444"
     implementation "curse.maven:applied-energistics-2-wireless-terminals-459929:7693114"

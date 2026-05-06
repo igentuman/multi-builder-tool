@@ -1,6 +1,7 @@
 package igentuman.mbtool.item;
 
 import igentuman.mbtool.Mbtool;
+import igentuman.mbtool.integration.ae2.AE2Helper;
 import igentuman.mbtool.util.MultiblocksProvider;
 import igentuman.mbtool.config.MbtoolConfig;
 import igentuman.mbtool.container.MultibuilderContainer;
@@ -466,6 +467,9 @@ public class MultibuilderItem extends Item {
         if(delay > 0) {
             delay--;
         }
+        if(ModUtil.isAe2Loaded() && pEntity instanceof ServerPlayer player) {
+            AE2Helper.tickJobs(player);
+        }
     }
     
     /**
@@ -512,5 +516,13 @@ public class MultibuilderItem extends Item {
 
     public boolean isMeAccessAllowed(ItemStack multibuilderStack) {
         return multibuilderStack.getOrDefault(MbtoolDataComponents.ME_ACCESS.get(), false);
+    }
+
+    public static boolean isMeAutocraftingEnabled(ItemStack stack) {
+        return stack.getOrDefault(MbtoolDataComponents.ME_AUTOCRAFTING.get(), false);
+    }
+
+    public static void setMeAutocraftingEnabled(ItemStack stack, boolean enabled) {
+        stack.set(MbtoolDataComponents.ME_AUTOCRAFTING.get(), enabled);
     }
 }

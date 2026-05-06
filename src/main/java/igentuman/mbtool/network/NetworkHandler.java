@@ -48,5 +48,11 @@ public class NetworkHandler {
             ToggleMeAccessPacket.STREAM_CODEC,
             ToggleMeAccessPacket::handle
         );
+
+        registrar.playToServer(
+            ToggleMeAutocraftPacket.TYPE,
+            ToggleMeAutocraftPacket.STREAM_CODEC,
+            ToggleMeAutocraftPacket::handle
+        );
     }
 }

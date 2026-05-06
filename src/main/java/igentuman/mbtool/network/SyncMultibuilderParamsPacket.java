@@ -102,7 +102,13 @@ public class SyncMultibuilderParamsPacket implements CustomPacketPayload {
                 player.level(), player, itemStack, structure, buildPos, this.rotation);
             
             // Send result message to player
-            player.sendSystemMessage(result.getMessage());
+            if (result.isShowAsTitle()) {
+                player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket(Component.empty()));
+                player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket(result.getMessage()));
+                player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetTitlesAnimationPacket(10, 70, 20));
+            } else {
+                player.sendSystemMessage(result.getMessage());
+            }
         });
     }
     
