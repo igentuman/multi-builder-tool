@@ -1,6 +1,7 @@
 package igentuman.mbtool.network;
 
 import igentuman.mbtool.Mbtool;
+import igentuman.mbtool.config.MbtoolConfig;
 import igentuman.mbtool.item.MultibuilderItem;
 import igentuman.mbtool.registration.MbtoolDataComponents;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -45,6 +46,8 @@ public class ToggleMeAccessPacket implements CustomPacketPayload {
 
     public void handle(IPayloadContext context) {
         context.enqueueWork(() -> {
+            if (!MbtoolConfig.isAe2IntegrationEnabled()) return;
+
             ServerPlayer player = (ServerPlayer) context.player();
             if (player == null) return;
 

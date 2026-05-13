@@ -54,5 +54,17 @@ public class NetworkHandler {
             ToggleMeAutocraftPacket.STREAM_CODEC,
             ToggleMeAutocraftPacket::handle
         );
+
+        registrar.playToServer(
+            PacketAE2PatternTransfer.TYPE,
+            PacketAE2PatternTransfer.STREAM_CODEC,
+            PacketAE2PatternTransfer::handle
+        );
+
+        registrar.playToServer(
+            PacketJeiRecipeTransfer.TYPE,
+            PacketJeiRecipeTransfer.STREAM_CODEC,
+            PacketJeiRecipeTransfer::handle
+        );
     }
 }

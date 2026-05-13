@@ -1,6 +1,7 @@
 package igentuman.mbtool.network;
 
 import igentuman.mbtool.Mbtool;
+import igentuman.mbtool.integration.jei.JEIPlugin;
 import igentuman.mbtool.util.MultiblockStructure;
 import igentuman.mbtool.util.MultiblocksProvider;
 import net.minecraft.nbt.CompoundTag;
@@ -9,6 +10,7 @@ import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
+import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public class SyncSingleStructurePacket implements CustomPacketPayload {
@@ -101,6 +103,9 @@ public class SyncSingleStructurePacket implements CustomPacketPayload {
             
             if (this.isLast) {
                 System.out.println("All structures synced successfully! Total: " + this.total);
+                if (ModList.get().isLoaded("jei")) {
+                    JEIPlugin.updateRecipes();
+                }
             }
         });
     }

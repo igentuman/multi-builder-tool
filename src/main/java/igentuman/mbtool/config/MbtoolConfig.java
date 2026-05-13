@@ -15,6 +15,9 @@ public class MbtoolConfig {
     public static final ModConfigSpec.ConfigValue<Integer> ENERGY_PER_BLOCK;
     //public static final ModConfigSpec.ConfigValue<Boolean> AUTOMATICALLY_ADD_MM_STRUCTURES;
 
+    // Integration Configuration
+    public static final ModConfigSpec.ConfigValue<Boolean> AE2_INTEGRATION;
+
     // Block Replacement Configuration
     public static final ModConfigSpec.ConfigValue<java.util.List<? extends String>> BLOCK_EQUIVALENCY_SETS;
     
@@ -36,7 +39,17 @@ public class MbtoolConfig {
                 .defineInRange("energyPerBlock", 100, 1, 10000);
         
         BUILDER.pop();
-        
+
+        BUILDER.push("Integration Settings");
+
+        AE2_INTEGRATION = BUILDER
+                .comment("Enable integration with AE2 ME network via wireless terminal.",
+                        "If disabled, the ME access button will not be shown in the GUI",
+                        "and network packets to toggle ME integration will be ignored.")
+                .define("ae2Integration", true);
+
+        BUILDER.pop();
+
         BUILDER.push("Block Replacement Settings");
         
         BLOCK_EQUIVALENCY_SETS = BUILDER
@@ -83,5 +96,9 @@ public class MbtoolConfig {
     
     public static java.util.List<? extends String> getBlockEquivalencySets() {
         return BLOCK_EQUIVALENCY_SETS.get();
+    }
+
+    public static boolean isAe2IntegrationEnabled() {
+        return AE2_INTEGRATION.get();
     }
 }

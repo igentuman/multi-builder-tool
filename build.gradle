@@ -92,10 +92,10 @@ dependencies {
     compileOnly "curse.maven:gregtechceu-modern-890405:6766269"
 
     implementation "dev.architectury:architectury-neoforge:${architectury_version}"
-
-    implementation "curse.maven:emi-580555:6420931"
+    runtimeOnly "curse.maven:ctm-267602:5587515"
+    compileOnly "curse.maven:emi-580555:6420931"
     implementation "curse.maven:curios-309927:6529130"
-    compileOnly "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
+    implementation "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
     compileOnly "mezz.jei:jei-${minecraft_version}-common-api:${jei_version}"
     compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}"
 

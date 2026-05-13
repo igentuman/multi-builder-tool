@@ -1,6 +1,7 @@
 package igentuman.mbtool.client.screen;
 
 import igentuman.mbtool.client.render.MultiblockRenderer;
+import igentuman.mbtool.config.MbtoolConfig;
 import igentuman.mbtool.container.MultibuilderContainer;
 import igentuman.mbtool.container.MultibuilderSelectStructureContainer;
 import igentuman.mbtool.item.MultibuilderItem;
@@ -91,7 +92,7 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
     }
     
     private void loadMeAccessState() {
-        if (!ModUtil.isAe2Loaded()) return;
+        if (!ModUtil.isAe2Loaded() || !MbtoolConfig.isAe2IntegrationEnabled()) return;
         if (this.minecraft != null && this.minecraft.player != null) {
             Player player = this.minecraft.player;
             ItemStack multibuilderStack = player.getInventory().getItem(player.getInventory().selected);
@@ -102,7 +103,7 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
     }
 
     private void loadMeAutocraftState() {
-        if (!ModUtil.isAe2Loaded()) return;
+        if (!ModUtil.isAe2Loaded() || !MbtoolConfig.isAe2IntegrationEnabled()) return;
         if (this.minecraft != null && this.minecraft.player != null) {
             Player player = this.minecraft.player;
             ItemStack multibuilderStack = player.getInventory().getItem(player.getInventory().selected);
@@ -137,7 +138,7 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
         int btnX = this.leftPos + ME_BTN_REL_X;
         int btnY = this.topPos + ME_BTN_REL_Y;
         if (button == 0 && mouseX >= btnX && mouseX < btnX + ME_BTN_SIZE && mouseY >= btnY && mouseY < btnY + ME_BTN_SIZE) {
-            if (!ModUtil.isAe2Loaded()) return super.mouseClicked(mouseX, mouseY, button);
+            if (!ModUtil.isAe2Loaded() || !MbtoolConfig.isAe2IntegrationEnabled()) return super.mouseClicked(mouseX, mouseY, button);
             meAccessEnabled = !meAccessEnabled;
             // Send packet to server
             if (this.minecraft != null && this.minecraft.player != null) {
@@ -156,7 +157,7 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
             int acBtnX = this.leftPos + AUTOCRAFT_BTN_REL_X;
             int acBtnY = this.topPos + AUTOCRAFT_BTN_REL_Y;
             if (button == 0 && mouseX >= acBtnX && mouseX < acBtnX + ME_BTN_SIZE && mouseY >= acBtnY && mouseY < acBtnY + ME_BTN_SIZE) {
-                if (!ModUtil.isAe2Loaded()) return super.mouseClicked(mouseX, mouseY, button);
+                if (!ModUtil.isAe2Loaded() || !MbtoolConfig.isAe2IntegrationEnabled()) return super.mouseClicked(mouseX, mouseY, button);
                 meAutocraftEnabled = !meAutocraftEnabled;
                 if (this.minecraft != null && this.minecraft.player != null) {
                     Player player = this.minecraft.player;
@@ -222,7 +223,7 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
     }
 
     private void renderMeAccessButton(GuiGraphics guiGraphics, int guiX, int guiY, int mouseX, int mouseY) {
-        if (!ModUtil.isAe2Loaded()) return;
+        if (!ModUtil.isAe2Loaded() || !MbtoolConfig.isAe2IntegrationEnabled()) return;
         int btnX = guiX + ME_BTN_REL_X;
         int btnY = guiY + ME_BTN_REL_Y;
 
@@ -250,7 +251,7 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
     }
 
     private void renderAutocraftButton(GuiGraphics guiGraphics, int guiX, int guiY, int mouseX, int mouseY) {
-        if (!ModUtil.isAe2Loaded()) return;
+        if (!ModUtil.isAe2Loaded() || !MbtoolConfig.isAe2IntegrationEnabled()) return;
         int btnX = guiX + AUTOCRAFT_BTN_REL_X;
         int btnY = guiY + AUTOCRAFT_BTN_REL_Y;
 
