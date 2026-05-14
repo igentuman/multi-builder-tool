@@ -92,5 +92,21 @@
     "message.mbtool.dismantle_protected": "无法在受保护区域拆除结构",
     "message.mbtool.block_not_part_of_structure": "此方块不是该结构的一部分",
     "message.mbtool.hold_f_to_dismantle": "按住 F 键拆除",
-    "message.mbtool.insufficient_inventory_space": "多方块建造工具物品栏中没有足够的空间存放结构物品"
+    "message.mbtool.insufficient_inventory_space": "多方块建造工具物品栏中没有足够的空间存放结构物品",
+    "gui.mbtool.me_access": "使用 ME 无线库存",
+    "gui.mbtool.me_access.descr": "需要玩家物品栏中有无线终端。",
+    "gui.mbtool.me_access.enabled": "已启用",
+    "gui.mbtool.me_access.disabled": "已禁用",
+    "gui.mbtool.me_autocraft": "自动合成缺失方块",
+    "gui.mbtool.me_autocraft.descr": "建造时为缺失方块请求 ME 自动合成。",
+    "gui.mbtool.me_autocraft.enabled": "已启用",
+    "gui.mbtool.me_autocraft.disabled": "已禁用",
+    "message.mbtool.autocrafting_requested": "缺失方块已请求合成",
+    "message.mbtool.crafting_in_progress": "正在合成方块，请稍候...",
+    "message.mbtool.autocrafting_no_pattern": "无法自动合成，没有 %s 的合成样板",
+    "message.mbtool.autocrafting_failed": "自动合成请求失败",
+    "message.mbtool.autocrafting_missing_ingredients": "%s 的自动合成失败：缺少材料",
+    "message.mbtool.autocrafting_no_grid": "自动合成失败：ME 网络不可用",
+    "message.mbtool.autocrafting_cpu_busy": "%s 的自动合成失败：所有合成 CPU 均繁忙",
+    "gui.mbtool.me_autocraft.notice": "实验性功能。如遇问题请报告 Bug"
 }

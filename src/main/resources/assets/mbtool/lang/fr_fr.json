@@ -92,5 +92,21 @@
   "message.mbtool.dismantle_protected": "Impossible de démonter la structure dans une zone protégée",
   "message.mbtool.block_not_part_of_structure": "Ce bloc ne fait pas partie de la structure",
   "message.mbtool.hold_f_to_dismantle": "Maintenez F pour démonter",
-  "message.mbtool.insufficient_inventory_space": "Pas assez d'espace pour les objets de structure dans l'inventaire de l'Outil Multi-constructeur"
+  "message.mbtool.insufficient_inventory_space": "Pas assez d'espace pour les objets de structure dans l'inventaire de l'Outil Multi-constructeur",
+  "gui.mbtool.me_access": "Utiliser l'inventaire sans fil ME",
+  "gui.mbtool.me_access.descr": "Nécessite que le joueur ait un terminal sans fil dans son inventaire.",
+  "gui.mbtool.me_access.enabled": "Activé",
+  "gui.mbtool.me_access.disabled": "Désactivé",
+  "gui.mbtool.me_autocraft": "Fabriquer automatiquement les blocs manquants",
+  "gui.mbtool.me_autocraft.descr": "Demander la fabrication automatique ME pour les blocs manquants lors de la construction.",
+  "gui.mbtool.me_autocraft.enabled": "Activé",
+  "gui.mbtool.me_autocraft.disabled": "Désactivé",
+  "message.mbtool.autocrafting_requested": "Les blocs manquants ont été demandés pour fabrication",
+  "message.mbtool.crafting_in_progress": "Fabrication des blocs en cours, veuillez patienter...",
+  "message.mbtool.autocrafting_no_pattern": "Fabrication automatique impossible, aucun modèle pour %s",
+  "message.mbtool.autocrafting_failed": "La demande de fabrication automatique a échoué",
+  "message.mbtool.autocrafting_missing_ingredients": "Fabrication automatique de %s échouée : ingrédients manquants",
+  "message.mbtool.autocrafting_no_grid": "Fabrication automatique échouée : réseau ME non disponible",
+  "message.mbtool.autocrafting_cpu_busy": "Fabrication automatique de %s échouée : tous les CPU de fabrication sont occupés",
+  "gui.mbtool.me_autocraft.notice": "Expérimental. Signalez les bugs en cas de problèmes"
 }

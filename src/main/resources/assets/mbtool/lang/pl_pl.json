@@ -92,5 +92,21 @@
   "message.mbtool.dismantle_protected": "Nie można zdemontować struktury w chronionym obszarze",
   "message.mbtool.block_not_part_of_structure": "Ten blok nie jest częścią struktury",
   "message.mbtool.hold_f_to_dismantle": "Przytrzymaj F, aby zdemontować",
-  "message.mbtool.insufficient_inventory_space": "Za mało miejsca na przedmioty struktury w ekwipunku Narzędzia Multi-budowniczy"
+  "message.mbtool.insufficient_inventory_space": "Za mało miejsca na przedmioty struktury w ekwipunku Narzędzia Multi-budowniczy",
+  "gui.mbtool.me_access": "Użyj bezprzewodowego ekwipunku ME",
+  "gui.mbtool.me_access.descr": "Wymaga posiadania bezprzewodowego terminala w ekwipunku gracza.",
+  "gui.mbtool.me_access.enabled": "Włączone",
+  "gui.mbtool.me_access.disabled": "Wyłączone",
+  "gui.mbtool.me_autocraft": "Automatyczne wytwarzanie brakujących bloków",
+  "gui.mbtool.me_autocraft.descr": "Żądaj automatycznego wytwarzania ME dla brakujących bloków podczas budowy.",
+  "gui.mbtool.me_autocraft.enabled": "Włączone",
+  "gui.mbtool.me_autocraft.disabled": "Wyłączone",
+  "message.mbtool.autocrafting_requested": "Brakujące bloki zostały zlecone do wytworzenia",
+  "message.mbtool.crafting_in_progress": "Wytwarzanie bloków, proszę czekać...",
+  "message.mbtool.autocrafting_no_pattern": "Automatyczne wytwarzanie niemożliwe, brak wzorca dla %s",
+  "message.mbtool.autocrafting_failed": "Żądanie automatycznego wytwarzania nie powiodło się",
+  "message.mbtool.autocrafting_missing_ingredients": "Automatyczne wytwarzanie %s nie powiodło się: brakujące składniki",
+  "message.mbtool.autocrafting_no_grid": "Automatyczne wytwarzanie nie powiodło się: sieć ME niedostępna",
+  "message.mbtool.autocrafting_cpu_busy": "Automatyczne wytwarzanie %s nie powiodło się: wszystkie procesory wytwarzania są zajęte",
+  "gui.mbtool.me_autocraft.notice": "Eksperymentalne. Zgłaszaj błędy w razie problemów"
 }

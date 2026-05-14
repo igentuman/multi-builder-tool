@@ -92,5 +92,21 @@
   "message.mbtool.dismantle_protected": "Impossibile smantellare la struttura in area protetta",
   "message.mbtool.block_not_part_of_structure": "Questo blocco non fa parte della struttura",
   "message.mbtool.hold_f_to_dismantle": "Tieni premuto F per smantellare",
-  "message.mbtool.insufficient_inventory_space": "Spazio insufficiente per gli oggetti della struttura nell'inventario dello Strumento Multi-costruttore"
+  "message.mbtool.insufficient_inventory_space": "Spazio insufficiente per gli oggetti della struttura nell'inventario dello Strumento Multi-costruttore",
+  "gui.mbtool.me_access": "Usa inventario wireless ME",
+  "gui.mbtool.me_access.descr": "Richiede che il giocatore abbia un terminale wireless nell'inventario.",
+  "gui.mbtool.me_access.enabled": "Attivato",
+  "gui.mbtool.me_access.disabled": "Disattivato",
+  "gui.mbtool.me_autocraft": "Produci automaticamente blocchi mancanti",
+  "gui.mbtool.me_autocraft.descr": "Richiedi la produzione automatica ME per i blocchi mancanti durante la costruzione.",
+  "gui.mbtool.me_autocraft.enabled": "Attivato",
+  "gui.mbtool.me_autocraft.disabled": "Disattivato",
+  "message.mbtool.autocrafting_requested": "I blocchi mancanti sono stati richiesti per la produzione",
+  "message.mbtool.crafting_in_progress": "Produzione blocchi in corso, attendere...",
+  "message.mbtool.autocrafting_no_pattern": "Produzione automatica non possibile, nessun modello per %s",
+  "message.mbtool.autocrafting_failed": "Richiesta di produzione automatica fallita",
+  "message.mbtool.autocrafting_missing_ingredients": "Produzione automatica di %s fallita: ingredienti mancanti",
+  "message.mbtool.autocrafting_no_grid": "Produzione automatica fallita: rete ME non disponibile",
+  "message.mbtool.autocrafting_cpu_busy": "Produzione automatica di %s fallita: tutte le CPU di produzione sono occupate",
+  "gui.mbtool.me_autocraft.notice": "Sperimentale. Segnala bug in caso di problemi"
 }

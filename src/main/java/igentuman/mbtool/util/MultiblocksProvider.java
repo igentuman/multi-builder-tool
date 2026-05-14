@@ -30,6 +30,7 @@ public class MultiblocksProvider implements PreparableReloadListener {
 
     public static List<MultiblockStructure> structures = new ArrayList<>();
     private static MultiblocksProvider INSTANCE = new MultiblocksProvider();
+    private static Runnable onStructuresChangedCallback = null;
 
     public static MultiblocksProvider getInstance() {
         return INSTANCE;
@@ -38,15 +39,21 @@ public class MultiblocksProvider implements PreparableReloadListener {
     public static List<MultiblockStructure> getStructures() {
         return structures;
     }
-    
-    /**
-     * Sets the structures list. Used for client-side synchronization.
-     * @param newStructures The new structures to set
-     */
+
+    public static void setOnStructuresChangedCallback(Runnable callback) {
+        onStructuresChangedCallback = callback;
+    }
+
+    public static void notifyStructuresChanged() {
+        if (onStructuresChangedCallback != null) {
+            onStructuresChangedCallback.run();
+        }
+    }
+
     public static void setStructures(List<MultiblockStructure> newStructures) {
         structures.clear();
-
         structures.addAll(newStructures);
+        notifyStructuresChanged();
     }
 
     @Override

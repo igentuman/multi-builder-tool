@@ -69,19 +69,14 @@ public class SyncSingleStructurePacket {
                 packet.name
             );
             
-            // If this is the first structure, clear the list
             if (packet.index == 0) {
                 MultiblocksProvider.getStructures().clear();
             }
             
-            // Add the structure to the client's list
             MultiblocksProvider.getStructures().add(structure);
             
-            // Log progress
-            System.out.println("Synced structure " + (packet.index + 1) + "/" + packet.total + ": " + packet.name);
-            
             if (packet.isLast) {
-                System.out.println("All structures synced successfully! Total: " + packet.total);
+                MultiblocksProvider.notifyStructuresChanged();
             }
         });
         context.setPacketHandled(true);

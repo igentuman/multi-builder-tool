@@ -77,7 +77,11 @@ public class SyncRuntimeStructurePacket {
             
             // Send result message to player
             if(result.getMessage() != null) {
-                //player.sendSystemMessage(result.getMessage());
+                if (result.isShowAsTitle()) {
+                    player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket(Component.empty()));
+                    player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket(result.getMessage()));
+                    player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetTitlesAnimationPacket(10, 70, 20));
+                }
             }
         });
         context.setPacketHandled(true);

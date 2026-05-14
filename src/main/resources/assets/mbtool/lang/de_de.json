@@ -92,5 +92,21 @@
   "message.mbtool.dismantle_protected": "Kann Struktur in geschütztem Bereich nicht abbauen",
   "message.mbtool.block_not_part_of_structure": "Dieser Block ist nicht Teil der Struktur",
   "message.mbtool.hold_f_to_dismantle": "Halte F zum Abbauen",
-  "message.mbtool.insufficient_inventory_space": "Nicht genug Platz für Strukturgegenstände im Multibau-Werkzeug-Inventar"
+  "message.mbtool.insufficient_inventory_space": "Nicht genug Platz für Strukturgegenstände im Multibau-Werkzeug-Inventar",
+  "gui.mbtool.me_access": "ME Drahtloses Inventar verwenden",
+  "gui.mbtool.me_access.descr": "Erfordert, dass der Spieler ein drahtloses Terminal im Inventar hat.",
+  "gui.mbtool.me_access.enabled": "Aktiviert",
+  "gui.mbtool.me_access.disabled": "Deaktiviert",
+  "gui.mbtool.me_autocraft": "Fehlende Blöcke autom. herstellen",
+  "gui.mbtool.me_autocraft.descr": "ME-Autoherstelling für fehlende Blöcke beim Bauen anfordern.",
+  "gui.mbtool.me_autocraft.enabled": "Aktiviert",
+  "gui.mbtool.me_autocraft.disabled": "Deaktiviert",
+  "message.mbtool.autocrafting_requested": "Fehlende Blöcke wurden zur Herstellung angefordert",
+  "message.mbtool.crafting_in_progress": "Blöcke werden hergestellt, bitte warten...",
+  "message.mbtool.autocrafting_no_pattern": "Autoherstellung nicht möglich, kein Muster für %s",
+  "message.mbtool.autocrafting_failed": "Autoherstellungsanfrage fehlgeschlagen",
+  "message.mbtool.autocrafting_missing_ingredients": "Autoherstellung für %s fehlgeschlagen: fehlende Zutaten",
+  "message.mbtool.autocrafting_no_grid": "Autoherstellung fehlgeschlagen: ME-Netzwerk nicht verfügbar",
+  "message.mbtool.autocrafting_cpu_busy": "Autoherstellung für %s fehlgeschlagen: alle Herstellungs-CPUs sind ausgelastet",
+  "gui.mbtool.me_autocraft.notice": "Experimentell. Bitte Fehler melden, falls Probleme auftreten"
 }

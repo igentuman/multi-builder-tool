@@ -3,6 +3,7 @@ package igentuman.mbtool.util;
 import igentuman.mbtool.config.MbtoolConfig;
 import igentuman.mbtool.integration.ae2.AE2Helper;
 import igentuman.mbtool.item.MultibuilderItem;
+import java.util.ArrayList;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
@@ -71,42 +72,52 @@ public class MultiblockBuilder {
             }
             
             Map<Block, Integer> availableBlocks = countAvailableBlocks(inventory);
-            
+            Map<Block, Integer> missingBlocks = new HashMap<>();
+
             for (Map.Entry<Block, Integer> entry : requiredBlocks.entrySet()) {
                 Block requiredBlock = entry.getKey();
                 int required = entry.getValue();
-                
+
                 // Try to find a replacement block (including the original block)
                 Block replacementBlock = BlockEquivalencyManager.findReplacement(requiredBlock, availableBlocks);
-                
+
                 if (replacementBlock == null) {
                     if(!isAllowedMEAccess(multibuilderStack) || !AE2Helper.hasAe2Terminal((ServerPlayer) player)) {
                         return new BuildResult(false, Component.translatable("message.mbtool.insufficient_blocks",
                                 required, requiredBlock.getName()));
                     } else {
-                        if(!isAllowedMEAccess(multibuilderStack) || !AE2Helper.hasEnough((ServerPlayer) player, requiredBlock, required)) {
-                            return new BuildResult(false, Component.translatable("message.mbtool.insufficient_blocks",
-                                    required, requiredBlock.getName()));
+                        if(!AE2Helper.hasEnough((ServerPlayer) player, requiredBlock, required)) {
+                            missingBlocks.put(requiredBlock, required);
                         }
                     }
-                }
-                
-                int available = availableBlocks.getOrDefault(replacementBlock, 0);
-                if (available < required) {
-                    if(!isAllowedMEAccess(multibuilderStack) || !AE2Helper.hasAe2Terminal((ServerPlayer) player)) {
-                        return new BuildResult(false, Component.translatable("message.mbtool.insufficient_blocks",
-                                required - available, requiredBlock.getName()));
-                    }
-                    else {
-                        if(!isAllowedMEAccess(multibuilderStack) || !AE2Helper.hasEnough((ServerPlayer) player, requiredBlock, required - available)) {
+                } else {
+                    int available = availableBlocks.getOrDefault(replacementBlock, 0);
+                    if (available < required) {
+                        if(!isAllowedMEAccess(multibuilderStack) || !AE2Helper.hasAe2Terminal((ServerPlayer) player)) {
                             return new BuildResult(false, Component.translatable("message.mbtool.insufficient_blocks",
                                     required - available, requiredBlock.getName()));
+                        } else {
+                            if(!AE2Helper.hasEnough((ServerPlayer) player, requiredBlock, required - available)) {
+                                missingBlocks.put(requiredBlock, required - available);
+                            }
                         }
                     }
                 }
-                
+
                 // Store the replacement mapping
                 blockReplacements.put(requiredBlock, replacementBlock);
+            }
+
+            // If there are missing blocks, attempt autocrafting if enabled
+            if (!missingBlocks.isEmpty()) {
+                if (isMeAutocraftingEnabled(multibuilderStack)) {
+                    return attemptAutocrafting((ServerPlayer) player, missingBlocks);
+                } else {
+                    // Return error for the first missing block
+                    Map.Entry<Block, Integer> first = missingBlocks.entrySet().iterator().next();
+                    return new BuildResult(false, Component.translatable("message.mbtool.insufficient_blocks",
+                            first.getValue(), first.getKey().getName()));
+                }
             }
         }
         
@@ -235,6 +246,55 @@ public class MultiblockBuilder {
         
         return new BuildResult(true, Component.translatable("message.mbtool.multiblock_built", 
             blocksPlaced, Component.translatable(structure.getName())));
+    }
+
+    private static boolean isMeAutocraftingEnabled(ItemStack multibuilderStack) {
+        if (!ModUtil.isAe2Loaded()) return false;
+        return MultibuilderItem.isMeAutocraftingEnabled(multibuilderStack);
+    }
+
+    /**
+     * Attempts to request autocrafting for all missing blocks via the ME network.
+     * This method is fully non-blocking — it starts async calculations and polls
+     * for results on subsequent build attempts.
+     */
+    private static BuildResult attemptAutocrafting(ServerPlayer player, Map<Block, Integer> missingBlocks) {
+        boolean anyCalculating = false;
+        boolean anySubmitted = false;
+        boolean anyNewlyStarted = false;
+        java.util.List<Block> unrequestable = new ArrayList<>();
+
+        for (Map.Entry<Block, Integer> missing : missingBlocks.entrySet()) {
+            Block block = missing.getKey();
+            int amount = missing.getValue();
+
+            // First, check if there's already a tracked request for this block
+            if (AutocraftTracker.hasActiveRequest(player.getUUID(), block)) {
+                continue;
+            }
+
+            // No existing request — start a new async calculation
+            AE2Helper.AutocraftResult result = AE2Helper.startCraftingCalculation(player, block, amount);
+            if (result == AE2Helper.AutocraftResult.CALCULATING) {
+                anyNewlyStarted = true;
+            } else if (result == AE2Helper.AutocraftResult.ALREADY_REQUESTING) {
+                anySubmitted = true; // ME network is already crafting this
+            } else if (result == AE2Helper.AutocraftResult.NO_PATTERN) {
+                unrequestable.add(block);
+            }
+            // NO_GRID, FAILED — silently skip, will be reported below
+        }
+
+        if (!unrequestable.isEmpty()) {
+            return new BuildResult(false, Component.translatable("message.mbtool.autocrafting_no_pattern",
+                    unrequestable.get(0).getName()));
+        } else if (anyCalculating || anyNewlyStarted) {
+            return new BuildResult(false, Component.translatable("message.mbtool.crafting_in_progress"), true);
+        } else if (anySubmitted) {
+            return new BuildResult(false, Component.translatable("message.mbtool.autocrafting_requested"));
+        }
+
+        return new BuildResult(false, Component.translatable("message.mbtool.autocrafting_failed"));
     }
 
     private static boolean isAllowedMEAccess(ItemStack multibuilderStack) {
@@ -612,18 +672,28 @@ public class MultiblockBuilder {
     public static class BuildResult {
         private final boolean success;
         private final Component message;
-        
+        private final boolean showAsTitle;
+
         public BuildResult(boolean success, Component message) {
+            this(success, message, false);
+        }
+
+        public BuildResult(boolean success, Component message, boolean showAsTitle) {
             this.success = success;
             this.message = message;
+            this.showAsTitle = showAsTitle;
         }
-        
+
         public boolean isSuccess() {
             return success;
         }
-        
+
         public Component getMessage() {
             return message;
+        }
+
+        public boolean isShowAsTitle() {
+            return showAsTitle;
         }
     }
 }

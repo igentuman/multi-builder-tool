@@ -59,5 +59,23 @@ public class NetworkHandler {
             .decoder(ToggleMeAccessPacket::decode)
             .consumerMainThread(ToggleMeAccessPacket::handle)
             .add();
+
+        INSTANCE.messageBuilder(ToggleMeAutocraftPacket.class, packetId++)
+            .encoder(ToggleMeAutocraftPacket::encode)
+            .decoder(ToggleMeAutocraftPacket::decode)
+            .consumerMainThread(ToggleMeAutocraftPacket::handle)
+            .add();
+
+        INSTANCE.messageBuilder(PacketJeiRecipeTransfer.class, packetId++)
+            .encoder(PacketJeiRecipeTransfer::encode)
+            .decoder(PacketJeiRecipeTransfer::decode)
+            .consumerMainThread(PacketJeiRecipeTransfer::handle)
+            .add();
+
+        INSTANCE.messageBuilder(PacketAE2PatternTransfer.class, packetId++)
+            .encoder(PacketAE2PatternTransfer::encode)
+            .decoder(PacketAE2PatternTransfer::decode)
+            .consumerMainThread(PacketAE2PatternTransfer::handle)
+            .add();
     }
 }

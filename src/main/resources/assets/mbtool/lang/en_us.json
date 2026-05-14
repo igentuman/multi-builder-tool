@@ -140,5 +140,17 @@
   "gui.mbtool.me_access": "Use ME Wireless Inventory",
   "gui.mbtool.me_access.descr": "Requires player to have a wireless terminal in their inventory.",
   "gui.mbtool.me_access.enabled": "Enabled",
-  "gui.mbtool.me_access.disabled": "Disabled"
+  "gui.mbtool.me_access.disabled": "Disabled",
+  "gui.mbtool.me_autocraft": "Autocraft Missing Blocks",
+  "gui.mbtool.me_autocraft.descr": "Request ME autocrafting for missing blocks when building.",
+  "gui.mbtool.me_autocraft.enabled": "Enabled",
+  "gui.mbtool.me_autocraft.disabled": "Disabled",
+  "message.mbtool.autocrafting_requested": "Missing blocks were requested for crafting",
+  "message.mbtool.crafting_in_progress": "Crafting blocks, please wait...",
+  "message.mbtool.autocrafting_no_pattern": "Autocrafting not possible, no pattern for %s",
+  "message.mbtool.autocrafting_failed": "Autocrafting request failed",
+  "message.mbtool.autocrafting_missing_ingredients": "Autocrafting failed for %s: missing ingredients",
+  "message.mbtool.autocrafting_no_grid": "Autocrafting failed: ME network not available",
+  "message.mbtool.autocrafting_cpu_busy": "Autocrafting failed for %s: all crafting CPUs are busy",
+  "gui.mbtool.me_autocraft.notice": "Experimental. Post bugs in case of issues"
 }

@@ -92,5 +92,21 @@
   "message.mbtool.dismantle_protected": "Невозможно разобрать структуру в защищённой области",
   "message.mbtool.block_not_part_of_structure": "Этот блок не является частью структуры",
   "message.mbtool.hold_f_to_dismantle": "Удерживайте F для разборки",
-  "message.mbtool.insufficient_inventory_space": "Недостаточно места для предметов структуры в инвентаре Мультистроителя"
+  "message.mbtool.insufficient_inventory_space": "Недостаточно места для предметов структуры в инвентаре Мультистроителя",
+  "gui.mbtool.me_access": "Использовать беспроводной ME-инвентарь",
+  "gui.mbtool.me_access.descr": "Требуется наличие беспроводного терминала в инвентаре игрока.",
+  "gui.mbtool.me_access.enabled": "Включено",
+  "gui.mbtool.me_access.disabled": "Отключено",
+  "gui.mbtool.me_autocraft": "Автокрафт недостающих блоков",
+  "gui.mbtool.me_autocraft.descr": "Запрашивать автокрафт ME для недостающих блоков при строительстве.",
+  "gui.mbtool.me_autocraft.enabled": "Включено",
+  "gui.mbtool.me_autocraft.disabled": "Отключено",
+  "message.mbtool.autocrafting_requested": "Недостающие блоки были запрошены для крафта",
+  "message.mbtool.crafting_in_progress": "Блоки крафтятся, пожалуйста подождите...",
+  "message.mbtool.autocrafting_no_pattern": "Автокрафт невозможен, нет шаблона для %s",
+  "message.mbtool.autocrafting_failed": "Запрос автокрафта не удался",
+  "message.mbtool.autocrafting_missing_ingredients": "Автокрафт %s не удался: недостаточно ингредиентов",
+  "message.mbtool.autocrafting_no_grid": "Автокрафт не удался: сеть ME недоступна",
+  "message.mbtool.autocrafting_cpu_busy": "Автокрафт %s не удался: все процессоры крафта заняты",
+  "gui.mbtool.me_autocraft.notice": "Экспериментально. Сообщайте об ошибках в случае проблем"
 }
