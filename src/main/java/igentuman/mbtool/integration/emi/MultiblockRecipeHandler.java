@@ -8,17 +8,21 @@ import dev.emi.emi.api.stack.EmiStack;
 import igentuman.mbtool.container.MultibuilderContainer;
 import igentuman.mbtool.network.NetworkHandler;
 import igentuman.mbtool.network.PacketJeiRecipeTransfer;
+import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class MultiblockRecipeHandler<T extends MultibuilderContainer> implements StandardRecipeHandler<T> {
+public class MultiblockRecipeHandler<T extends AbstractContainerMenu> implements StandardRecipeHandler<T> {
 
     @Override
     public List<Slot> getInputSources(T handler) {
         List<Slot> inputs = new ArrayList<>();
+        if (!(handler instanceof MultibuilderContainer)) {
+            return inputs;
+        }
         for (int i = 0; i < handler.slots.size(); i++) {
             inputs.add(handler.getSlot(i));
         }
@@ -37,12 +41,15 @@ public class MultiblockRecipeHandler<T extends MultibuilderContainer> implements
 
     @Override
     public boolean canCraft(EmiRecipe recipe, EmiCraftContext<T> context) {
-        return true;
+        return context.getScreenHandler() instanceof MultibuilderContainer;
     }
 
     @Override
     public boolean craft(EmiRecipe recipe, EmiCraftContext<T> context) {
         if (!(recipe instanceof MultiblockStructureEmiRecipe mbtoolRecipe)) {
+            return false;
+        }
+        if (!(context.getScreenHandler() instanceof MultibuilderContainer)) {
             return false;
         }
 
