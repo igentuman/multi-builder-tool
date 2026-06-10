@@ -14,8 +14,7 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
 
-import static igentuman.mbtool.item.MultibuilderItem.INVENTORY_SIZE;
-
+import static igentuman.mbtool.Mbtool.MBTOOL;
 
 public class ItemInventoryHandler implements IItemHandlerModifiable, INBTSerializable<CompoundTag> {
 
@@ -131,7 +130,7 @@ public class ItemInventoryHandler implements IItemHandlerModifiable, INBTSeriali
 
     @Override
     public boolean isItemValid(int slot, @NotNull ItemStack stack) {
-        return true;
+        return !stack.is(MBTOOL.get());
     }
 
     /**
