@@ -121,6 +121,9 @@ dependencies {
     compileOnly fg.deobf("com.gregtechceu.gtceu:gtceu-${mc_version}:${gtm_version}"){
         transitive = false
     }
+    implementation fg.deobf("curse.maven:mangos-multiblock-library-966061:5144465")
+    implementation fg.deobf("curse.maven:voidminer-forked-1415764:8159013")
+
     implementation fg.deobf("curse.maven:applied-energistics-2-223794:7148487"){
         transitive = false
     }

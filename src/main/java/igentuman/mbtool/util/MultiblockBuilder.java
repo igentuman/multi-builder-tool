@@ -26,6 +26,7 @@ import net.minecraftforge.items.IItemHandler;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 public class MultiblockBuilder {
     
@@ -62,50 +63,116 @@ public class MultiblockBuilder {
                     TextUtils.formatEnergy(totalEnergyCost)));
             }
         }
-        
+        Map<BlockPos, Block> plannedReplacements = new HashMap<>();
+        Map<Block, Integer> blocksFromAE2ToExtract = new HashMap<>();
+        int[] tempSlotCounts = null;
+
         // Check if we have all required materials (skip for creative mode)
-        Map<Block, Block> blockReplacements = new HashMap<>(); // Maps required block to replacement block
         if (!isCreative) {
             IItemHandler inventory = getInventory(multibuilderStack);
             if (inventory == null) {
                 return new BuildResult(false, Component.translatable("message.mbtool.no_inventory"));
             }
             
-            Map<Block, Integer> availableBlocks = countAvailableBlocks(inventory);
             Map<Block, Integer> missingBlocks = new HashMap<>();
-
-            for (Map.Entry<Block, Integer> entry : requiredBlocks.entrySet()) {
-                Block requiredBlock = entry.getKey();
-                int required = entry.getValue();
-
-                // Try to find a replacement block (including the original block)
-                Block replacementBlock = BlockEquivalencyManager.findReplacement(requiredBlock, availableBlocks);
-
-                if (replacementBlock == null) {
-                    if(!isAllowedMEAccess(multibuilderStack) || !AE2Helper.hasAe2Terminal((ServerPlayer) player)) {
-                        return new BuildResult(false, Component.translatable("message.mbtool.insufficient_blocks",
-                                required, requiredBlock.getName()));
-                    } else {
-                        if(!AE2Helper.hasEnough((ServerPlayer) player, requiredBlock, required)) {
-                            missingBlocks.put(requiredBlock, required);
+            
+            // Local copies of slot counts and AE2 counts to update during planning
+            tempSlotCounts = new int[inventory.getSlots()];
+            Block[] tempSlotBlocks = new Block[inventory.getSlots()];
+            for (int i = 0; i < inventory.getSlots(); i++) {
+                ItemStack stack = inventory.getStackInSlot(i);
+                if (!stack.isEmpty()) {
+                    tempSlotBlocks[i] = Block.byItem(stack.getItem());
+                    tempSlotCounts[i] = stack.getCount();
+                } else {
+                    tempSlotBlocks[i] = Blocks.AIR;
+                    tempSlotCounts[i] = 0;
+                }
+            }
+            
+            Map<Block, Integer> tempAe2Counts = new HashMap<>();
+            boolean hasME = isAllowedMEAccess(multibuilderStack) && AE2Helper.hasAe2Terminal((ServerPlayer) player);
+            if (hasME) {
+                for (Block requiredBlock : requiredBlocks.keySet()) {
+                    if (!tempAe2Counts.containsKey(requiredBlock)) {
+                        long stored = AE2Helper.getAvailableAmount((ServerPlayer) player, requiredBlock);
+                        tempAe2Counts.put(requiredBlock, (int) Math.min(stored, Integer.MAX_VALUE));
+                    }
+                    Set<Block> equivalents = BlockEquivalencyManager.getEquivalentBlocks(requiredBlock);
+                    for (Block equivalent : equivalents) {
+                        if (!tempAe2Counts.containsKey(equivalent)) {
+                            long stored = AE2Helper.getAvailableAmount((ServerPlayer) player, equivalent);
+                            tempAe2Counts.put(equivalent, (int) Math.min(stored, Integer.MAX_VALUE));
                         }
                     }
-                } else {
-                    int available = availableBlocks.getOrDefault(replacementBlock, 0);
-                    if (available < required) {
-                        if(!isAllowedMEAccess(multibuilderStack) || !AE2Helper.hasAe2Terminal((ServerPlayer) player)) {
-                            return new BuildResult(false, Component.translatable("message.mbtool.insufficient_blocks",
-                                    required - available, requiredBlock.getName()));
-                        } else {
-                            if(!AE2Helper.hasEnough((ServerPlayer) player, requiredBlock, required - available)) {
-                                missingBlocks.put(requiredBlock, required - available);
+                }
+            }
+
+            for (Map.Entry<BlockPos, BlockState> entry : structure.getBlocks().entrySet()) {
+                BlockPos relativePos = entry.getKey();
+                BlockState blockState = entry.getValue();
+                
+                if (blockState.isAir()) {
+                    continue;
+                }
+                
+                Block requiredBlock = blockState.getBlock();
+                Block chosenBlock = null;
+                
+                // 1. Try to find the exact block in the multibuilder inventory
+                for (int i = 0; i < tempSlotCounts.length; i++) {
+                    if (tempSlotBlocks[i] == requiredBlock && tempSlotCounts[i] > 0) {
+                        tempSlotCounts[i]--;
+                        chosenBlock = requiredBlock;
+                        break;
+                    }
+                }
+                
+                // 2. Try to find an equivalent block in the multibuilder inventory
+                if (chosenBlock == null) {
+                    Set<Block> equivalents = BlockEquivalencyManager.getEquivalentBlocks(requiredBlock);
+                    for (int i = 0; i < tempSlotCounts.length; i++) {
+                        Block slotBlock = tempSlotBlocks[i];
+                        if (slotBlock != Blocks.AIR && slotBlock != requiredBlock && equivalents.contains(slotBlock) && tempSlotCounts[i] > 0) {
+                            tempSlotCounts[i]--;
+                            chosenBlock = slotBlock;
+                            break;
+                        }
+                    }
+                }
+                
+                // 3. Try to get the exact block from AE2 storage
+                if (chosenBlock == null && hasME) {
+                    int ae2Count = tempAe2Counts.getOrDefault(requiredBlock, 0);
+                    if (ae2Count > 0) {
+                        tempAe2Counts.put(requiredBlock, ae2Count - 1);
+                        blocksFromAE2ToExtract.put(requiredBlock, blocksFromAE2ToExtract.getOrDefault(requiredBlock, 0) + 1);
+                        chosenBlock = requiredBlock;
+                    }
+                }
+                
+                // 3b. Try to get an equivalent block from AE2 storage
+                if (chosenBlock == null && hasME) {
+                    Set<Block> equivalents = BlockEquivalencyManager.getEquivalentBlocks(requiredBlock);
+                    for (Block equivalent : equivalents) {
+                        if (equivalent != requiredBlock) {
+                            int ae2Count = tempAe2Counts.getOrDefault(equivalent, 0);
+                            if (ae2Count > 0) {
+                                tempAe2Counts.put(equivalent, ae2Count - 1);
+                                blocksFromAE2ToExtract.put(equivalent, blocksFromAE2ToExtract.getOrDefault(equivalent, 0) + 1);
+                                chosenBlock = equivalent;
+                                break;
                             }
                         }
                     }
                 }
-
-                // Store the replacement mapping
-                blockReplacements.put(requiredBlock, replacementBlock);
+                
+                // 4. If still not found, it is missing!
+                if (chosenBlock == null) {
+                    missingBlocks.put(requiredBlock, missingBlocks.getOrDefault(requiredBlock, 0) + 1);
+                } else {
+                    plannedReplacements.put(relativePos, chosenBlock);
+                }
             }
 
             // If there are missing blocks, attempt autocrafting if enabled
@@ -133,6 +200,13 @@ public class MultiblockBuilder {
             // Apply rotation to position and block state
             BlockPos rotatedRelativePos = rotateBlockPos(relativePos, structure, rotation);
             BlockPos worldPos = centerPos.offset(rotatedRelativePos);
+            
+            // Verify if position is outside build height
+            if (level.isOutsideBuildHeight(worldPos)) {
+                return new BuildResult(false, Component.translatable("message.mbtool.outside_build_height", 
+                    worldPos.getX(), worldPos.getY(), worldPos.getZ()));
+            }
+            
             BlockState currentState = level.getBlockState(worldPos);
             BlockState rotatedBlockState = rotateBlockState(blockState, rotation);
             
@@ -152,30 +226,27 @@ public class MultiblockBuilder {
         // All checks passed, start building
         int blocksPlaced = 0;
         
-        // Consume materials from inventory (skip for creative mode)
+        // Consume materials from inventory and AE2 (skip for creative mode)
         if (!isCreative) {
             IItemHandler inventory = getInventory(multibuilderStack);
-            for (Map.Entry<Block, Integer> entry : requiredBlocks.entrySet()) {
-                Block requiredBlock = entry.getKey();
-                Block replacementBlock = blockReplacements.get(requiredBlock);
-                int needed = entry.getValue();
-                
-                // Remove replacement items from inventory
-                for (int slot = 0; slot < inventory.getSlots() && needed > 0; slot++) {
-                    ItemStack slotStack = inventory.getStackInSlot(slot);
-                    if (!slotStack.isEmpty() && Block.byItem(slotStack.getItem()) == replacementBlock) {
-                        int toExtract = Math.min(needed, slotStack.getCount());
-                        inventory.extractItem(slot, toExtract, false);
-                        needed -= toExtract;
+            if (tempSlotCounts != null) {
+                for (int i = 0; i < inventory.getSlots(); i++) {
+                    ItemStack stack = inventory.getStackInSlot(i);
+                    if (!stack.isEmpty()) {
+                        int originalCount = stack.getCount();
+                        int plannedCount = tempSlotCounts[i];
+                        int toExtract = originalCount - plannedCount;
+                        if (toExtract > 0) {
+                            inventory.extractItem(i, toExtract, false);
+                        }
                     }
                 }
-
-                if(needed > 0) {
-                    // Try to extract remaining items from ME network
+            }
+            if (!blocksFromAE2ToExtract.isEmpty()) {
+                // Try to extract items from ME network
+                for (Map.Entry<Block, Integer> ae2Entry : blocksFromAE2ToExtract.entrySet()) {
                     if (isAllowedMEAccess(multibuilderStack) && AE2Helper.hasAe2Terminal((ServerPlayer) player)) {
-                        Block blockToExtract = replacementBlock != null ? replacementBlock : requiredBlock;
-                        long extracted = AE2Helper.extractItems((ServerPlayer) player, blockToExtract, needed);
-                        needed -= (int) extracted;
+                        AE2Helper.extractItems((ServerPlayer) player, ae2Entry.getKey(), ae2Entry.getValue());
                     }
                 }
             }
@@ -199,9 +270,8 @@ public class MultiblockBuilder {
             // Apply block replacement if needed (skip for creative mode)
             BlockState finalBlockState = rotatedBlockState;
             if (!isCreative) {
-                Block originalBlock = rotatedBlockState.getBlock();
-                Block replacementBlock = blockReplacements.get(originalBlock);
-                if (replacementBlock != null && replacementBlock != originalBlock) {
+                Block replacementBlock = plannedReplacements.get(relativePos);
+                if (replacementBlock != null && replacementBlock != rotatedBlockState.getBlock()) {
                     // Create a new BlockState with the replacement block but try to preserve properties
                     finalBlockState = createReplacementBlockState(rotatedBlockState, replacementBlock);
                 }

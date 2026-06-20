@@ -170,7 +170,11 @@ public class PreviewRenderer {
 
     public static boolean renderPreview(PoseStack poseStack, float partialTicks) {
         BlockPos hitPos = getRayTraceHit();
-        if (hitPos == null || structure == null) return false;
+        Player player = mc.player;
+
+        if (hitPos == null || structure == null || player == null) return false;
+
+        if (player.distanceToSqr(hitPos.getX() + 0.5, hitPos.getY() + 0.5, hitPos.getZ() + 0.5) < 8.0) return false;
 
         poseStack.pushPose();
 

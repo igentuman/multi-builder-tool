@@ -18,6 +18,9 @@ import net.minecraftforge.items.IItemHandler;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
+import static igentuman.mbtool.util.BlockEquivalencyManager.getEquivalentBlocks;
 
 public class StructureDismantler {
     
@@ -87,6 +90,19 @@ public class StructureDismantler {
                 for (ItemStack drop : drops) {
                     if (!drop.isEmpty()) {
                         collectedItems.add(drop.copy());
+                    }
+                }
+            } else {
+                Set<Block> equivalents = getEquivalentBlocks(originalBlockState.getBlock());
+                for (Block equivalent : equivalents) {
+                    if (shouldDismantleBlock(originalBlockState, equivalent.defaultBlockState())) {
+                        blocksToRemove.add(worldPos);
+                        List<ItemStack> drops = Block.getDrops(currentState, (ServerLevel) level, worldPos, level.getBlockEntity(worldPos));
+                        for (ItemStack drop : drops) {
+                            if (!drop.isEmpty()) {
+                                collectedItems.add(drop.copy());
+                            }
+                        }
                     }
                 }
             }

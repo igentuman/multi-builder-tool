@@ -1,6 +1,7 @@
 package igentuman.mbtool.network;
 
 import igentuman.mbtool.Mbtool;
+import igentuman.mbtool.util.ModUtil;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.simple.SimpleChannel;
@@ -54,28 +55,31 @@ public class NetworkHandler {
             .consumerMainThread(MultibuilderContainerSetContentPacket::handle)
             .add();
 
-        INSTANCE.messageBuilder(ToggleMeAccessPacket.class, packetId++)
-            .encoder(ToggleMeAccessPacket::encode)
-            .decoder(ToggleMeAccessPacket::decode)
-            .consumerMainThread(ToggleMeAccessPacket::handle)
-            .add();
+        if(ModUtil.isAe2Loaded()) {
+            INSTANCE.messageBuilder(ToggleMeAccessPacket.class, packetId++)
+                    .encoder(ToggleMeAccessPacket::encode)
+                    .decoder(ToggleMeAccessPacket::decode)
+                    .consumerMainThread(ToggleMeAccessPacket::handle)
+                    .add();
 
-        INSTANCE.messageBuilder(ToggleMeAutocraftPacket.class, packetId++)
-            .encoder(ToggleMeAutocraftPacket::encode)
-            .decoder(ToggleMeAutocraftPacket::decode)
-            .consumerMainThread(ToggleMeAutocraftPacket::handle)
-            .add();
+            INSTANCE.messageBuilder(ToggleMeAutocraftPacket.class, packetId++)
+                    .encoder(ToggleMeAutocraftPacket::encode)
+                    .decoder(ToggleMeAutocraftPacket::decode)
+                    .consumerMainThread(ToggleMeAutocraftPacket::handle)
+                    .add();
 
-        INSTANCE.messageBuilder(PacketJeiRecipeTransfer.class, packetId++)
-            .encoder(PacketJeiRecipeTransfer::encode)
-            .decoder(PacketJeiRecipeTransfer::decode)
-            .consumerMainThread(PacketJeiRecipeTransfer::handle)
-            .add();
-
-        INSTANCE.messageBuilder(PacketAE2PatternTransfer.class, packetId++)
-            .encoder(PacketAE2PatternTransfer::encode)
-            .decoder(PacketAE2PatternTransfer::decode)
-            .consumerMainThread(PacketAE2PatternTransfer::handle)
-            .add();
+            INSTANCE.messageBuilder(PacketAE2PatternTransfer.class, packetId++)
+                    .encoder(PacketAE2PatternTransfer::encode)
+                    .decoder(PacketAE2PatternTransfer::decode)
+                    .consumerMainThread(PacketAE2PatternTransfer::handle)
+                    .add();
+        }
+        if(ModUtil.isJEILoaded()) {
+            INSTANCE.messageBuilder(PacketJeiRecipeTransfer.class, packetId++)
+                    .encoder(PacketJeiRecipeTransfer::encode)
+                    .decoder(PacketJeiRecipeTransfer::decode)
+                    .consumerMainThread(PacketJeiRecipeTransfer::handle)
+                    .add();
+        }
     }
 }

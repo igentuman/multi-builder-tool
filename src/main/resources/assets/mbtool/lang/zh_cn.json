@@ -12,6 +12,7 @@
     "message.mbtool.insufficient_blocks": "方块不足！还需要 %d 个 %s",
     "message.mbtool.cannot_place_at": "无法在位置 %d, %d, %d 放置方块",
     "message.mbtool.cannot_place_protected": "无法在位置 %d, %d, %d 放置方块 - 区域受保护",
+    "message.mbtool.outside_build_height": "结构在 %d, %d, %d 处超出了世界建造高度限制",
     "message.mbtool.multiblock_built": "多方块结构建造成功！放置了 %d 个来自 %s 的方块",
     "message.mbtool.no_build_position": "无法确定建造位置",
     "message.mbtool.invalid_recipe": "选择的配方无效",

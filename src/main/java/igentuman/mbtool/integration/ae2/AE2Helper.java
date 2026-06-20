@@ -96,6 +96,14 @@ public class AE2Helper {
         return stored >= required;
     }
 
+    public static long getAvailableAmount(ServerPlayer player, Block requiredBlock) {
+        IGrid grid = getPlayerGrid(player);
+        if (grid == null) return 0;
+        KeyCounter stacks = grid.getStorageService().getInventory().getAvailableStacks();
+        AEItemKey key = AEItemKey.of(requiredBlock.asItem().getDefaultInstance());
+        return stacks.get(key);
+    }
+
     /**
      * Extracts items from the ME network via the player's wireless terminal.
      */

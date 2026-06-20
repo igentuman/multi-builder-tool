@@ -12,6 +12,7 @@
   "message.mbtool.insufficient_blocks": "Niewystarczające bloki! Potrzeba jeszcze %d %s",
   "message.mbtool.cannot_place_at": "Nie można umieścić bloku na %d, %d, %d",
   "message.mbtool.cannot_place_protected": "Nie można umieścić bloku na %d, %d, %d - obszar jest chroniony",
+  "message.mbtool.outside_build_height": "Struktura przekracza limit wysokości budowania świata na %d, %d, %d",
   "message.mbtool.multiblock_built": "Multi-blok zbudowany pomyślnie! Umieszczono %d bloków z %s",
   "message.mbtool.no_build_position": "Nie można określić pozycji budowy",
   "message.mbtool.invalid_recipe": "Wybrano nieprawidłowy przepis",
