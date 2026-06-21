@@ -44,7 +44,8 @@ public class GTUtils {
                 MultiblockStructure structure = new MultiblockStructure(
                     definition.getId(), 
                     structureNbt, 
-                    "gt_" + machineName
+                    "gt_" + machineName,
+                        "default"
                 );
                 loadedStructures.add(structure);
             }

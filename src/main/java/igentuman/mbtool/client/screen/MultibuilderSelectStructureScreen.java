@@ -21,6 +21,8 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.LinkedHashMap;
 import java.util.stream.Collectors;
 
 import static igentuman.mbtool.Mbtool.rl;
@@ -48,6 +50,9 @@ public class MultibuilderSelectStructureScreen extends AbstractContainerScreen<M
     private List<MultiblockStructure> filteredStructures = new ArrayList<>();
     private List<MultiblockButton> multiblockButtons = new ArrayList<>();
     private String currentFilter = "";
+    private String currentGroup = "default";
+    private List<MultiblockStructure> defaultAndGroupButtons = new ArrayList<>();
+    private Button backButton;
 
     public MultibuilderSelectStructureScreen(MultibuilderSelectStructureContainer pMenu, Inventory pPlayerInventory, Component pTitle) {
         this(pMenu, pPlayerInventory, pTitle, null);
@@ -125,9 +130,14 @@ public class MultibuilderSelectStructureScreen extends AbstractContainerScreen<M
         
         this.addRenderableWidget(this.prevButton);
         this.addRenderableWidget(this.nextButton);
+
+        // Back button (for group navigation)
+        this.backButton = Button.builder(Component.literal("<"), button -> returnToDefaultGroup())
+                .bounds(screenX + 2, screenY + 2, 15, 15)
+                .build();
+        this.addRenderableWidget(this.backButton);
         
-        updateButtonStates();
-        updateMultiblockButtons();
+        applyFilter();
     }
 
     @Override
@@ -330,10 +340,44 @@ public class MultibuilderSelectStructureScreen extends AbstractContainerScreen<M
      */
     private void loadStructures() {
         allStructures = MultiblocksProvider.getStructures();
-        filteredStructures = new ArrayList<>(allStructures);
+        buildDefaultAndGroupElements();
+        applyFilter();
+    }
+
+    private void buildDefaultAndGroupElements() {
+        defaultAndGroupButtons.clear();
         
-        // Calculate number of pages needed
-        updatePagination();
+        // 1. Collect all individual structures with group "default"
+        for (MultiblockStructure s : allStructures) {
+            if ("default".equals(s.getGroup())) {
+                defaultAndGroupButtons.add(s);
+            }
+        }
+        
+        // 2. Group non-default structures by their group name
+        Map<String, List<MultiblockStructure>> groups = new LinkedHashMap<>();
+        for (MultiblockStructure s : allStructures) {
+            if (!"default".equals(s.getGroup())) {
+                groups.computeIfAbsent(s.getGroup(), k -> new ArrayList<>()).add(s);
+            }
+        }
+        
+        // 3. For each group, create a dummy representative MultiblockStructure, add structures, and add to defaultAndGroupButtons
+        for (Map.Entry<String, List<MultiblockStructure>> entry : groups.entrySet()) {
+            String groupName = entry.getKey();
+            List<MultiblockStructure> list = entry.getValue();
+            MultiblockStructure dummy = new MultiblockStructure(groupName);
+            for (MultiblockStructure s : list) {
+                dummy.addGroupStructure(s);
+            }
+            defaultAndGroupButtons.add(dummy);
+        }
+    }
+
+    private void returnToDefaultGroup() {
+        this.currentGroup = "default";
+        this.currentPage = 0;
+        applyFilter();
     }
     
     /**
@@ -348,13 +392,27 @@ public class MultibuilderSelectStructureScreen extends AbstractContainerScreen<M
      * Apply current filter to structures
      */
     private void applyFilter() {
-        if (currentFilter.isEmpty()) {
-            filteredStructures = new ArrayList<>(allStructures);
-        } else {
+        if (!currentFilter.isEmpty()) {
+            // Search is active - global match across all individual structures
             filteredStructures = allStructures.stream()
-                    .filter(structure -> structure.getName() != null && 
+                    .filter(structure -> !structure.isGroup() && 
+                            structure.getName() != null && 
                             structure.getName().toLowerCase().contains(currentFilter))
                     .collect(Collectors.toList());
+            if (backButton != null) backButton.visible = false;
+        } else if (!"default".equals(currentGroup)) {
+            // Active group view - show all structures within current group
+            filteredStructures = allStructures.stream()
+                    .filter(structure -> currentGroup.equals(structure.getGroup()))
+                    .collect(Collectors.toList());
+            if (backButton != null) {
+                backButton.visible = true;
+                backButton.active = true;
+            }
+        } else {
+            // Default view - show default group structures + group representatives
+            filteredStructures = new ArrayList<>(defaultAndGroupButtons);
+            if (backButton != null) backButton.visible = false;
         }
         
         // Reset to first page and update pagination
@@ -407,35 +465,43 @@ public class MultibuilderSelectStructureScreen extends AbstractContainerScreen<M
      */
     private void onMultiblockButtonPressed(MultiblockButton button) {
         MultiblockStructure structure = button.getStructure();
-        if (structure != null && minecraft != null && minecraft.player != null) {
-            // Find the index in the original allStructures list
-            int originalIndex = allStructures.indexOf(structure);
-            
-            // Save to the item's NBT
-            int slot = menu.getPlayerSlot();
-            if (slot >= 0) {
-                ItemStack multibuilderStack;
-                if (slot == 40) { // Offhand
-                    multibuilderStack = minecraft.player.getOffhandItem();
-                } else {
-                    multibuilderStack = minecraft.player.getInventory().getItem(slot);
+        if (structure != null) {
+            if (structure.isGroup()) {
+                this.currentGroup = structure.getGroup();
+                this.currentPage = 0;
+                applyFilter();
+                return;
+            }
+            if (minecraft != null && minecraft.player != null) {
+                // Find the index in the original allStructures list
+                int originalIndex = allStructures.indexOf(structure);
+                
+                // Save to the item's NBT
+                int slot = menu.getPlayerSlot();
+                if (slot >= 0) {
+                    ItemStack multibuilderStack;
+                    if (slot == 40) { // Offhand
+                        multibuilderStack = minecraft.player.getOffhandItem();
+                    } else {
+                        multibuilderStack = minecraft.player.getInventory().getItem(slot);
+                    }
+                    
+                    if (multibuilderStack.is(MBTOOL.get())) {
+                        multibuilderStack.getOrCreateTag().putInt("recipe", originalIndex);
+                        
+                        // Nullify runtimeStructure when player chooses a structure
+                        MultibuilderItem multibuilderItem = (MultibuilderItem) multibuilderStack.getItem();
+                        multibuilderItem.setRuntimeStructure(multibuilderStack, null);
+                    }
                 }
                 
-                if (multibuilderStack.is(MBTOOL.get())) {
-                    multibuilderStack.getOrCreateTag().putInt("recipe", originalIndex);
-                    
-                    // Nullify runtimeStructure when player chooses a structure
-                    MultibuilderItem multibuilderItem = (MultibuilderItem) multibuilderStack.getItem();
-                    multibuilderItem.setRuntimeStructure(multibuilderStack, null);
+                // Update the previous screen if it exists
+                if (previousScreen instanceof MultibuilderScreen) {
+                    ((MultibuilderScreen)previousScreen).selectedStructure = originalIndex;
                 }
+                
+                onClose();
             }
-            
-            // Update the previous screen if it exists
-            if (previousScreen instanceof MultibuilderScreen) {
-                ((MultibuilderScreen)previousScreen).selectedStructure = originalIndex;
-            }
-            
-            onClose();
         }
     }
 }

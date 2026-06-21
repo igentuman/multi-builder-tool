@@ -28,7 +28,7 @@ public class MekanismStructureGenerator {
     }
 
     private static MultiblockStructure generateBoiler(List<ItemStack> blocks, int height, int width, int length) {
-        MultiblockStructure structure = new MultiblockStructure(rl("runtime"), new CompoundTag(), "mekanism_boiler");
+        MultiblockStructure structure = new MultiblockStructure(rl("runtime"), new CompoundTag(), "mekanism_boiler", "default");
         return structure;
     }
 
@@ -80,7 +80,7 @@ public class MekanismStructureGenerator {
 
         nbt.put("blocks", blocksList);
         nbt.put("palette", palette);
-        MultiblockStructure structure = new MultiblockStructure(rl("runtime"), nbt, "mekanism_fission_reactor");
+        MultiblockStructure structure = new MultiblockStructure(rl("runtime"), nbt, "mekanism_fission_reactor", "default");
 
         return structure;
     }
@@ -167,7 +167,7 @@ public class MekanismStructureGenerator {
 
         nbt.put("blocks", blocksList);
         nbt.put("palette", palette);
-        MultiblockStructure structure = new MultiblockStructure(rl("runtime"), nbt, "mekanism_turbine");
+        MultiblockStructure structure = new MultiblockStructure(rl("runtime"), nbt, "mekanism_turbine", "default");
 
         return structure;
     }

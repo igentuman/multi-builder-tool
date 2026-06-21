@@ -4,6 +4,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import igentuman.mbtool.client.render.MultiblockRenderer;
 import igentuman.mbtool.container.MultibuilderSelectStructureContainer;
 import igentuman.mbtool.util.MultiblockStructure;
+import igentuman.mbtool.util.TextUtils;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -13,10 +14,13 @@ import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static igentuman.mbtool.util.TextUtils.__;
 
 /**
  * A custom button that renders a multiblock structure instead of text or image
@@ -82,36 +86,55 @@ public class MultiblockButton extends AbstractButton {
      */
     void updateTooltip() {
         hasAllIngredients = true;
-        if (structure != null && structure.getName() != null && !structure.getName().isEmpty()) {
-            // Create a single component with structure name and dimensions
-            Component tooltip = Component.translatable(structure.getName())
-                .append(Component.literal("\n"))
-                .append(Component.translatable("gui.mbtool.multiblock_button.dimensions", 
-                    structure.getWidth(), structure.getHeight(), structure.getDepth())
-                    .withStyle(style -> style.withColor(0x808080)));
-            List<Component> itemsTooltip = new ArrayList<>();
-            if(container != null) {
-                for(ItemStack stack: structure.getNeededItems()) {
-                    boolean hasEnough = container.hasEnough(stack);
-                    if(!hasEnough) {
-                        hasAllIngredients = false;
+        if (structure != null) {
+            if (structure.isGroup()) {
+                MutableComponent nameComponent = __(structure.getGroup());
+                String translatedName = nameComponent.getString();
+                if (translatedName.equals(structure.getGroup())) {
+                    nameComponent = Component.literal(TextUtils.convertToName(structure.getGroup().replace("mbtool.structure.", "")));
+                }
+                setTooltip(Tooltip.create(nameComponent));
+                return;
+            }
+            if (structure.getName() != null && !structure.getName().isEmpty()) {
+                // Create a single component with structure name and dimensions
+                MutableComponent nameComponent = __(structure.getName());
+                String translatedName = nameComponent.getString();
+                if (translatedName.equals(structure.getName())) {
+                    nameComponent = Component.literal(TextUtils.convertToName(structure.getName().replace("mbtool.structure.", "")));
+                }
+                Component tooltip = nameComponent
+                    .append(Component.literal("\n"))
+                    .append(Component.translatable("gui.mbtool.multiblock_button.dimensions", 
+                        structure.getWidth(), structure.getHeight(), structure.getDepth())
+                        .withStyle(style -> style.withColor(0x808080)));
+                List<Component> itemsTooltip = new ArrayList<>();
+                if(container != null) {
+                    for(ItemStack stack: structure.getNeededItems()) {
+                        boolean hasEnough = container.hasEnough(stack);
+                        if(!hasEnough) {
+                            hasAllIngredients = false;
+                        }
+                        ChatFormatting style = hasEnough ? ChatFormatting.GREEN : ChatFormatting.RED;
+                        itemsTooltip.add(Component.literal(stack.getCount() + "x " + stack.getHoverName().getString()).withStyle(style));
                     }
-                    ChatFormatting style = hasEnough ? ChatFormatting.GREEN : ChatFormatting.RED;
-                    itemsTooltip.add(Component.literal(stack.getCount() + "x " + stack.getHoverName().getString()).withStyle(style));
-                }
 
-            }
-            if(!itemsTooltip.isEmpty()) {
-                // Add items section to tooltip
-                tooltip = tooltip.copy().append(Component.literal("\n"));
-                
-                for(Component itemComponent : itemsTooltip) {
-                    tooltip = tooltip.copy().append(Component.literal("\n")).append(itemComponent);
                 }
+                if(!itemsTooltip.isEmpty()) {
+                    // Add items section to tooltip
+                    tooltip = tooltip.copy().append(Component.literal("\n"));
+                    
+                    for(Component itemComponent : itemsTooltip) {
+                        tooltip = tooltip.copy().append(Component.literal("\n")).append(itemComponent);
+                    }
+                }
+                setTooltip(Tooltip.create(tooltip));
+            } else {
+                // Clear tooltip if no structure or no name
+                setTooltip(null);
             }
-            setTooltip(Tooltip.create(tooltip));
         } else {
-            // Clear tooltip if no structure or no name
+            // Clear tooltip if no structure
             setTooltip(null);
         }
     }
@@ -140,7 +163,7 @@ public class MultiblockButton extends AbstractButton {
             
             // Render border - green if has all ingredients, red if missing some, default otherwise
             int borderColor;
-            if (container != null && structure != null && !structure.getNeededItems().isEmpty()) {
+            if (container != null && structure != null && !structure.isGroup() && !structure.getNeededItems().isEmpty()) {
                 borderColor = hasAllIngredients ? 0xFF00FF00 : 0xFFFF0000; // Green or Red
             } else {
                 borderColor = this.isHoveredOrFocused() ? 0xFFFFFFFF : 0xFF000000; // Default behavior

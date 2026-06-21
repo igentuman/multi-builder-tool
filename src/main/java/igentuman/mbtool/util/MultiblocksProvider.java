@@ -110,7 +110,23 @@ public class MultiblocksProvider implements PreparableReloadListener {
                 // Validate that all blocks in the structure exist
                 if (validateStructureBlocks(nbt)) {
                     String fileName = location.getPath().substring(location.getPath().lastIndexOf('/') + 1);
-                    tmp.add(new MultiblockStructure(location, nbt, fileName));
+                    MultiblockStructure structure = new MultiblockStructure(location, nbt, fileName, "default");
+                    
+                    String path = location.getPath();
+                    if (path.startsWith(mbtoolStructures + "/")) {
+                        String relativePath = path.substring((mbtoolStructures + "/").length());
+                        int slashIndex = relativePath.indexOf('/');
+                        if (slashIndex != -1) {
+                            String groupName = relativePath.substring(0, slashIndex);
+                            structure.setGroup(groupName);
+                        } else {
+                            structure.setGroup("default");
+                        }
+                    } else {
+                        structure.setGroup("default");
+                    }
+                    
+                    tmp.add(structure);
                 } else {
                     System.out.println("Skipping structure " + location + " due to missing blocks");
                 }

@@ -42,7 +42,7 @@ public class MMUtil {
             }
 
             String structureName = "mm_" + structureId.getPath();
-            return new MultiblockStructure(structureId, structureNbt, structureName);
+            return new MultiblockStructure(structureId, structureNbt, structureName, "default");
         } catch (Exception e) {
             System.err.println("Failed to convert MasterfulMachinery structure: " + structureId + " - " + e.getMessage());
             return null;

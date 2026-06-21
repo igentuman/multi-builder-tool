@@ -23,6 +23,15 @@ public class MultiblockStructure {
     private int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE;
     private int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
     private ResourceLocation location;
+    private String group = "default";
+    private boolean isGroup = false;
+    private List<MultiblockStructure> groupStructures = new ArrayList<>();
+
+    public MultiblockStructure(String groupName) {
+        this.group = groupName;
+        this.isGroup = true;
+        this.name = groupName;
+    }
 
     public MultiblockStructure(CompoundTag nbt) {
         this.nbt = nbt;
@@ -81,10 +90,11 @@ public class MultiblockStructure {
         }
     }
 
-    public MultiblockStructure(ResourceLocation rl, CompoundTag nbt, String file) {
+    public MultiblockStructure(ResourceLocation rl, CompoundTag nbt, String file, String group) {
         this(nbt);
         location = rl;
         name = file;
+        this.group = group;
     }
 
     @SuppressWarnings("unchecked")
@@ -94,37 +104,101 @@ public class MultiblockStructure {
     }
 
     public BlockState getBlockAt(BlockPos pos) {
+        if (isGroup) {
+            MultiblockStructure rep = getRepresentativeStructure();
+            return rep != null ? rep.getBlockAt(pos) : null;
+        }
         return blocks.get(pos);
     }
     
     public Map<BlockPos, BlockState> getBlocks() {
+        if (isGroup) {
+            MultiblockStructure rep = getRepresentativeStructure();
+            return rep != null ? rep.getBlocks() : blocks;
+        }
         return blocks;
     }
     
     public int getWidth() {
+        if (isGroup) {
+            MultiblockStructure rep = getRepresentativeStructure();
+            return rep != null ? rep.getWidth() : 0;
+        }
         return maxX - minX + 1;
     }
     
     public int getHeight() {
+        if (isGroup) {
+            MultiblockStructure rep = getRepresentativeStructure();
+            return rep != null ? rep.getHeight() : 0;
+        }
         return maxY - minY + 1;
     }
     
     public int getDepth() {
+        if (isGroup) {
+            MultiblockStructure rep = getRepresentativeStructure();
+            return rep != null ? rep.getDepth() : 0;
+        }
         return maxZ - minZ + 1;
     }
     
     public BlockPos getCenter() {
+        if (isGroup) {
+            MultiblockStructure rep = getRepresentativeStructure();
+            return rep != null ? rep.getCenter() : BlockPos.ZERO;
+        }
         return new BlockPos((minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2);
     }
     
-    public int getMinX() { return minX; }
-    public int getMinY() { return minY; }
-    public int getMinZ() { return minZ; }
-    public int getMaxX() { return maxX; }
-    public int getMaxY() { return maxY; }
-    public int getMaxZ() { return maxZ; }
+    public int getMinX() {
+        if (isGroup) {
+            MultiblockStructure rep = getRepresentativeStructure();
+            return rep != null ? rep.getMinX() : minX;
+        }
+        return minX;
+    }
+    public int getMinY() {
+        if (isGroup) {
+            MultiblockStructure rep = getRepresentativeStructure();
+            return rep != null ? rep.getMinY() : minY;
+        }
+        return minY;
+    }
+    public int getMinZ() {
+        if (isGroup) {
+            MultiblockStructure rep = getRepresentativeStructure();
+            return rep != null ? rep.getMinZ() : minZ;
+        }
+        return minZ;
+    }
+    public int getMaxX() {
+        if (isGroup) {
+            MultiblockStructure rep = getRepresentativeStructure();
+            return rep != null ? rep.getMaxX() : maxX;
+        }
+        return maxX;
+    }
+    public int getMaxY() {
+        if (isGroup) {
+            MultiblockStructure rep = getRepresentativeStructure();
+            return rep != null ? rep.getMaxY() : maxY;
+        }
+        return maxY;
+    }
+    public int getMaxZ() {
+        if (isGroup) {
+            MultiblockStructure rep = getRepresentativeStructure();
+            return rep != null ? rep.getMaxZ() : maxZ;
+        }
+        return maxZ;
+    }
 
     public ResourceLocation getId() {
+        if (isGroup) {
+            MultiblockStructure rep = getRepresentativeStructure();
+            return rep != null ? rep.getId() : location;
+        }
         return location;
     }
 
@@ -139,6 +213,10 @@ public class MultiblockStructure {
     }
 
     public CompoundTag getStructureNbt() {
+        if (isGroup) {
+            MultiblockStructure rep = getRepresentativeStructure();
+            return rep != null ? rep.getStructureNbt() : nbt;
+        }
         return nbt;
     }
 
@@ -146,7 +224,43 @@ public class MultiblockStructure {
         this.nbt = nbt;
     }
 
+    public String getGroup() {
+        return group;
+    }
+
+    public void setGroup(String group) {
+        this.group = group;
+    }
+
+    public boolean isGroup() {
+        return isGroup;
+    }
+
+    public void setGroup(boolean isGroup) {
+        this.isGroup = isGroup;
+    }
+
+    public void addGroupStructure(MultiblockStructure s) {
+        this.groupStructures.add(s);
+    }
+
+    public List<MultiblockStructure> getGroupStructures() {
+        return groupStructures;
+    }
+
+    public MultiblockStructure getRepresentativeStructure() {
+        if (groupStructures == null || groupStructures.isEmpty()) {
+            return null;
+        }
+        return groupStructures.stream()
+                .min(Comparator.comparing(s -> s.getName() != null ? s.getName() : ""))
+                .orElse(null);
+    }
+
     public List<ItemStack> getNeededItems() {
+        if (isGroup) {
+            return new ArrayList<>();
+        }
         List<ItemStack> outputs = new ArrayList<>();
         List<Block> blockTypes = new ArrayList<>();
         for(BlockPos pos : getBlocks().keySet()) {

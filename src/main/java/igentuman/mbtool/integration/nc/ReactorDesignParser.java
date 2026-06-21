@@ -174,7 +174,7 @@ public class ReactorDesignParser {
             nbt.put("blocks", blocksList);
             nbt.put("palette", palette);
 
-            return new MultiblockStructure(rl("runtime_reactor"), nbt, "nuclearcraft_reactor");
+            return new MultiblockStructure(rl("runtime_reactor"), nbt, "nuclearcraft_reactor", "default");
 
         } catch (JsonSyntaxException e) {
             System.err.println("Invalid JSON syntax in reactor design: " + e.getMessage());

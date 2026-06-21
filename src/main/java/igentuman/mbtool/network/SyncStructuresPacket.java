@@ -23,7 +23,8 @@ public class SyncStructuresPacket {
             this.structures.add(new StructureData(
                 structure.getId(),
                 structure.getStructureNbt(),
-                structure.getName()
+                structure.getName(),
+                structure.getGroup()
             ));
         }
     }
@@ -39,6 +40,7 @@ public class SyncStructuresPacket {
             buffer.writeResourceLocation(Objects.requireNonNullElseGet(structure.id, () -> rl("unknown")));
             buffer.writeNbt(Objects.requireNonNullElseGet(structure.nbt, CompoundTag::new));
             buffer.writeUtf(Objects.requireNonNullElseGet(structure.name, () -> ""));
+            buffer.writeUtf(Objects.requireNonNullElseGet(structure.group, () -> "default"));
         }
     }
     
@@ -50,7 +52,8 @@ public class SyncStructuresPacket {
             ResourceLocation id = buffer.readResourceLocation();
             CompoundTag nbt = buffer.readNbt();
             String name = buffer.readUtf();
-            packet.structures.add(new StructureData(id, nbt, name));
+            String group = buffer.readUtf();
+            packet.structures.add(new StructureData(id, nbt, name, group));
         }
         
         return packet;
@@ -66,7 +69,8 @@ public class SyncStructuresPacket {
                 MultiblockStructure structure = new MultiblockStructure(
                     structureData.id, 
                     structureData.nbt, 
-                    structureData.name
+                    structureData.name,
+                    structureData.group
                 );
                 clientStructures.add(structure);
             }
@@ -81,11 +85,13 @@ public class SyncStructuresPacket {
         final ResourceLocation id;
         final CompoundTag nbt;
         final String name;
-        
-        StructureData(ResourceLocation id, CompoundTag nbt, String name) {
+        final String group;
+
+        StructureData(ResourceLocation id, CompoundTag nbt, String name, String group) {
             this.id = id;
             this.nbt = nbt;
             this.name = name;
+            this.group = group;
         }
     }
 }
