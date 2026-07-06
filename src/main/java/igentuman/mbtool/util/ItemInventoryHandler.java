@@ -6,7 +6,9 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.ItemStackHandler;
+import org.jetbrains.annotations.NotNull;
 
+import static igentuman.mbtool.Mbtool.MBTOOL;
 import static igentuman.mbtool.registration.MbtoolDataComponents.INVENTORY;
 
 public class ItemInventoryHandler extends ItemStackHandler {
@@ -32,6 +34,11 @@ public class ItemInventoryHandler extends ItemStackHandler {
                 deserializeNBT(provider, tag);
             }
         }
+    }
+
+    @Override
+    public boolean isItemValid(int slot, @NotNull ItemStack stack) {
+        return !stack.is(MBTOOL.get());
     }
 
     @Override

@@ -16,9 +16,11 @@ import net.minecraft.world.phys.AABB;
 import net.neoforged.neoforge.items.IItemHandler;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
+import static igentuman.mbtool.util.BlockEquivalencyManager.getEquivalentBlocks;
 
 public class StructureDismantler {
     
@@ -42,27 +44,27 @@ public class StructureDismantler {
         List<BlockPos> blocksToRemove = new ArrayList<>();
         List<ItemStack> collectedItems = new ArrayList<>();
         
-        // Calculate the offset from the original structure to the placed structure
         AABB boundingBox = structure.getBoundingBox();
-        BlockPos structureOrigin = new BlockPos((int) boundingBox.minX, (int) boundingBox.minY, (int) boundingBox.minZ);
-        BlockPos originalOrigin = new BlockPos(originalStructure.getMinX(), originalStructure.getMinY(), originalStructure.getMinZ());
-        BlockPos offset = structureOrigin.subtract(originalOrigin);
-        
-        // Apply rotation if needed
-        Map<BlockPos, BlockState> rotatedBlocks = applyRotation(originalStructure.getBlocks(), structure.getRotation());
-        
+        BlockPos anchor = new BlockPos(
+            (int) boundingBox.minX - originalStructure.getMinX(),
+            (int) boundingBox.minY - originalStructure.getMinY(),
+            (int) boundingBox.minZ - originalStructure.getMinZ()
+        );
+        int rotation = structure.getRotation();
+
         // Check each block position from the original structure
-        for (Map.Entry<BlockPos, BlockState> entry : rotatedBlocks.entrySet()) {
+        for (Map.Entry<BlockPos, BlockState> entry : originalStructure.getBlocks().entrySet()) {
             BlockPos originalPos = entry.getKey();
             BlockState originalBlockState = entry.getValue();
-            
+
             // Skip air blocks from the original structure
             if (originalBlockState.isAir()) {
                 continue;
             }
-            
-            // Calculate the world position of this block
-            BlockPos worldPos = originalPos.offset(offset);
+
+            // Calculate the world position using the same rotation math as MultiblockBuilder
+            BlockPos rotatedRelativePos = rotateBlockPos(originalPos, originalStructure, rotation);
+            BlockPos worldPos = anchor.offset(rotatedRelativePos);
             BlockState currentState = level.getBlockState(worldPos);
             
             // Skip if the current block is air (already removed or never placed)
@@ -85,6 +87,19 @@ public class StructureDismantler {
                 for (ItemStack drop : drops) {
                     if (!drop.isEmpty()) {
                         collectedItems.add(drop.copy());
+                    }
+                }
+            } else {
+                Set<Block> equivalents = getEquivalentBlocks(originalBlockState.getBlock());
+                for (Block equivalent : equivalents) {
+                    if (shouldDismantleBlock(originalBlockState, equivalent.defaultBlockState())) {
+                        blocksToRemove.add(worldPos);
+                        List<ItemStack> drops = Block.getDrops(currentState, (ServerLevel) level, worldPos, level.getBlockEntity(worldPos));
+                        for (ItemStack drop : drops) {
+                            if (!drop.isEmpty()) {
+                                collectedItems.add(drop.copy());
+                            }
+                        }
                     }
                 }
             }
@@ -206,83 +221,36 @@ public class StructureDismantler {
     }
     
     /**
-     * Apply rotation to the structure blocks
+     * Rotate a block position the same way MultiblockBuilder does at placement.
      */
-    private static Map<BlockPos, BlockState> applyRotation(Map<BlockPos, BlockState> originalBlocks, int rotation) {
-        if (rotation == 0) {
-            return originalBlocks;
-        }
-        
-        Map<BlockPos, BlockState> rotatedBlocks = new HashMap<>();
-        
-        // Find the center of the structure for rotation
-        int minX = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE;
-        int maxX = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
-        
-        for (BlockPos pos : originalBlocks.keySet()) {
-            minX = Math.min(minX, pos.getX());
-            maxX = Math.max(maxX, pos.getX());
-            minZ = Math.min(minZ, pos.getZ());
-            maxZ = Math.max(maxZ, pos.getZ());
-        }
-        
-        double centerX = (minX + maxX) / 2.0;
-        double centerZ = (minZ + maxZ) / 2.0;
-        
-        for (Map.Entry<BlockPos, BlockState> entry : originalBlocks.entrySet()) {
-            BlockPos originalPos = entry.getKey();
-            BlockState originalState = entry.getValue();
-            
-            // Apply rotation around the center
-            BlockPos rotatedPos = rotateBlockPos(originalPos, centerX, centerZ, rotation);
-            
-            // Apply rotation to the block state if needed (for directional blocks)
-            BlockState rotatedState = rotateBlockState(originalState, rotation);
-            
-            rotatedBlocks.put(rotatedPos, rotatedState);
-        }
-        
-        return rotatedBlocks;
-    }
-    
-    /**
-     * Rotate a block position around a center point
-     */
-    private static BlockPos rotateBlockPos(BlockPos pos, double centerX, double centerZ, int rotation) {
-        double x = pos.getX() - centerX;
-        double z = pos.getZ() - centerZ;
-        
-        double rotatedX, rotatedZ;
-        
-        switch (rotation % 4) {
-            case 1: // 90 degrees
-                rotatedX = -z;
-                rotatedZ = x;
+    private static BlockPos rotateBlockPos(BlockPos relativePos, MultiblockStructure structure, int rotation) {
+        if (rotation == 0) return relativePos;
+
+        int xo = relativePos.getX() - structure.getMinX();
+        int yo = relativePos.getY() - structure.getMinY();
+        int zo = relativePos.getZ() - structure.getMinZ();
+
+        int rotatedX = xo;
+        int rotatedZ = zo;
+        int bWidth = structure.getDepth();
+        int bLength = structure.getWidth();
+
+        switch (rotation) {
+            case 1:
+                rotatedZ = xo;
+                rotatedX = (bWidth - zo - 1);
                 break;
-            case 2: // 180 degrees
-                rotatedX = -x;
-                rotatedZ = -z;
+            case 2:
+                rotatedX = (bLength - xo - 1);
+                rotatedZ = (bWidth - zo - 1);
                 break;
-            case 3: // 270 degrees
-                rotatedX = z;
-                rotatedZ = -x;
-                break;
-            default: // 0 degrees
-                rotatedX = x;
-                rotatedZ = z;
+            case 3:
+                rotatedZ = (bLength - xo - 1);
+                rotatedX = zo;
                 break;
         }
-        
-        return new BlockPos((int) Math.round(rotatedX + centerX), pos.getY(), (int) Math.round(rotatedZ + centerZ));
-    }
-    
-    /**
-     * Rotate a block state (for directional blocks)
-     */
-    private static BlockState rotateBlockState(BlockState state, int rotation) {
-        // For now, return the original state
-        // TODO: Implement proper block state rotation for directional blocks
-        return state;
+
+        return new BlockPos(rotatedX + structure.getMinX(), yo + structure.getMinY(), rotatedZ + structure.getMinZ());
     }
     
     /**

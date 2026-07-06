@@ -1,6 +1,7 @@
 package igentuman.mbtool.network;
 
 import igentuman.mbtool.Mbtool;
+import igentuman.mbtool.util.ModUtil;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
@@ -43,28 +44,31 @@ public class NetworkHandler {
             DismantleStructurePacket::handle
         );
 
-        registrar.playToServer(
-            ToggleMeAccessPacket.TYPE,
-            ToggleMeAccessPacket.STREAM_CODEC,
-            ToggleMeAccessPacket::handle
-        );
+        if(ModUtil.isAe2Loaded()) {
+            registrar.playToServer(
+                ToggleMeAccessPacket.TYPE,
+                ToggleMeAccessPacket.STREAM_CODEC,
+                ToggleMeAccessPacket::handle
+            );
 
-        registrar.playToServer(
-            ToggleMeAutocraftPacket.TYPE,
-            ToggleMeAutocraftPacket.STREAM_CODEC,
-            ToggleMeAutocraftPacket::handle
-        );
+            registrar.playToServer(
+                ToggleMeAutocraftPacket.TYPE,
+                ToggleMeAutocraftPacket.STREAM_CODEC,
+                ToggleMeAutocraftPacket::handle
+            );
 
-        registrar.playToServer(
-            PacketAE2PatternTransfer.TYPE,
-            PacketAE2PatternTransfer.STREAM_CODEC,
-            PacketAE2PatternTransfer::handle
-        );
-
-        registrar.playToServer(
-            PacketJeiRecipeTransfer.TYPE,
-            PacketJeiRecipeTransfer.STREAM_CODEC,
-            PacketJeiRecipeTransfer::handle
-        );
+            registrar.playToServer(
+                PacketAE2PatternTransfer.TYPE,
+                PacketAE2PatternTransfer.STREAM_CODEC,
+                PacketAE2PatternTransfer::handle
+            );
+        }
+        if(ModUtil.isJEILoaded()) {
+            registrar.playToServer(
+                    PacketJeiRecipeTransfer.TYPE,
+                    PacketJeiRecipeTransfer.STREAM_CODEC,
+                    PacketJeiRecipeTransfer::handle
+            );
+        }
     }
 }

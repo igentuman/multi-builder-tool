@@ -47,6 +47,14 @@ public class AE2Helper {
      */
     private record GridContext(IGrid grid, IActionHost actionHost) {}
 
+    public static long getAvailableAmount(ServerPlayer player, Block requiredBlock) {
+        IGrid grid = getPlayerGrid(player);
+        if (grid == null) return 0;
+        KeyCounter stacks = grid.getStorageService().getInventory().getAvailableStacks();
+        AEItemKey key = AEItemKey.of(requiredBlock.asItem().getDefaultInstance());
+        return stacks.get(key);
+    }
+
     /**
      * Finds the ME grid accessible by the player via a wireless terminal
      * in their inventory or curios slots. Returns both the grid and the
