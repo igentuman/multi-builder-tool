@@ -1,5 +1,8 @@
 package igentuman.mbtool.integration.emi;
 
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import dev.emi.emi.api.recipe.EmiRecipe;
 import dev.emi.emi.api.recipe.EmiRecipeCategory;
 import dev.emi.emi.api.render.EmiTexture;
@@ -10,20 +13,31 @@ import dev.emi.emi.api.widget.SlotWidget;
 import dev.emi.emi.api.widget.Widget;
 import dev.emi.emi.api.widget.WidgetHolder;
 import igentuman.mbtool.Mbtool;
+import igentuman.mbtool.client.render.FakeStructureLevel;
 import igentuman.mbtool.util.MultiblockStructure;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.block.BlockRenderDispatcher;
+import net.minecraft.client.renderer.block.ModelBlockRenderer;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraftforge.client.model.data.ModelData;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class MultiblockStructureEmiRecipe implements EmiRecipe {
     private final ResourceLocation id;
@@ -33,7 +47,10 @@ public class MultiblockStructureEmiRecipe implements EmiRecipe {
     private final List<EmiStack> outputs;
     private final List<EmiIngredient> inputs;
     public int currentLayer = 0;
-    
+    // Fake level view for CTM + neighbour face culling; rebuilt when the visible slice changes.
+    private final FakeStructureLevel fakeLevel = new FakeStructureLevel();
+    private int builtLayer = Integer.MIN_VALUE;
+
     public MultiblockStructureEmiRecipe(ResourceLocation id, CompoundTag structureNbt, String name) {
         this.id = id;
         this.structureNbt = structureNbt;
@@ -158,56 +175,81 @@ public class MultiblockStructureEmiRecipe implements EmiRecipe {
         graphics.pose().popPose();
     }
     
-    private void renderStructureBlocks(com.mojang.blaze3d.vertex.PoseStack stack, MultiblockStructure structure, int maxLayer) {
-        net.minecraft.client.Minecraft minecraft = net.minecraft.client.Minecraft.getInstance();
-        net.minecraft.client.renderer.block.BlockRenderDispatcher blockRenderer = minecraft.getBlockRenderer();
-        
-        java.util.Map<BlockPos, BlockState> blocks = structure.getBlocks();
+    private void renderStructureBlocks(PoseStack stack, MultiblockStructure structure, int maxLayer) {
+        Minecraft minecraft = Minecraft.getInstance();
+        BlockRenderDispatcher blockRenderer = minecraft.getBlockRenderer();
+        ModelBlockRenderer modelRenderer = blockRenderer.getModelRenderer();
+
+        Map<BlockPos, BlockState> blocks = structure.getBlocks();
         if (blocks.isEmpty()) return;
-        
+
+        // Rebuild the fake level when the visible slice changes. Only blocks at/below maxLayer
+        // are included so top faces exposed by slicing are not culled against hidden upper blocks.
+        if (maxLayer != builtLayer) {
+            fakeLevel.clear();
+            for (Map.Entry<BlockPos, BlockState> e : blocks.entrySet()) {
+                if (e.getKey().getY() > maxLayer) continue;
+                if (e.getValue().isAir()) continue;
+                fakeLevel.put(e.getKey(), e.getValue());
+            }
+            builtLayer = maxLayer;
+        }
+
         // Calculate structure dimensions for scaling
         int structureWidth = structure.getWidth();
         int structureHeight = structure.getHeight();
         int depth = structure.getDepth();
         float scale = 1.0f / Math.max(Math.max(structureWidth, structureHeight), depth);
-        
+
         stack.scale(scale, scale, scale);
-        
+
         // Center the structure
         float centerX = structure.getMinX() + structureWidth / 2.0f;
         float centerY = structure.getMinY() + structureHeight / 2.0f;
         float centerZ = structure.getMinZ() + depth / 2.0f;
         stack.translate(-centerX, -centerY, -centerZ);
-        
-        net.minecraft.client.renderer.MultiBufferSource.BufferSource bufferSource = minecraft.renderBuffers().bufferSource();
-        
-        // Render each block
-        for (java.util.Map.Entry<BlockPos, BlockState> entry : blocks.entrySet()) {
+
+        MultiBufferSource.BufferSource bufferSource = minecraft.renderBuffers().bufferSource();
+        RandomSource random = RandomSource.create();
+
+        // Bind lightmap (tesselateBlock reads light through the level) and kill fog.
+        minecraft.gameRenderer.lightTexture().turnOnLightLayer();
+        RenderSystem.setShaderFogStart(Float.MAX_VALUE);
+        RenderSystem.setShaderFogEnd(Float.MAX_VALUE);
+
+        // Render each block via tesselateBlock + fake level: enables CTM and internal face culling.
+        for (Map.Entry<BlockPos, BlockState> entry : blocks.entrySet()) {
             BlockPos pos = entry.getKey();
             if (pos.getY() > maxLayer) {
                 continue;
             }
             BlockState state = entry.getValue();
-            
+            if (state.isAir()) continue;
+
             stack.pushPose();
             stack.translate(pos.getX(), pos.getY(), pos.getZ());
-            
-            net.minecraftforge.client.model.data.ModelData modelData = net.minecraftforge.client.model.data.ModelData.EMPTY;
-            
-            blockRenderer.renderSingleBlock(
-                    state,
-                    stack,
-                    bufferSource,
-                    15728880,
-                    net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY,
-                    modelData,
-                    null
-            );
-            
+
+            BakedModel model = blockRenderer.getBlockModel(state);
+            ModelData modelData;
+            try {
+                modelData = model.getModelData(fakeLevel, pos, state, ModelData.EMPTY);
+            } catch (Exception ignored) {
+                modelData = ModelData.EMPTY;
+            }
+            long seed = state.getSeed(pos);
+            for (RenderType rt : model.getRenderTypes(state, random, modelData)) {
+                VertexConsumer vc = bufferSource.getBuffer(rt);
+                modelRenderer.tesselateBlock(
+                        fakeLevel, model, state, pos, stack, vc,
+                        true, random, seed, OverlayTexture.NO_OVERLAY, modelData, rt
+                );
+            }
+
             stack.popPose();
         }
-        
+
         bufferSource.endBatch();
+        minecraft.gameRenderer.lightTexture().turnOffLightLayer();
     }
     
     // Custom widget for handling multiblock rendering and mouse input

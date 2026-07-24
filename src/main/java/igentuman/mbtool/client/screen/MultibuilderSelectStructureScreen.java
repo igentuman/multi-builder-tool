@@ -394,10 +394,16 @@ public class MultibuilderSelectStructureScreen extends AbstractContainerScreen<M
     private void applyFilter() {
         if (!currentFilter.isEmpty()) {
             // Search is active - global match across all individual structures
+            String[] words = currentFilter.split("\\s+");
             filteredStructures = allStructures.stream()
-                    .filter(structure -> !structure.isGroup() && 
-                            structure.getName() != null && 
-                            structure.getName().toLowerCase().contains(currentFilter))
+                    .filter(structure -> !structure.isGroup() && structure.getName() != null)
+                    .filter(structure -> {
+                        String name = Component.translatable(structure.getName()).getString().toLowerCase();
+                        for (String word : words) {
+                            if (!name.contains(word)) return false;
+                        }
+                        return true;
+                    })
                     .collect(Collectors.toList());
             if (backButton != null) backButton.visible = false;
         } else if (!"default".equals(currentGroup)) {
