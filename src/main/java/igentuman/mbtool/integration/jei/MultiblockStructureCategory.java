@@ -1,14 +1,15 @@
 package igentuman.mbtool.integration.jei;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import igentuman.mbtool.client.render.FakeStructureLevel;
 import igentuman.mbtool.util.MultiblockStructure;
 import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.drawable.IDrawable;
 import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
-import mezz.jei.api.gui.inputs.IJeiUserInput;
 import mezz.jei.api.helpers.IGuiHelper;
 import mezz.jei.api.recipe.IFocusGroup;
 import mezz.jei.api.recipe.RecipeIngredientRole;
@@ -21,11 +22,13 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
+import net.minecraft.client.renderer.block.ModelBlockRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.client.model.data.ModelData;
@@ -34,12 +37,12 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.Map;
 
-import static com.mojang.blaze3d.platform.InputConstants.Type.MOUSE;
 import static igentuman.mbtool.Mbtool.MBTOOL;
 import static igentuman.mbtool.Mbtool.MODID;
 import static igentuman.mbtool.util.TextUtils.__;
 
-@SuppressWarnings("deprecation")
+
+@SuppressWarnings("removal")
 public class MultiblockStructureCategory implements IRecipeCategory<MultiblockStructureRecipe> {
     public static final ResourceLocation UID = ResourceLocation.fromNamespaceAndPath(MODID, "multiblock_structure");
     public static final RecipeType<MultiblockStructureRecipe> TYPE = RecipeType.create(MODID, "multiblock_structure", MultiblockStructureRecipe.class);
@@ -172,6 +175,12 @@ public class MultiblockStructureCategory implements IRecipeCategory<MultiblockSt
     // Inner class to handle rendering of the multiblock structure
     private static class MultiblockRenderer {
 
+        // Fake level view; rebuilt when the shown structure or its visible slice changes so
+        // tesselateBlock can resolve neighbours for CTM and internal face culling.
+        private final FakeStructureLevel fakeLevel = new FakeStructureLevel();
+        private MultiblockStructure builtStructure = null;
+        private int builtLayer = Integer.MIN_VALUE;
+
         public void render(MultiblockStructure structure, PoseStack stack) {
             render(structure, stack, Integer.MAX_VALUE);
         }
@@ -179,10 +188,24 @@ public class MultiblockStructureCategory implements IRecipeCategory<MultiblockSt
         public void render(MultiblockStructure structure, PoseStack stack, int maxLayer) {
             Minecraft minecraft = Minecraft.getInstance();
             BlockRenderDispatcher blockRenderer = minecraft.getBlockRenderer();
+            ModelBlockRenderer modelRenderer = blockRenderer.getModelRenderer();
 
             // Get all blocks and calculate structure center for better positioning
             Map<BlockPos, BlockState> blocks = structure.getBlocks();
             if (blocks.isEmpty()) return;
+
+            // Rebuild the fake level when the shown structure or the visible slice changes. Only
+            // blocks at/below maxLayer are included so sliced-off top faces are not culled away.
+            if (structure != builtStructure || maxLayer != builtLayer) {
+                fakeLevel.clear();
+                for (Map.Entry<BlockPos, BlockState> e : blocks.entrySet()) {
+                    if (e.getKey().getY() > maxLayer) continue;
+                    if (e.getValue().isAir()) continue;
+                    fakeLevel.put(e.getKey(), e.getValue());
+                }
+                builtStructure = structure;
+                builtLayer = maxLayer;
+            }
 
             // Calculate structure dimensions for scaling
             int width = structure.getWidth();
@@ -200,53 +223,56 @@ public class MultiblockStructureCategory implements IRecipeCategory<MultiblockSt
             stack.translate(-centerX, -centerY, -centerZ);
 
             // Set up rendering
-            MultiBufferSource.BufferSource bufferSource = Minecraft.getInstance().renderBuffers().bufferSource();
+            MultiBufferSource.BufferSource bufferSource = minecraft.renderBuffers().bufferSource();
+            RandomSource random = RandomSource.create();
 
-            // Render each block
+            // Bind lightmap (tesselateBlock reads light through the level) and kill fog.
+            minecraft.gameRenderer.lightTexture().turnOnLightLayer();
+            RenderSystem.setShaderFogStart(Float.MAX_VALUE);
+            RenderSystem.setShaderFogEnd(Float.MAX_VALUE);
+
+            // Render each block via tesselateBlock + fake level: enables CTM and internal face culling.
             for (Map.Entry<BlockPos, BlockState> entry : blocks.entrySet()) {
                 BlockPos pos = entry.getKey();
                 if (pos.getY() > maxLayer) {
                     continue;
                 }
                 BlockState state = entry.getValue();
+                if (state.isAir()) continue;
 
                 stack.pushPose();
                 stack.translate(pos.getX(), pos.getY(), pos.getZ());
 
-                // Get ModelData from the block state for proper rendering of complex blocks like GTCEU controllers/ports
-                ModelData modelData = ModelData.EMPTY;
                 BakedModel model = blockRenderer.getBlockModel(state);
-
+                ModelData modelData;
                 try {
-                    // Try to get model data from the block if it supports it
-                    modelData = model.getModelData(minecraft.level, pos, state, ModelData.EMPTY);
-                } catch (Exception e) {
-                    // Fall back to empty model data if there's any issue
+                    modelData = model.getModelData(fakeLevel, pos, state, ModelData.EMPTY);
+                } catch (Exception ignored) {
                     modelData = ModelData.EMPTY;
                 }
-
-                blockRenderer.renderSingleBlock(
-                        state,
-                        stack,
-                        bufferSource,
-                        15728880,
-                        OverlayTexture.NO_OVERLAY,
-                        modelData,
-                        null
-                );
+                long seed = state.getSeed(pos);
+                for (RenderType rt : model.getRenderTypes(state, random, modelData)) {
+                    VertexConsumer vc = bufferSource.getBuffer(rt);
+                    modelRenderer.tesselateBlock(
+                            fakeLevel, model, state, pos, stack, vc,
+                            true, random, seed, OverlayTexture.NO_OVERLAY, modelData, rt
+                    );
+                }
 
                 stack.popPose();
             }
 
             // Finish rendering
             bufferSource.endBatch();
+            minecraft.gameRenderer.lightTexture().turnOffLightLayer();
         }
     }
 
     @Override
-    public boolean handleInput(MultiblockStructureRecipe recipe,  double mouseX, double mouseY, InputConstants.Key input) {
-        if (input.getType() == MOUSE) {
-            return mouseClicked(mouseX, mouseY, input.getValue());
+    public boolean handleInput(MultiblockStructureRecipe recipe, double mouseX, double mouseY, InputConstants.Key input) {
+        if(input.getType().equals(InputConstants.Type.MOUSE)) {
+            mouseClicked(mouseX, mouseY, input.getValue());
+            return true;
         }
         return false;
     }
@@ -254,6 +280,27 @@ public class MultiblockStructureCategory implements IRecipeCategory<MultiblockSt
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button == 1 && isMouseInRotationArea(mouseX, mouseY)) {
             sliceMode = true;
+            return true;
+        }
+        return false;
+    }
+
+
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (isMouseDragging && button == 0) {
+            // Convert mouse movement to rotation (horizontal drag = rotation)
+            float sensitivity = 0.01f;
+            float delta = (float) (mouseX - lastMouseX) * sensitivity;
+            manualRotationAngle += delta;
+            lastMouseX = mouseX;
+            return true;
+        }
+        return false;
+    }
+
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (button == 0 && isMouseDragging) {
+            isMouseDragging = false;
             return true;
         }
         return false;

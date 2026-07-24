@@ -352,12 +352,19 @@ public class MultibuilderSelectStructureScreen extends AbstractContainerScreen<M
         if (currentFilter.isEmpty()) {
             filteredStructures = new ArrayList<>(allStructures);
         } else {
+            String[] words = currentFilter.split("\\s+");
             filteredStructures = allStructures.stream()
-                    .filter(structure -> structure.getName() != null && 
-                            structure.getName().toLowerCase().contains(currentFilter))
+                    .filter(structure -> structure.getName() != null)
+                    .filter(structure -> {
+                        String name = net.minecraft.network.chat.Component.translatable(structure.getName()).getString().toLowerCase();
+                        for (String word : words) {
+                            if (!name.contains(word)) return false;
+                        }
+                        return true;
+                    })
                     .collect(Collectors.toList());
         }
-        
+
         // Reset to first page and update pagination
         currentPage = 0;
         updatePagination();

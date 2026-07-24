@@ -3,31 +3,45 @@ package igentuman.mbtool.client.render;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import igentuman.mbtool.util.MultiblockStructure;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.block.BlockRenderDispatcher;
-import net.minecraft.client.renderer.block.ModelBlockRenderer;
-import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
-import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
-import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
-import net.minecraft.util.RandomSource;
-import net.minecraft.world.level.block.EntityBlock;
-import net.minecraft.world.level.block.RenderShape;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.client.RenderTypeHelper;
-import net.neoforged.neoforge.client.model.data.ModelData;
 import org.joml.Quaternionf;
 
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
+/**
+ * Renders a {@link MultiblockStructure} into a GUI.
+ *
+ * <p>Geometry is baked once per structure into a {@link StructureMesh} (GPU vertex buffers) and
+ * drawn straight from GPU memory every frame. This replaces the old single-static-{@code fakeLevel}
+ * path, which re-tessellated every block every frame and — with several structures on screen at
+ * once (e.g. the structure-picker button list) — rebuilt the shared level for <em>every</em>
+ * structure <em>every</em> frame because the single {@code builtStructure} guard could never
+ * match more than one of them.</p>
+ *
+ * <p>Note: block-entity renderers are no longer invoked for GUI previews (the cached mesh only
+ * holds static block models). Dynamic BE geometry — chest lids, sign text, etc. — is not shown.</p>
+ */
 public class MultiblockRenderer {
 
     public static MultiblockStructure structure;
+
+    /** Bounded LRU cache of baked meshes keyed by a stable structure signature. */
+    private static final int MAX_CACHED = 64;
+    private static final LinkedHashMap<String, StructureMesh> MESH_CACHE =
+            new LinkedHashMap<>(16, 0.75f, true) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<String, StructureMesh> eldest) {
+                    if (size() > MAX_CACHED) {
+                        eldest.getValue().close(); // free the evicted VBOs
+                        return true;
+                    }
+                    return false;
+                }
+            };
 
     public static Vec3i getSize(MultiblockStructure structure) {
         if (structure == null || structure.getBlocks().isEmpty()) {
@@ -40,21 +54,22 @@ public class MultiblockRenderer {
         structure = blocksMap;
         render(stack, x, y, w, h);
     }
+
     public static void render(PoseStack stack, int x, int y, int w, int h) {
         if (structure == null || structure.getBlocks().isEmpty()) {
             return;
         }
 
+        StructureMesh mesh = getOrBakeMesh(structure);
+        if (mesh == null || mesh.isEmpty()) {
+            return;
+        }
+
         stack.pushPose();
-        
-        // Set up proper GUI rendering state
-        RenderSystem.enableDepthTest();
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        
+
         // Center within the provided x, y, w, h bounds with proper Z positioning for GUI
         stack.translate(x + w / 2.0f, y + h / 2.0f, 100.0f);
-        
+
         // Calculate appropriate scale to fit within the provided dimensions
         float maxDimension = Math.max(Math.max(structure.getWidth(), structure.getHeight()), structure.getDepth());
         float baseScale = Math.min(w, h) * 0.9f; // Use 90% of available space
@@ -65,132 +80,74 @@ public class MultiblockRenderer {
         stack.mulPose(new Quaternionf().rotationX((float) Math.toRadians(30)));
         stack.mulPose(new Quaternionf().rotationY((float) Math.toRadians(-45)));
 
-        // Use the correct implementation from JEI category
-        renderStructure(structure, stack);
+        // Inner structure-fit scale (matches the old log-based factor) and centering. The mesh is
+        // baked at absolute structure coords, so shift by the structure center here.
+        int width = structure.getWidth();
+        int height = structure.getHeight();
+        int depth = structure.getDepth();
+        float fitScale = (float) (1.2f / (Math.log10(Math.max(Math.max(width, height), depth) + 105)));
+        stack.scale(fitScale, fitScale, fitScale);
+        stack.translate(
+                -(structure.getMinX() + width / 2.0f),
+                -(structure.getMinY() + height / 2.0f),
+                -(structure.getMinZ() + depth / 2.0f)
+        );
 
-        // Restore render state
-        RenderSystem.disableBlend();
+        // Draw the baked mesh straight from the GPU. Solid (alpha 1) with depth test so front
+        // blocks occlude back ones. Combine GL model-view with the poseStack so the VBO gets
+        // the full transform (same pattern as the in-world preview renderer).
+        org.joml.Matrix4f modelView = new org.joml.Matrix4f(RenderSystem.getModelViewMatrix());
+        modelView.mul(stack.last().pose());
+        mesh.draw(modelView, RenderSystem.getProjectionMatrix(), 1.0f, true);
 
         stack.popPose();
     }
 
-    private static void renderStructure(MultiblockStructure structure, PoseStack stack) {
-        Minecraft minecraft = Minecraft.getInstance();
-        BlockRenderDispatcher blockRenderer = minecraft.getBlockRenderer();
-        ModelBlockRenderer modelBlockRenderer = blockRenderer.getModelRenderer();
-        BlockEntityRenderDispatcher blockEntityRenderer = minecraft.getBlockEntityRenderDispatcher();
-
-        // Get all blocks and calculate structure center for better positioning
-        Map<BlockPos, BlockState> blocks = structure.getBlocks();
-        if (blocks.isEmpty()) return;
-
-        // Calculate structure dimensions for scaling
-        int width = structure.getWidth();
-        int height = structure.getHeight();
-        int depth = structure.getDepth();
-        float scale = (float) (1.2f / (Math.log10(Math.max(Math.max(width, height), depth)+105)));
-
-        // Apply scaling to fit the structure in view
-        stack.scale(scale, scale, scale);
-
-        // Center the structure
-        float centerX = structure.getMinX() + width / 2.0f;
-        float centerY = structure.getMinY() + height / 2.0f;
-        float centerZ = structure.getMinZ() + depth / 2.0f;
-        stack.translate(-centerX, -centerY, -centerZ);
-
-        // Set up rendering
-        MultiBufferSource.BufferSource bufferSource = minecraft.renderBuffers().bufferSource();
-
-        // Render each block
-        for (Map.Entry<BlockPos, BlockState> entry : blocks.entrySet()) {
-            BlockPos pos = entry.getKey();
-            BlockState state = entry.getValue();
-
-            stack.pushPose();
-            stack.translate(pos.getX(), pos.getY(), pos.getZ());
-
-            try {
-                try {
-                    // Try to get the block entity
-                    BlockEntity entity = null;
-                    if (state.getBlock() instanceof EntityBlock entityBlock)
-                        entity = entityBlock.newBlockEntity(pos, state);
-
-                    // If block entity exist, try to get its renderer
-                    BlockEntityRenderer<BlockEntity> renderer = null;
-                    if(entity != null)
-                        renderer = blockEntityRenderer.getRenderer(entity);
-
-                    // If the block entity has a renderer, then render the block
-                    if(renderer != null) {
-                        renderer.render(
-                                entity,
-                                minecraft.getTimer().getGameTimeDeltaPartialTick(false),
-                                stack,
-                                bufferSource,
-                                15728880,
-                                OverlayTexture.NO_OVERLAY
-                        );
-                    }
-                } catch (Exception ignored) {
-                    // Fall back to the block model render if something goes wrong here
-                }
-
-                // Get BakedModel from the block state to render it
-                BakedModel model = blockRenderer.getBlockModel(state);
-
-                // Get ModelData from the block state for proper rendering of complex blocks like GTCEU controllers/ports
-                ModelData modelData;
-                try {
-                    // Try to get model data from the block if it supports it
-                    modelData = model.getModelData(minecraft.level, pos, state, ModelData.EMPTY);
-                } catch (Exception ignored) {
-                    // Fall back to empty model data if there's any issue
-                    modelData = ModelData.EMPTY;
-                }
-
-                // Avoid fog color blending on MODEL shapes
-                RenderShape shape = state.getRenderShape();
-                if(shape == RenderShape.MODEL) {
-                    for (RenderType rt : model.getRenderTypes(state, RandomSource.create(42), modelData)) {
-                        modelBlockRenderer.renderModel(
-                                stack.last(),
-                                bufferSource.getBuffer(RenderTypeHelper.getEntityRenderType(rt, false)),
-                                state,
-                                model,
-                                1.0f,
-                                1.0f,
-                                1.0f,
-                                15728880,
-                                OverlayTexture.NO_OVERLAY,
-                                modelData,
-                                rt
-                        );
-                    }
-                } else {
-                    // Render like usual for any other shapes
-                    blockRenderer.renderSingleBlock(
-                            state,
-                            stack,
-                            bufferSource,
-                            15728880,
-                            OverlayTexture.NO_OVERLAY,
-                            modelData,
-                            null
-                    );
-                }
-            } catch (Exception e) {
-                System.err.print(e.getMessage());
-                // Skip problematic blocks to prevent crashes
-            }
-
-            stack.popPose();
+    /** Returns the cached mesh for the structure, baking it on first use / cache miss. */
+    private static StructureMesh getOrBakeMesh(MultiblockStructure structure) {
+        String key = cacheKey(structure);
+        StructureMesh cached = MESH_CACHE.get(key);
+        if (cached != null) {
+            return cached;
         }
 
-        // Finish rendering
-        bufferSource.endBatch();
+        // Build a fake level from the structure's absolute positions so tesselateBlock can resolve
+        // neighbours for CTM and internal face culling.
+        FakeStructureLevel level = new FakeStructureLevel();
+        for (Map.Entry<BlockPos, BlockState> e : structure.getBlocks().entrySet()) {
+            if (e.getValue().isAir()) continue;
+            level.put(e.getKey(), e.getValue());
+        }
+
+        StructureMesh mesh = new StructureMesh();
+        try {
+            mesh.rebuild(level);
+        } catch (Exception ex) {
+            // A bad model can throw during tessellation; drop it and cache the empty mesh so we
+            // don't re-bake every frame.
+            mesh.close();
+        }
+        MESH_CACHE.put(key, mesh);
+        return mesh;
     }
 
-}
+    /**
+     * Stable cache key. {@code getCurrentStructure} may hand back a fresh {@link MultiblockStructure}
+     * instance each frame, so object identity is unusable — key on name plus dimensions and block
+     * count instead.
+     */
+    private static String cacheKey(MultiblockStructure structure) {
+        String name = structure.getName();
+        return (name == null ? "?" : name)
+                + '|' + structure.getWidth() + 'x' + structure.getHeight() + 'x' + structure.getDepth()
+                + '|' + structure.getBlocks().size();
+    }
 
+    /** Drops all cached meshes and frees their VBOs (call on resource reload if wired up). */
+    public static void invalidateCache() {
+        for (Iterator<StructureMesh> it = MESH_CACHE.values().iterator(); it.hasNext(); ) {
+            it.next().close();
+        }
+        MESH_CACHE.clear();
+    }
+}
