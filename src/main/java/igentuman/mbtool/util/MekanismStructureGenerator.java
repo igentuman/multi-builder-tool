@@ -280,7 +280,7 @@ public class MekanismStructureGenerator {
     private static String getBlockName(ItemStack stack) {
         // Get the registry name which is in format "modid:item_id"
         // For items that correspond to blocks, we need to get the block's registry name
-        String registryName = stack.getItem().builtInRegistryHolder().key().location().toString();
+        String registryName = stack.getItem().builtInRegistryHolder().key().identifier().toString();
         
         // Convert item registry name to block registry name if needed
         // Most items have the same registry name as their corresponding blocks

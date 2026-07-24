@@ -9,15 +9,17 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
+import static igentuman.mbtool.Mbtool.rl;
+
 public class SyncSingleStructurePacket implements CustomPacketPayload {
-    public static final Type<SyncSingleStructurePacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(Mbtool.MODID, "sync_single_structure"));
+    public static final Type<SyncSingleStructurePacket> TYPE = new Type<>(rl("sync_single_structure"));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, SyncSingleStructurePacket> STREAM_CODEC = StreamCodec.composite(
-        ResourceLocation.STREAM_CODEC, SyncSingleStructurePacket::id,
+            Identifier.STREAM_CODEC, SyncSingleStructurePacket::id,
         ByteBufCodecs.COMPOUND_TAG, SyncSingleStructurePacket::nbt,
         ByteBufCodecs.STRING_UTF8, SyncSingleStructurePacket::name,
         ByteBufCodecs.INT, SyncSingleStructurePacket::index,
@@ -26,7 +28,7 @@ public class SyncSingleStructurePacket implements CustomPacketPayload {
         SyncSingleStructurePacket::new
     );
 
-    private final ResourceLocation id;
+    private final Identifier id;
     private final CompoundTag nbt;
     private final String name;
     private final int index;
@@ -43,7 +45,7 @@ public class SyncSingleStructurePacket implements CustomPacketPayload {
     }
     
     // Private constructor for decoding
-    private SyncSingleStructurePacket(ResourceLocation id, CompoundTag nbt, String name, int index, int total, boolean isLast) {
+    private SyncSingleStructurePacket(Identifier id, CompoundTag nbt, String name, int index, int total, boolean isLast) {
         this.id = id;
         this.nbt = nbt;
         this.name = name;
@@ -57,7 +59,7 @@ public class SyncSingleStructurePacket implements CustomPacketPayload {
         return TYPE;
     }
 
-    public ResourceLocation id() {
+    public Identifier id() {
         return id;
     }
 

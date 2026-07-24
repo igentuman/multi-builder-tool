@@ -1,8 +1,9 @@
 package igentuman.mbtool.util;
 
 import igentuman.mbtool.config.MbtoolConfig;
+import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 
@@ -40,15 +41,14 @@ public class BlockEquivalencyManager {
                 blockId = blockId.trim();
                 if (!blockId.isEmpty()) {
                     try {
-                        ResourceLocation resourceLocation = ResourceLocation.tryParse(blockId);
+                        Identifier resourceLocation = Identifier.tryParse(blockId);
                         if (resourceLocation == null) {
                             LOGGER.warn("Invalid block ID format in equivalency set: {}", blockId);
                             continue;
                         }
-                        Block block = BuiltInRegistries.BLOCK.get(resourceLocation);
-                        if (block != Blocks.AIR) {
-                            blockSet.add(block);
-                        }
+                        BuiltInRegistries.BLOCK.get(resourceLocation).map(Holder::value).ifPresent(block -> {
+                            if (block != Blocks.AIR) blockSet.add(block);
+                        });
                     } catch (Exception e) {
                         // Invalid block ID, skip it
                         LOGGER.warn("Invalid block ID in equivalency set: {}", blockId);

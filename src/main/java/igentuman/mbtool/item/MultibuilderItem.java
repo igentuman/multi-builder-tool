@@ -1,6 +1,5 @@
 package igentuman.mbtool.item;
 
-import igentuman.mbtool.Mbtool;
 import igentuman.mbtool.integration.ae2.AE2Helper;
 import igentuman.mbtool.util.MultiblocksProvider;
 import igentuman.mbtool.config.MbtoolConfig;
@@ -19,7 +18,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -29,18 +28,19 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.items.IItemHandler;
-import net.neoforged.neoforge.network.PacketDistributor;
 
 import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import static igentuman.mbtool.Mbtool.MBTOOL;
 import static igentuman.mbtool.util.ModUtil.isGtLoaded;
@@ -50,20 +50,20 @@ public class MultibuilderItem extends Item {
     // Inventory configuration
     public static final int INVENTORY_SIZE = 40; // 40 slots
     private static final int STACK_SIZE = 512; // Standard stack size
-    public int delay = 0;
+    private static final int USE_COOLDOWN_TICKS = 40;
 
     public MultibuilderItem(Properties pProperties) {
         super(pProperties);
     }
     
     @Override
-    public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+    public InteractionResult use(Level level, Player player, InteractionHand hand) {
         ItemStack itemStack = player.getItemInHand(hand);
-        int slot = hand == InteractionHand.MAIN_HAND ? player.getInventory().selected : 40; // 40 is offhand slot
+        int slot = hand == InteractionHand.MAIN_HAND ? player.getInventory().getSelectedSlot() : 40;
         
         if(player.isSteppingCarefully()) {
             // Open GUI when sneaking - only on server side
-            if (!level.isClientSide) {
+            if (!level.isClientSide()) {
                 player.openMenu(new MenuProvider() {
                     @Override
                     public Component getDisplayName() {
@@ -79,24 +79,24 @@ public class MultibuilderItem extends Item {
                     buf.writeInt(slot);
                 });
             }
-            return InteractionResultHolder.success(itemStack);
+            return InteractionResult.SUCCESS;
         } else {
-            if(delay > 0) return InteractionResultHolder.pass(itemStack);
-            delay = 40;
+            if (player.getCooldowns().isOnCooldown(itemStack)) return InteractionResult.PASS;
+            player.getCooldowns().addCooldown(itemStack, USE_COOLDOWN_TICKS);
             // Build multiblock when not sneaking
-            if (level.isClientSide) {
+            if (level.isClientSide()) {
                 int rotation = getRotation(itemStack);
 
                     MultiblockStructure runtimeStructure = getRuntimeStructure(itemStack);
                 if(runtimeStructure != null) {
                     // Send runtimeStructure to server to build (with air blocks filtered out)
                     CompoundTag filteredNbt = MultiblockStructure.filterAirBlocks(runtimeStructure.getStructureNbt());
-                    PacketDistributor.sendToServer(
+                    ClientPacketDistributor.sendToServer(
                             new SyncRuntimeStructurePacket(filteredNbt, rotation, hand));
                     if(itemStack.getOrDefault(MbtoolDataComponents.STRUCTURE_RECIPE.get(), -1) >= 0) {
                         setRuntimeStructure(itemStack, null);
                     }
-                    return InteractionResultHolder.success(itemStack);
+                    return InteractionResult.SUCCESS;
                 }
                 // Client side: validate and send packet to server
                 if(hasRecipe(itemStack)) {
@@ -110,32 +110,27 @@ public class MultibuilderItem extends Item {
                     if (recipeIndex >= 0 && recipeIndex < MultiblocksProvider.structures.size()) {
                         // Send packet to server with current parameters
                         setRuntimeStructure(itemStack, null);
-                        PacketDistributor.sendToServer(
+                        ClientPacketDistributor.sendToServer(
                             new SyncMultibuilderParamsPacket(recipeIndex, rotation, hand));
-                        return InteractionResultHolder.success(itemStack);
+                        return InteractionResult.SUCCESS;
                     } else {
                         player.sendSystemMessage(Component.translatable("message.mbtool.invalid_recipe"));
-                        return InteractionResultHolder.fail(itemStack);
+                        return InteractionResult.FAIL;
                     }
                 } else {
                     player.sendSystemMessage(Component.translatable("message.mbtool.no_recipe"));
-                    return InteractionResultHolder.fail(itemStack);
+                    return InteractionResult.FAIL;
                 }
             } else {
                 // Server side: packet handling will take care of building
                 // This should not be reached in normal operation since client sends packet
-                return InteractionResultHolder.pass(itemStack);
+                return InteractionResult.PASS;
             }
         }
     }
     
     @Override
-    public boolean isRepairable(@Nonnull ItemStack stack) {
-        return false;
-    }
-
-    @Override
-    public boolean isBookEnchantable(ItemStack stack, ItemStack book) {
+    public boolean isCombineRepairable(@Nonnull ItemStack stack) {
         return false;
     }
 
@@ -194,21 +189,16 @@ public class MultibuilderItem extends Item {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> list, TooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, Item.TooltipContext context, TooltipDisplay tooltipDisplay, Consumer<Component> tooltip, TooltipFlag flag) {
         CustomEnergyStorage energyStorage = getEnergy(stack);
         if (energyStorage != null) {
-            if(isGtLoaded()) {
-               /* list.add(TextUtils.__("tooltip.mbtool.energy_stored",
-                        GTUtils.formatEUEnergy(energyStorage.getEnergyStored()),
-                        GTUtils.formatEUEnergy(getEnergyMaxStorage())).withStyle(ChatFormatting.BLUE));*/
-            } else {
-                list.add(TextUtils.__("tooltip.mbtool.energy_stored",
+            if (!isGtLoaded()) {
+                tooltip.accept(TextUtils.__("tooltip.mbtool.energy_stored",
                         TextUtils.formatEnergy(energyStorage.getEnergyStored()),
                         TextUtils.formatEnergy(getEnergyMaxStorage())).withStyle(ChatFormatting.BLUE));
             }
         }
-        
-        // Show inventory information
+
         IItemHandler inventory = getInventory(stack, context.registries());
         if (inventory != null) {
             int usedSlots = 0;
@@ -217,7 +207,7 @@ public class MultibuilderItem extends Item {
                     usedSlots++;
                 }
             }
-            list.add(Component.translatable("tooltip.mbtool.inventory_slots", usedSlots, getInventorySize())
+            tooltip.accept(Component.translatable("tooltip.mbtool.inventory_slots", usedSlots, getInventorySize())
                 .withStyle(ChatFormatting.GRAY));
         }
     }
@@ -464,9 +454,6 @@ public class MultibuilderItem extends Item {
     }
 
     public void inventoryTick(ItemStack pStack, Level pLevel, Entity pEntity, int pSlotId, boolean pIsSelected) {
-        if(delay > 0) {
-            delay--;
-        }
         if(ModUtil.isAe2Loaded() && pEntity instanceof ServerPlayer player) {
             AE2Helper.tickJobs(player);
         }

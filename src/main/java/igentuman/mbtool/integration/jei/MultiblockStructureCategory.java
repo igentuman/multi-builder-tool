@@ -1,48 +1,35 @@
 package igentuman.mbtool.integration.jei;
 
-import com.mojang.blaze3d.platform.InputConstants;
-import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
 import igentuman.mbtool.util.MultiblockStructure;
 import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.drawable.IDrawable;
 import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
-import mezz.jei.api.gui.inputs.IJeiUserInput;
 import mezz.jei.api.helpers.IGuiHelper;
 import mezz.jei.api.recipe.IFocusGroup;
 import mezz.jei.api.recipe.RecipeIngredientRole;
-import mezz.jei.api.recipe.RecipeType;
-import mezz.jei.api.recipe.category.IRecipeCategory;
+import mezz.jei.api.recipe.types.IRecipeType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.Rect2i;
-import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.block.BlockRenderDispatcher;
-import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.client.resources.model.BakedModel;
-import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.client.model.data.ModelData;
-import org.joml.Quaternionf;
 import org.lwjgl.glfw.GLFW;
 
-import java.util.Map;
-
-import static com.mojang.blaze3d.platform.InputConstants.Type.MOUSE;
 import static igentuman.mbtool.Mbtool.MBTOOL;
 import static igentuman.mbtool.Mbtool.MODID;
 import static igentuman.mbtool.util.TextUtils.__;
 
 @SuppressWarnings("deprecation")
-public class MultiblockStructureCategory implements IRecipeCategory<MultiblockStructureRecipe> {
-    public static final ResourceLocation UID = ResourceLocation.fromNamespaceAndPath(MODID, "multiblock_structure");
-    public static final RecipeType<MultiblockStructureRecipe> TYPE = RecipeType.create(MODID, "multiblock_structure", MultiblockStructureRecipe.class);
+public class MultiblockStructureCategory implements mezz.jei.api.recipe.category.IRecipeCategory<MultiblockStructureRecipe> {
+    public static final Identifier UID = Identifier.fromNamespaceAndPath(MODID, "multiblock_structure");
+    public static final IRecipeType<MultiblockStructureRecipe> TYPE = IRecipeType.create(MODID, "multiblock_structure", MultiblockStructureRecipe.class);
+
+    private static final int WIDTH = 160;
+    private static final int HEIGHT = 120;
+
     private boolean isMouseDragging = false;
     private double lastMouseX = 0;
     private float manualRotationAngle = 0;
@@ -54,63 +41,70 @@ public class MultiblockStructureCategory implements IRecipeCategory<MultiblockSt
     private final IDrawable background;
     private final IDrawable icon;
     private final Component title;
-    private final MultiblockRenderer renderer;
     private IngredientsButton ingredientsButton;
 
     public MultiblockStructureCategory(IGuiHelper guiHelper) {
-        this.background = guiHelper.createBlankDrawable(160, 120);
+        this.background = guiHelper.createBlankDrawable(WIDTH, HEIGHT);
         this.icon = guiHelper.createDrawableIngredient(VanillaTypes.ITEM_STACK, new ItemStack(MBTOOL.get()));
         this.title = Component.translatable("jei.category." + MODID + ".multiblock_structure");
-        this.renderer = new MultiblockRenderer();
     }
-    
+
     @Override
-    public RecipeType<MultiblockStructureRecipe> getRecipeType() {
+    public IRecipeType<MultiblockStructureRecipe> getRecipeType() {
         return TYPE;
     }
-    
+
     @Override
     public Component getTitle() {
         return title;
     }
-    
+
     @Override
+    public int getWidth() {
+        return WIDTH;
+    }
+
+    @Override
+    public int getHeight() {
+        return HEIGHT;
+    }
+
     public IDrawable getBackground() {
         return background;
     }
-    
+
     @Override
     public IDrawable getIcon() {
         return icon;
     }
-    
+
     @Override
     public void setRecipe(IRecipeLayoutBuilder builder, MultiblockStructureRecipe recipe, IFocusGroup focuses) {
-        builder.addInvisibleIngredients(RecipeIngredientRole.CATALYST).addItemLike(MBTOOL.get());
+        builder.addInvisibleIngredients(RecipeIngredientRole.CRAFTING_STATION).addItemLike(MBTOOL.get());
         builder.addInvisibleIngredients(RecipeIngredientRole.OUTPUT).addItemLike(MBTOOL.get());
         builder.addInvisibleIngredients(RecipeIngredientRole.OUTPUT).addIngredients(recipe.getIngredients());
         builder.addInvisibleIngredients(RecipeIngredientRole.INPUT).addIngredients(recipe.getIngredients());
         ingredientsButton = IngredientsButton.create(recipe);
         ingredientsButton.updateBounds(new Rect2i(5, 15, 10, 10));
     }
-    
+
     @Override
-    public void draw(MultiblockStructureRecipe recipe, IRecipeSlotsView recipeSlotsView, GuiGraphics graphics, double mouseX, double mouseY) {
-        // Draw structure name
+    public void draw(MultiblockStructureRecipe recipe, IRecipeSlotsView recipeSlotsView, GuiGraphicsExtractor graphics, double mouseX, double mouseY) {
         Font font = Minecraft.getInstance().font;
         ingredientsButton.recipe = recipe;
         ingredientsButton.draw(graphics, 5, 15, 1);
         if(ingredientsButton.isMouseOver(mouseX, mouseY)) {
             ingredientsButton.drawTooltips(graphics, (int) mouseX, (int) mouseY);
         }
-        graphics.drawString(font, __(recipe.getName()), 5, 2, 0xFFFFFFFF, false);
-        long window = Minecraft.getInstance().getWindow().getWindow();
-        boolean leftMouseDown = GLFW.glfwGetMouseButton(window, GLFW.GLFW_MOUSE_BUTTON_LEFT)
-                == GLFW.GLFW_PRESS;
+        graphics.text(font, __(recipe.getName()), 5, 2, 0xFFFFFFFF, false);
+
+        long window = Minecraft.getInstance().getWindow().handle();
+        boolean leftMouseDown = GLFW.glfwGetMouseButton(window, GLFW.GLFW_MOUSE_BUTTON_LEFT) == GLFW.GLFW_PRESS;
         long currentTime = System.currentTimeMillis();
         if (mouseReleaseTime == 0) {
             mouseReleaseTime = currentTime;
         }
+
         float angle;
         if (isMouseDragging) {
             angle = manualRotationAngle;
@@ -130,11 +124,6 @@ public class MultiblockStructureCategory implements IRecipeCategory<MultiblockSt
             lastMouseY = mouseY;
             manualRotationAngle = angle;
         }
-        // Render multiblock structure
-        graphics.pose().pushPose();
-        graphics.pose().translate(80, 75, 100);
-        float scale = 70.0f;
-        graphics.pose().scale(scale, -scale, scale);
 
         if (isMouseDragging && !leftMouseDown) {
             isMouseDragging = false;
@@ -154,114 +143,21 @@ public class MultiblockStructureCategory implements IRecipeCategory<MultiblockSt
             lastMouseY = mouseY;
         }
 
-        graphics.pose().mulPose(new Quaternionf().rotationY(angle));
-        float xTilt = manualTiltAmount * (float)Math.cos(angle);
-        float zTilt = manualTiltAmount * (float)Math.sin(angle);
-        graphics.pose().mulPose(new Quaternionf().rotationX(xTilt));
-        graphics.pose().mulPose(new Quaternionf().rotationZ(zTilt));
-
         if(sliceMode) {
             recipe.slice();
             sliceMode = false;
         }
-        renderer.render(recipe.getStructure(), graphics.pose(), recipe.currentLayer);
 
-        graphics.pose().popPose();
-    }
-    
-    // Inner class to handle rendering of the multiblock structure
-    private static class MultiblockRenderer {
-
-        public void render(MultiblockStructure structure, PoseStack stack) {
-            render(structure, stack, Integer.MAX_VALUE);
-        }
-
-        public void render(MultiblockStructure structure, PoseStack stack, int maxLayer) {
-            Minecraft minecraft = Minecraft.getInstance();
-            BlockRenderDispatcher blockRenderer = minecraft.getBlockRenderer();
-
-            // Get all blocks and calculate structure center for better positioning
-            Map<BlockPos, BlockState> blocks = structure.getBlocks();
-            if (blocks.isEmpty()) return;
-
-            // Calculate structure dimensions for scaling
-            int width = structure.getWidth();
-            int height = structure.getHeight();
-            int depth = structure.getDepth();
-            float scale = 1.0f / Math.max(Math.max(width, height), depth);
-
-            // Apply scaling to fit the structure in view
-            stack.scale(scale, scale, scale);
-
-            // Center the structure
-            float centerX = structure.getMinX() + width / 2.0f;
-            float centerY = structure.getMinY() + height / 2.0f;
-            float centerZ = structure.getMinZ() + depth / 2.0f;
-            stack.translate(-centerX, -centerY, -centerZ);
-
-            // Set up rendering
-            MultiBufferSource.BufferSource bufferSource = Minecraft.getInstance().renderBuffers().bufferSource();
-
-            // Render each block
-            for (Map.Entry<BlockPos, BlockState> entry : blocks.entrySet()) {
-                BlockPos pos = entry.getKey();
-                if (pos.getY() > maxLayer) {
-                    continue;
-                }
-                BlockState state = entry.getValue();
-
-                stack.pushPose();
-                stack.translate(pos.getX(), pos.getY(), pos.getZ());
-
-                // Get ModelData from the block state for proper rendering of complex blocks like GTCEU controllers/ports
-                ModelData modelData = ModelData.EMPTY;
-                BakedModel model = blockRenderer.getBlockModel(state);
-
-                try {
-                    // Try to get model data from the block if it supports it
-                    modelData = model.getModelData(minecraft.level, pos, state, ModelData.EMPTY);
-                } catch (Exception e) {
-                    // Fall back to empty model data if there's any issue
-                    modelData = ModelData.EMPTY;
-                }
-
-                blockRenderer.renderSingleBlock(
-                        state,
-                        stack,
-                        bufferSource,
-                        15728880,
-                        OverlayTexture.NO_OVERLAY,
-                        modelData,
-                        null
-                );
-
-                stack.popPose();
-            }
-
-            // Finish rendering
-            bufferSource.endBatch();
-        }
-    }
-
-    @Override
-    public boolean handleInput(MultiblockStructureRecipe recipe,  double mouseX, double mouseY, InputConstants.Key input) {
-        if (input.getType() == MOUSE) {
-            return mouseClicked(mouseX, mouseY, input.getValue());
-        }
-        return false;
-    }
-
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button == 1 && isMouseInRotationArea(mouseX, mouseY)) {
-            sliceMode = true;
-            return true;
-        }
-        return false;
+        // GuiStructureRenderState is a PictureInPictureRenderState, which requires x0/y0/x1/y1 in
+        // absolute screen coordinates — JEI only translates graphics.pose(), it doesn't shift PIP
+        // states, so the recipe area's screen offset must be baked in manually here.
+        int screenX = (int) graphics.pose().m20() + 20;
+        int screenY = (int) graphics.pose().m21() + 20;
+        igentuman.mbtool.client.gui.MultiblockButton.renderStructureItems(
+            graphics, recipe.getStructure(), screenX, screenY, WIDTH - 40, HEIGHT - 30, angle);
     }
 
     private boolean isMouseInRotationArea(double mouseX, double mouseY) {
-        // Define an area where rotation control is active
-        // This uses the center of the display area
         double centerX = 80;
         double centerY = 75;
         double radius = 50;

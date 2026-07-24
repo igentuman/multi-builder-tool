@@ -1,6 +1,5 @@
 package igentuman.mbtool.integration;
 
-import dev.latvian.mods.kubejs.plugin.KubeJSPlugin;
-
-public class MbtoolKubeJSPlugin implements KubeJSPlugin {
+// KubeJS not available for NeoForge 26.1 yet
+public class MbtoolKubeJSPlugin {
 }

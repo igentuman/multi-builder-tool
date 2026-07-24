@@ -37,7 +37,7 @@ public class MultibuilderContainer extends AbstractContainerMenu {
         this.playerSlot = slot;
         this.serverPlayer = pPlayerInventory.player;
         // Get the multibuilder item from the player's inventory
-        ItemStack multibuilderStack = slot == 40 ? pPlayerInventory.offhand.get(0) : pPlayerInventory.items.get(slot);
+        ItemStack multibuilderStack = pPlayerInventory.getItem(slot);
 
         if (multibuilderStack.getItem() instanceof MultibuilderItem multibuilderItem) {
             this.itemHandler = multibuilderItem.getInventory(multibuilderStack, pPlayerInventory.player.level().registryAccess());

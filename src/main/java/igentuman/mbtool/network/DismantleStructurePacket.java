@@ -11,14 +11,15 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
+import static igentuman.mbtool.Mbtool.rl;
+
 public class DismantleStructurePacket implements CustomPacketPayload {
-    public static final Type<DismantleStructurePacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(Mbtool.MODID, "dismantle_structure"));
+    public static final Type<DismantleStructurePacket> TYPE = new Type<>(rl("dismantle_structure"));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, DismantleStructurePacket> STREAM_CODEC = StreamCodec.composite(
         BlockPos.STREAM_CODEC, DismantleStructurePacket::targetPos,

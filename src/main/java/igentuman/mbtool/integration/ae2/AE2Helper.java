@@ -61,8 +61,8 @@ public class AE2Helper {
      * IActionHost so callers can build a proper IActionSource.
      */
     private static GridContext getPlayerGridContext(ServerPlayer player) {
-        for (int i = 0; i < player.getInventory().items.size(); i++) {
-            ItemStack itemStack = player.getInventory().items.get(i);
+        for (int i = 0; i < 36; i++) {
+            ItemStack itemStack = player.getInventory().getItem(i);
             if (itemStack.getItem() instanceof WirelessTerminalItem terminal) {
                 IGrid grid = terminal.getLinkedGrid(itemStack, player.level(), component -> {});
                 if (grid != null) {

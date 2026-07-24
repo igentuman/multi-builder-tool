@@ -1,7 +1,7 @@
 package igentuman.mbtool.client.gui;
 
 import igentuman.mbtool.util.MultiblockStructure;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.nbt.CompoundTag;
@@ -185,68 +185,38 @@ public class MultiblockGalleryScreen extends Screen {
     }
     
     @Override
-    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+    public void extractRenderState(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
         // Render background
-        this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
+        this.extractBackground(guiGraphics, mouseX, mouseY, partialTick);
         
         // Render title
-        guiGraphics.drawCenteredString(
-            this.font,
-            this.title,
-            this.width / 2,
-            15,
-            0xFFFFFF
-        );
-        
+        guiGraphics.text(this.font, this.title.getVisualOrderText(), this.width / 2 - this.font.width(this.title) / 2, 15, 0xFFFFFF, false);
+
         // Render section labels
-        guiGraphics.drawString(
-            this.font,
-            Component.translatable("gui.mbtool.structure_gallery"),
-            20,
-            25,
-            0xFFFFFF
-        );
-        
-        guiGraphics.drawString(
-            this.font,
-            Component.translatable("gui.mbtool.preview"),
-            320,
-            25,
-            0xFFFFFF
-        );
-        
-        guiGraphics.drawString(
-            this.font,
-            Component.translatable("gui.mbtool.style_demo"),
-            320,
-            175,
-            0xFFFFFF
-        );
-        
+        guiGraphics.text(this.font, Component.translatable("gui.mbtool.structure_gallery").getVisualOrderText(), 20, 25, 0xFFFFFF, false);
+
+        guiGraphics.text(this.font, Component.translatable("gui.mbtool.preview").getVisualOrderText(), 320, 25, 0xFFFFFF, false);
+
+        guiGraphics.text(this.font, Component.translatable("gui.mbtool.style_demo").getVisualOrderText(), 320, 175, 0xFFFFFF, false);
+
         // Render selected structure info
         int selectedIndex = structureGrid.selectedIndex;
         if (selectedIndex >= 0 && selectedIndex < structureNames.size()) {
             String structureName = structureNames.get(selectedIndex);
             MultiblockStructure structure = exampleStructures.get(selectedIndex);
-            
-            Component info = Component.translatable("gui.mbtool.selected_info", 
+
+            Component info = Component.translatable("gui.mbtool.selected_info",
                 structureName,
                 structure.getWidth(),
                 structure.getHeight(),
                 structure.getDepth()
             );
-            
-            guiGraphics.drawString(
-                this.font,
-                info,
-                320,
-                140,
-                0xCCCCCC
-            );
+
+            guiGraphics.text(this.font, info.getVisualOrderText(), 320, 140, 0xCCCCCC, false);
         }
         
         // Call super to render widgets
-        super.render(guiGraphics, mouseX, mouseY, partialTick);
+        super.extractRenderState(guiGraphics, mouseX, mouseY, partialTick);
     }
     
     @Override

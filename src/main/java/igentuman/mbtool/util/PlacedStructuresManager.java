@@ -4,7 +4,6 @@ import igentuman.mbtool.registration.MbtoolDataComponents;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.Tag;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 
@@ -24,7 +23,7 @@ public class PlacedStructuresManager {
     public static void addPlacedStructure(ItemStack multibuilderStack, String structureId, AABB boundingBox, UUID placedBy, int rotation) {
         if(structureId == null) return;
         CompoundTag tag = multibuilderStack.getOrDefault(MbtoolDataComponents.PLACED_STRUCTURES.get(), new CompoundTag());
-        ListTag structuresList = tag.getList(NBT_KEY, Tag.TAG_COMPOUND);
+        ListTag structuresList = tag.getListOrEmpty(NBT_KEY);
         
         PlacedStructure structure = new PlacedStructure(structureId, boundingBox, placedBy, rotation);
         structuresList.add(structure.toNBT());
@@ -41,9 +40,9 @@ public class PlacedStructuresManager {
         CompoundTag tag = multibuilderStack.get(MbtoolDataComponents.PLACED_STRUCTURES.get());
         
         if (tag != null && tag.contains(NBT_KEY)) {
-            ListTag structuresList = tag.getList(NBT_KEY, Tag.TAG_COMPOUND);
+            ListTag structuresList = tag.getListOrEmpty(NBT_KEY);
             for (int i = 0; i < structuresList.size(); i++) {
-                CompoundTag structureTag = structuresList.getCompound(i);
+                CompoundTag structureTag = structuresList.getCompound(i).orElse(new CompoundTag());
                 structures.add(new PlacedStructure(structureTag));
             }
         }
@@ -76,12 +75,12 @@ public class PlacedStructuresManager {
             return false;
         }
         
-        ListTag structuresList = tag.getList(NBT_KEY, Tag.TAG_COMPOUND);
+        ListTag structuresList = tag.getListOrEmpty(NBT_KEY);
         ListTag newStructuresList = new ListTag();
         boolean removed = false;
         
         for (int i = 0; i < structuresList.size(); i++) {
-            CompoundTag structureTag = structuresList.getCompound(i);
+            CompoundTag structureTag = structuresList.getCompound(i).orElse(new CompoundTag());
             PlacedStructure structure = new PlacedStructure(structureTag);
             
             // Compare by bounding box and structure ID

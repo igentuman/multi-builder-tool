@@ -9,7 +9,6 @@
   "server": [
   ],
   "client": [
-    "MultiblockWidgetMixin"
   ],
   "minVersion": "0.8"
 }

@@ -7,7 +7,7 @@ import igentuman.mbtool.util.PlacedStructure;
 import igentuman.mbtool.util.MultiblocksProvider;
 import igentuman.mbtool.util.MultiblockStructure;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
@@ -24,8 +24,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.RenderGuiLayerEvent;
-import net.neoforged.neoforge.items.IItemHandler;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import org.lwjgl.glfw.GLFW;
 
 @EventBusSubscriber(modid = igentuman.mbtool.Mbtool.MODID, value = Dist.CLIENT)
@@ -123,7 +122,7 @@ public class DismantleHandler {
         }
         
         // Get the inventory handler
-        IItemHandler inventory = multibuilderItem.getInventory(multibuilderStack, Minecraft.getInstance().level.registryAccess());
+        var inventory = multibuilderItem.getInventory(multibuilderStack, Minecraft.getInstance().level.registryAccess());
         if (inventory == null) return false;
         
         // Find the structure definition by ID
@@ -331,7 +330,7 @@ public class DismantleHandler {
         if (elapsedTime >= DISMANTLE_DURATION) {
             // Dismantle completed, send packet to server
             if (targetPos != null && targetHand != null) {
-                PacketDistributor.sendToServer(new DismantleStructurePacket(targetPos, targetHand));
+                ClientPacketDistributor.sendToServer(new DismantleStructurePacket(targetPos, targetHand));
             }
         }
         
@@ -385,7 +384,7 @@ public class DismantleHandler {
         }
     }
     
-    private static void renderDismantleProgressBar(GuiGraphics guiGraphics, float progress) {
+    private static void renderDismantleProgressBar(GuiGraphicsExtractor guiGraphics, float progress) {
         Minecraft mc = Minecraft.getInstance();
         int screenWidth = mc.getWindow().getGuiScaledWidth();
         int screenHeight = mc.getWindow().getGuiScaledHeight();
@@ -410,13 +409,13 @@ public class DismantleHandler {
         int textX = (screenWidth - textWidth) / 2;
         int textY = barY - 15;
         
-        guiGraphics.drawString(mc.font, text, textX, textY, 0xFFFFFFFF);
+        guiGraphics.text(mc.font, text.getVisualOrderText(), textX, textY, 0xFFFFFFFF, false);
     }
     
     /**
      * Renders the "Hold F to dismantle" tooltip when looking at a dismantleable structure
      */
-    private static void renderDismantleTooltip(GuiGraphics guiGraphics) {
+    private static void renderDismantleTooltip(GuiGraphicsExtractor guiGraphics) {
         Minecraft mc = Minecraft.getInstance();
         int screenWidth = mc.getWindow().getGuiScaledWidth();
         int screenHeight = mc.getWindow().getGuiScaledHeight();
@@ -449,6 +448,6 @@ public class DismantleHandler {
         guiGraphics.fill(bgX + bgWidth, bgY, bgX + bgWidth + 1, bgY + bgHeight, 0xFFFFFFFF); // Right
         
         // Render the text
-        guiGraphics.drawString(mc.font, tooltipText, tooltipX, tooltipY, 0xFFFFFF00); // Yellow text
+        guiGraphics.text(mc.font, tooltipText.getVisualOrderText(), tooltipX, tooltipY, 0xFFFFFF00, false); // Yellow text
     }
 }

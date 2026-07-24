@@ -6,7 +6,6 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.IItemHandler;
@@ -14,8 +13,10 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import java.util.List;
 
+import static igentuman.mbtool.Mbtool.rl;
+
 public class PacketJeiRecipeTransfer implements CustomPacketPayload {
-    public static final Type<PacketJeiRecipeTransfer> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(Mbtool.MODID, "jei_recipe_transfer"));
+    public static final Type<PacketJeiRecipeTransfer> TYPE = new Type<>(rl("jei_recipe_transfer"));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, PacketJeiRecipeTransfer> STREAM_CODEC = StreamCodec.composite(
         ItemStack.STREAM_CODEC.apply(ByteBufCodecs.list()), PacketJeiRecipeTransfer::items,

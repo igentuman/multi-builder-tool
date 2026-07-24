@@ -1,6 +1,6 @@
 package igentuman.mbtool.client.screen;
 
-import igentuman.mbtool.client.render.MultiblockRenderer;
+import igentuman.mbtool.client.gui.MultiblockButton;
 import igentuman.mbtool.config.MbtoolConfig;
 import igentuman.mbtool.container.MultibuilderContainer;
 import igentuman.mbtool.container.MultibuilderSelectStructureContainer;
@@ -12,18 +12,21 @@ import igentuman.mbtool.util.ModUtil;
 import igentuman.mbtool.util.MultiblockStructure;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -33,12 +36,10 @@ import static igentuman.mbtool.Mbtool.MBTOOL;
 import static igentuman.mbtool.Mbtool.rl;
 
 public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderContainer> {
-    private static final ResourceLocation TEXTURE = rl("textures/gui/container/mbtool_inventory.png");
-    private static final ResourceLocation PASTE_ICON = rl("textures/gui/paste.png");
+    private static final Identifier TEXTURE = rl("textures/gui/container/mbtool_inventory.png");
     private Button chooseButton;
     private boolean meAccessEnabled = false;
     private boolean meAutocraftEnabled = false;
-    // ME access toggle button area (16x16), relative to GUI top-left
     private static final int ME_BTN_REL_X = 168;
     private static final int ME_BTN_REL_Y = 107;
     private static final int ME_BTN_SIZE = 16;
@@ -47,55 +48,49 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
     private ItemStack meIconStack = ItemStack.EMPTY;
     private ItemStack autocraftIconStack = ItemStack.EMPTY;
     public int selectedStructure = -1;
-    
+
     public MultibuilderScreen(MultibuilderContainer pMenu, Inventory pPlayerInventory, Component pTitle) {
-        super(pMenu, pPlayerInventory, pTitle);
-        this.imageWidth = 216;
-        this.imageHeight = 206;
+        super(pMenu, pPlayerInventory, pTitle, 216, 206);
     }
 
     @Override
     protected void init() {
         super.init();
-        
-        // Load selected structure and ME access state from item NBT
+
         loadSelectedStructure();
         loadMeAccessState();
         loadMeAutocraftState();
 
-        // Create icon stacks for the ME button and autocraft button
         try {
             BuiltInRegistries.ITEM.getOptional(
-                ResourceLocation.fromNamespaceAndPath("ae2", "wireless_terminal")
+                Identifier.fromNamespaceAndPath("ae2", "wireless_terminal")
             ).ifPresent(item -> meIconStack = new ItemStack(item));
             BuiltInRegistries.ITEM.getOptional(
-                ResourceLocation.fromNamespaceAndPath("minecraft", "crafting_table")
+                Identifier.fromNamespaceAndPath("minecraft", "crafting_table")
             ).ifPresent(item -> autocraftIconStack = new ItemStack(item));
-        } catch (Exception ignored) {
-            // AE2 not loaded
-        }
-        
-        // Position the button in the GUI
+        } catch (Exception ignored) {}
+
         int x = this.leftPos + 150;
         int y = this.topPos + 67;
         int buttonWidth = 57;
         int buttonHeight = 17;
-        
+
         this.chooseButton = Button.builder(
                 Component.translatable("gui.mbtool.choose"),
             this::onChooseButtonClick
         ).bounds(x, y, buttonWidth, buttonHeight)
                 .tooltip(Tooltip.create(Component.translatable("gui.mbtool.select_structure")))
                 .build();
-        
+        chooseButton.visible = true;
+        chooseButton.active = true;
         this.addRenderableWidget(this.chooseButton);
     }
-    
+
     private void loadMeAccessState() {
         if (!ModUtil.isAe2Loaded() || !MbtoolConfig.isAe2IntegrationEnabled()) return;
         if (this.minecraft != null && this.minecraft.player != null) {
             Player player = this.minecraft.player;
-            ItemStack multibuilderStack = player.getInventory().getItem(player.getInventory().selected);
+            ItemStack multibuilderStack = player.getInventory().getItem(player.getInventory().getSelectedSlot());
             if (multibuilderStack.getItem() instanceof MultibuilderItem) {
                 meAccessEnabled = multibuilderStack.getOrDefault(MbtoolDataComponents.ME_ACCESS.get(), false);
             }
@@ -106,7 +101,7 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
         if (!ModUtil.isAe2Loaded() || !MbtoolConfig.isAe2IntegrationEnabled()) return;
         if (this.minecraft != null && this.minecraft.player != null) {
             Player player = this.minecraft.player;
-            ItemStack multibuilderStack = player.getInventory().getItem(player.getInventory().selected);
+            ItemStack multibuilderStack = player.getInventory().getItem(player.getInventory().getSelectedSlot());
             if (multibuilderStack.getItem() instanceof MultibuilderItem) {
                 meAutocraftEnabled = MultibuilderItem.isMeAutocraftingEnabled(multibuilderStack);
             }
@@ -116,7 +111,7 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
     private void loadSelectedStructure() {
         if (this.minecraft != null && this.minecraft.player != null) {
             Player player = this.minecraft.player;
-            ItemStack multibuilderStack = player.getInventory().getItem(player.getInventory().selected);
+            ItemStack multibuilderStack = player.getInventory().getItem(player.getInventory().getSelectedSlot());
             selectedStructure = -1;
             if (multibuilderStack.getItem() instanceof MultibuilderItem multibuilderItem) {
                 selectedStructure = multibuilderItem.getSelectedStructureId(multibuilderStack);
@@ -125,45 +120,45 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
     }
 
     @Override
-    public boolean keyPressed(int pKeyCode, int pScanCode, int pModifiers) {
+    public boolean keyPressed(KeyEvent event) {
+        int pKeyCode = event.key();
         if (List.of(49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59).contains(pKeyCode)) {
             return false;
         }
-        return super.keyPressed(pKeyCode, pScanCode, pModifiers);
+        return super.keyPressed(event);
     }
-    
+
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        // Check if ME access toggle button was clicked
+    public boolean mouseClicked(MouseButtonEvent event, boolean b) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
+
         int btnX = this.leftPos + ME_BTN_REL_X;
         int btnY = this.topPos + ME_BTN_REL_Y;
         if (button == 0 && mouseX >= btnX && mouseX < btnX + ME_BTN_SIZE && mouseY >= btnY && mouseY < btnY + ME_BTN_SIZE) {
-            if (!ModUtil.isAe2Loaded() || !MbtoolConfig.isAe2IntegrationEnabled()) return super.mouseClicked(mouseX, mouseY, button);
+            if (!ModUtil.isAe2Loaded() || !MbtoolConfig.isAe2IntegrationEnabled()) return super.mouseClicked(event, b);
             meAccessEnabled = !meAccessEnabled;
-            // Send packet to server
             if (this.minecraft != null && this.minecraft.player != null) {
                 Player player = this.minecraft.player;
                 InteractionHand hand = player.getMainHandItem().is(MBTOOL.get()) ? InteractionHand.MAIN_HAND : InteractionHand.OFF_HAND;
-                PacketDistributor.sendToServer(new ToggleMeAccessPacket(meAccessEnabled, hand));
-                // Also update client-side ItemStack for immediate visual feedback
+                ClientPacketDistributor.sendToServer(new ToggleMeAccessPacket(meAccessEnabled, hand));
                 ItemStack stack = player.getItemInHand(hand);
                 stack.set(MbtoolDataComponents.ME_ACCESS.get(), meAccessEnabled);
             }
             return true;
         }
 
-        // Check if Autocraft toggle button was clicked (only when ME access is enabled)
         if (meAccessEnabled) {
             int acBtnX = this.leftPos + AUTOCRAFT_BTN_REL_X;
             int acBtnY = this.topPos + AUTOCRAFT_BTN_REL_Y;
             if (button == 0 && mouseX >= acBtnX && mouseX < acBtnX + ME_BTN_SIZE && mouseY >= acBtnY && mouseY < acBtnY + ME_BTN_SIZE) {
-                if (!ModUtil.isAe2Loaded() || !MbtoolConfig.isAe2IntegrationEnabled()) return super.mouseClicked(mouseX, mouseY, button);
+                if (!ModUtil.isAe2Loaded() || !MbtoolConfig.isAe2IntegrationEnabled()) return super.mouseClicked(event, b);
                 meAutocraftEnabled = !meAutocraftEnabled;
                 if (this.minecraft != null && this.minecraft.player != null) {
                     Player player = this.minecraft.player;
                     InteractionHand hand = player.getMainHandItem().is(MBTOOL.get()) ? InteractionHand.MAIN_HAND : InteractionHand.OFF_HAND;
-                    PacketDistributor.sendToServer(new ToggleMeAutocraftPacket(meAutocraftEnabled, hand));
-                    // Update client-side for immediate visual feedback
+                    ClientPacketDistributor.sendToServer(new ToggleMeAutocraftPacket(meAutocraftEnabled, hand));
                     ItemStack stack = player.getItemInHand(hand);
                     MultibuilderItem.setMeAutocraftingEnabled(stack, meAutocraftEnabled);
                 }
@@ -171,78 +166,75 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
             }
         }
 
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, b);
     }
 
     private void onChooseButtonClick(Button button) {
         if (this.minecraft != null && this.minecraft.player != null) {
             Player player = this.minecraft.player;
-            int slot = player.getInventory().selected;
-            
+            int slot = player.getInventory().getSelectedSlot();
+
             MultibuilderSelectStructureContainer container = new MultibuilderSelectStructureContainer(
                 0,
                 player.blockPosition(),
                 player.getInventory(),
                 slot
             );
-            
+
             MultibuilderSelectStructureScreen newScreen = new MultibuilderSelectStructureScreen(
                 container,
                 player.getInventory(),
                 Component.translatable("gui.mbtool.select_structure"),
                 this
             );
-            
+
             this.minecraft.setScreen(newScreen);
         }
     }
-    
+
     @Override
-    protected void renderBg(GuiGraphics pGuiGraphics, float pPartialTick, int pMouseX, int pMouseY) {
+    public void extractContents(GuiGraphicsExtractor pGuiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
         int x = (this.width - this.imageWidth) / 2;
         int y = (this.height - this.imageHeight) / 2;
-        pGuiGraphics.blit(TEXTURE, x, y, 0, 0, this.imageWidth, this.imageHeight);
-        ItemStack multibuilderStack = Minecraft.getInstance().player.getInventory().getItem(Minecraft.getInstance().player.getInventory().selected);
-        if(!multibuilderStack.is(MBTOOL.get())) return;
-        MultibuilderItem multibuilderItem = (MultibuilderItem) multibuilderStack.getItem();
-        MultiblockStructure structure = multibuilderItem.getCurrentStructure(multibuilderStack);
-        if(structure == null) return;
-        MultiblockRenderer.render(
-                structure,
-                pGuiGraphics.pose(),
-                x + 148, y + 9, 60, 60
-        );
+        pGuiGraphics.blit(RenderPipelines.GUI_TEXTURED, TEXTURE, x, y, 0f, 0f, this.imageWidth, this.imageHeight, 256, 256);
 
-        // Render ME access toggle button
+        ItemStack multibuilderStack = Minecraft.getInstance().player.getInventory().getItem(Minecraft.getInstance().player.getInventory().getSelectedSlot());
+        if(multibuilderStack.is(MBTOOL.get())) {
+            MultibuilderItem multibuilderItem = (MultibuilderItem) multibuilderStack.getItem();
+            MultiblockStructure structure = multibuilderItem.getCurrentStructure(multibuilderStack);
+            if(structure != null) {
+                MultiblockButton.renderStructureItems(pGuiGraphics, structure, x + 148, y + 9, 60, 60, 0f);
+            }
+        }
+
         renderMeAccessButton(pGuiGraphics, x, y, pMouseX, pMouseY);
 
-        // Render autocraft toggle button (only when ME access is enabled)
         if (meAccessEnabled) {
             renderAutocraftButton(pGuiGraphics, x, y, pMouseX, pMouseY);
         }
+
+        // Renders widgets (buttons), labels, slots
+        super.extractContents(pGuiGraphics, pMouseX, pMouseY, pPartialTick);
     }
 
-    private void renderMeAccessButton(GuiGraphics guiGraphics, int guiX, int guiY, int mouseX, int mouseY) {
+    private void renderMeAccessButton(GuiGraphicsExtractor guiGraphics, int guiX, int guiY, int mouseX, int mouseY) {
         if (!ModUtil.isAe2Loaded() || !MbtoolConfig.isAe2IntegrationEnabled()) return;
         int btnX = guiX + ME_BTN_REL_X;
         int btnY = guiY + ME_BTN_REL_Y;
 
-        // Draw button background with border
         int bgColor = meAccessEnabled ? 0xFF00AA00 : 0xFF555555;
         int innerColor = meAccessEnabled ? 0xFF003300 : 0xFF222222;
         guiGraphics.fill(btnX - 1, btnY - 1, btnX + ME_BTN_SIZE + 1, btnY + ME_BTN_SIZE + 1, bgColor);
         guiGraphics.fill(btnX, btnY, btnX + ME_BTN_SIZE, btnY + ME_BTN_SIZE, innerColor);
 
-        // Render the wireless terminal item icon
         if (!meIconStack.isEmpty()) {
-            guiGraphics.renderItem(meIconStack, btnX, btnY);
+            guiGraphics.item(meIconStack, btnX, btnY);
         }
 
-        // Render tooltip on hover
         if (mouseX >= btnX && mouseX < btnX + ME_BTN_SIZE && mouseY >= btnY && mouseY < btnY + ME_BTN_SIZE) {
             String stateKey = meAccessEnabled ? "gui.mbtool.me_access.enabled" : "gui.mbtool.me_access.disabled";
             ChatFormatting color = meAccessEnabled ? ChatFormatting.GREEN : ChatFormatting.RED;
-            guiGraphics.renderTooltip(this.font,
+            guiGraphics.setTooltipForNextFrame(this.font,
                 List.of(Component.translatable("gui.mbtool.me_access"),
                         Component.translatable("gui.mbtool.me_access.descr").withStyle(ChatFormatting.GOLD),
                         Component.translatable(stateKey).withStyle(color)),
@@ -250,27 +242,24 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
         }
     }
 
-    private void renderAutocraftButton(GuiGraphics guiGraphics, int guiX, int guiY, int mouseX, int mouseY) {
+    private void renderAutocraftButton(GuiGraphicsExtractor guiGraphics, int guiX, int guiY, int mouseX, int mouseY) {
         if (!ModUtil.isAe2Loaded() || !MbtoolConfig.isAe2IntegrationEnabled()) return;
         int btnX = guiX + AUTOCRAFT_BTN_REL_X;
         int btnY = guiY + AUTOCRAFT_BTN_REL_Y;
 
-        // Draw button background with border
         int bgColor = meAutocraftEnabled ? 0xFF0066CC : 0xFF555555;
         int innerColor = meAutocraftEnabled ? 0xFF002244 : 0xFF222222;
         guiGraphics.fill(btnX - 1, btnY - 1, btnX + ME_BTN_SIZE + 1, btnY + ME_BTN_SIZE + 1, bgColor);
         guiGraphics.fill(btnX, btnY, btnX + ME_BTN_SIZE, btnY + ME_BTN_SIZE, innerColor);
 
-        // Render the crafting table item icon
         if (!autocraftIconStack.isEmpty()) {
-            guiGraphics.renderItem(autocraftIconStack, btnX, btnY);
+            guiGraphics.item(autocraftIconStack, btnX, btnY);
         }
 
-        // Render tooltip on hover
         if (mouseX >= btnX && mouseX < btnX + ME_BTN_SIZE && mouseY >= btnY && mouseY < btnY + ME_BTN_SIZE) {
             String stateKey = meAutocraftEnabled ? "gui.mbtool.me_autocraft.enabled" : "gui.mbtool.me_autocraft.disabled";
             ChatFormatting color = meAutocraftEnabled ? ChatFormatting.AQUA : ChatFormatting.RED;
-            guiGraphics.renderTooltip(this.font,
+            guiGraphics.setTooltipForNextFrame(this.font,
                     List.of(Component.translatable("gui.mbtool.me_autocraft"),
                             Component.translatable("gui.mbtool.me_autocraft.descr").withStyle(ChatFormatting.GOLD),
                             Component.translatable("gui.mbtool.me_autocraft.notice").withStyle(ChatFormatting.RED),
@@ -280,13 +269,12 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
     }
 
     @Override
-    public void render(GuiGraphics pGuiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
-        this.renderBackground(pGuiGraphics, pMouseX, pMouseY, pPartialTick);
-        super.render(pGuiGraphics, pMouseX, pMouseY, pPartialTick);
-        this.renderTooltip(pGuiGraphics, pMouseX, pMouseY);
+    public void extractRenderState(GuiGraphicsExtractor pGuiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
+        super.extractRenderState(pGuiGraphics, pMouseX, pMouseY, pPartialTick);
     }
+
     @Override
-    protected void renderLabels(@NotNull GuiGraphics graphics, int mouseX, int mouseY) {
-        graphics.drawString(this.font, this.title, this.inventoryLabelX, 3, 4210752, false);
+    protected void extractLabels(@NotNull GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+        graphics.text(this.font, this.title, this.inventoryLabelX, 3, 4210752, false);
     }
 }

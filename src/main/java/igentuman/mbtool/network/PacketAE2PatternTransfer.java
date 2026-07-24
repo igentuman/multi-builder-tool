@@ -11,7 +11,6 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
@@ -19,8 +18,10 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 import java.lang.reflect.Field;
 import java.util.List;
 
+import static igentuman.mbtool.Mbtool.rl;
+
 public class PacketAE2PatternTransfer implements CustomPacketPayload {
-    public static final Type<PacketAE2PatternTransfer> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(Mbtool.MODID, "ae2_pattern_transfer"));
+    public static final Type<PacketAE2PatternTransfer> TYPE = new Type<>(rl("ae2_pattern_transfer"));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, PacketAE2PatternTransfer> STREAM_CODEC = StreamCodec.composite(
         ItemStack.STREAM_CODEC.apply(ByteBufCodecs.list()), PacketAE2PatternTransfer::inputItems,

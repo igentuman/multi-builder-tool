@@ -2,10 +2,12 @@ package igentuman.mbtool.client.gui;
 
 import igentuman.mbtool.util.MultiblockStructure;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
@@ -134,14 +136,14 @@ public class MultiblockSelectionGrid extends AbstractWidget {
     }
     
     @Override
-    public void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+    protected void extractWidgetRenderState(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
         if (!visible) {
             return;
         }
         
         // Render all buttons
         for (MultiblockButton button : buttons) {
-            button.render(guiGraphics, mouseX, mouseY, partialTick);
+            button.extractRenderState(guiGraphics, mouseX, mouseY, partialTick);
         }
         
         // Render empty state message if no structures
@@ -149,57 +151,52 @@ public class MultiblockSelectionGrid extends AbstractWidget {
             Component emptyMessage = Component.translatable("gui.mbtool.no_structures_available");
             int centerX = getX() + width / 2;
             int centerY = getY() + height / 2;
-            guiGraphics.drawCenteredString(
-                Minecraft.getInstance().font,
-                emptyMessage,
-                centerX,
-                centerY,
-                0x808080
-            );
+            Font font = Minecraft.getInstance().font;
+            guiGraphics.text(font, emptyMessage.getVisualOrderText(), centerX - font.width(emptyMessage) / 2, centerY, 0x808080, false);
         }
     }
     
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (!visible || !active) {
             return false;
         }
-        
+
         // Check if any of our buttons were clicked
         for (MultiblockButton btn : buttons) {
-            if (btn.mouseClicked(mouseX, mouseY, button)) {
+            if (btn.mouseClicked(event, doubleClick)) {
                 return true;
             }
         }
-        
+
         return false;
     }
     
     @Override
-    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+    public boolean mouseReleased(MouseButtonEvent event) {
         if (!visible || !active) {
             return false;
         }
-        
+
         // Forward to buttons
         for (MultiblockButton btn : buttons) {
-            btn.mouseReleased(mouseX, mouseY, button);
+            btn.mouseReleased(event);
         }
-        
+
         return false;
     }
     
     @Override
-    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+    public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
         if (!visible || !active) {
             return false;
         }
-        
+
         // Forward to buttons
         for (MultiblockButton btn : buttons) {
-            btn.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+            btn.mouseDragged(event, dragX, dragY);
         }
-        
+
         return false;
     }
 

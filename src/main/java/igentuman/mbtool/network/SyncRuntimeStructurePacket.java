@@ -12,7 +12,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
@@ -21,8 +20,10 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
+import static igentuman.mbtool.Mbtool.rl;
+
 public class SyncRuntimeStructurePacket implements CustomPacketPayload {
-    public static final Type<SyncRuntimeStructurePacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(Mbtool.MODID, "sync_runtime_structure"));
+    public static final Type<SyncRuntimeStructurePacket> TYPE = new Type<>(rl("sync_runtime_structure"));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, SyncRuntimeStructurePacket> STREAM_CODEC = StreamCodec.composite(
         ByteBufCodecs.COMPOUND_TAG, SyncRuntimeStructurePacket::structureNbt,

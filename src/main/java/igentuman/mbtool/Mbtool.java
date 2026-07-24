@@ -8,22 +8,21 @@ import igentuman.mbtool.registration.MbtoolDataComponents;
 import igentuman.mbtool.util.MultiblocksProvider;
 import igentuman.mbtool.util.BlockEquivalencyManager;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.CreativeModeTabs;
-import net.minecraft.world.item.Item;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.config.ModConfigEvent;
-import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.common.extensions.IMenuTypeExtension;
-import net.neoforged.neoforge.event.AddReloadListenerEvent;
+import net.neoforged.neoforge.event.AddServerReloadListenersEvent;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
+import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import org.apache.logging.log4j.LogManager;
@@ -36,10 +35,9 @@ public class Mbtool
     public static final String MODID = "mbtool";
     public static final Logger logger = LogManager.getLogger();
 
-    public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(Registries.ITEM, MODID);
-    public static final Item.Properties ONE_ITEM_PROPERTIES = new Item.Properties().stacksTo(1);
+    public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(MODID);
     public static final DeferredRegister<MenuType<?>> CONTAINERS = DeferredRegister.create(Registries.MENU, MODID);
-    public static final DeferredHolder<Item, MultibuilderItem> MBTOOL = ITEMS.register("mbtool", () -> new MultibuilderItem(ONE_ITEM_PROPERTIES));
+    public static final DeferredItem<MultibuilderItem> MBTOOL = ITEMS.registerItem("mbtool", props -> new MultibuilderItem(props.stacksTo(1)));
     public static final DeferredHolder<MenuType<?>, MenuType<MultibuilderContainer>> MULTIBUILDER_CONTAINER = CONTAINERS.register("mbtool_container",
             () -> IMenuTypeExtension.create((windowId, inv, data) -> new MultibuilderContainer(windowId, data.readBlockPos(), inv, data.readInt())));
     public static final DeferredHolder<MenuType<?>, MenuType<MultibuilderSelectStructureContainer>> MULTIBUILDER_STRUCTURE_CONTAINER = CONTAINERS.register("mbtool_structure_container",
@@ -50,38 +48,27 @@ public class Mbtool
         ITEMS.register(modEventBus);
         CONTAINERS.register(modEventBus);
         MbtoolDataComponents.DATA_COMPONENT_TYPES.register(modEventBus);
-        
+
         modEventBus.addListener(this::addCreative);
         modEventBus.addListener(this::registerCapabilities);
         modEventBus.addListener(this::onModConfigEvent);
-        
-        // Register configuration
+
         MbtoolConfig.register(modContainer);
 
         NeoForge.EVENT_BUS.register(this);
     }
-    
+
     public void onModConfigEvent(final ModConfigEvent event) {
         if (event.getConfig().getType() == ModConfig.Type.COMMON) {
-            // Reinitialize block equivalency manager when config changes
             BlockEquivalencyManager.reinitialize();
         }
     }
 
     private void registerCapabilities(RegisterCapabilitiesEvent event) {
-        event.registerItem(Capabilities.EnergyStorage.ITEM, (stack, context) -> {
-            if (stack.getItem() instanceof MultibuilderItem item) {
-                return item.getEnergy(stack);
-            }
-            return null;
-        }, MBTOOL.get());
-
-        event.registerItem(Capabilities.ItemHandler.ITEM, (stack, context) -> {
-            if (stack.getItem() instanceof MultibuilderItem item) {
-                return item.getInventory(stack);
-            }
-            return null;
-        }, MBTOOL.get());
+        // TODO: Migrate to NeoForge 26.1 Transfer API
+        // Capabilities.Energy.ITEM expects EnergyHandler (net.neoforged.neoforge.transfer.energy)
+        // Capabilities.Item.ITEM expects ResourceHandler<ItemResource> (net.neoforged.neoforge.transfer)
+        // CustomEnergyStorage and ItemInventoryHandler need to implement the new interfaces.
     }
 
     private void addCreative(BuildCreativeModeTabContentsEvent event) {
@@ -91,14 +78,15 @@ public class Mbtool
     }
 
     @SubscribeEvent
-    public void onAddReloadListeners(AddReloadListenerEvent event) {
-        event.addListener(MultiblocksProvider.getInstance());
+    public void onAddReloadListeners(AddServerReloadListenersEvent event) {
+        event.addListener(rl("multiblocks_provider"), MultiblocksProvider.getInstance());
     }
 
-    public static ResourceLocation rlFromString(String name) {
-        return ResourceLocation.tryParse(name);
+    public static Identifier rlFromString(String name) {
+        return Identifier.tryParse(name);
     }
-    public static ResourceLocation rl(String name) {
-        return ResourceLocation.fromNamespaceAndPath(MODID, name);
+
+    public static Identifier rl(String name) {
+        return Identifier.fromNamespaceAndPath(MODID, name);
     }
 }

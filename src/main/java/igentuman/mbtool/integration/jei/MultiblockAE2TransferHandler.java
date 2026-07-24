@@ -3,13 +3,13 @@ package igentuman.mbtool.integration.jei;
 import appeng.menu.me.items.PatternEncodingTermMenu;
 import igentuman.mbtool.network.PacketAE2PatternTransfer;
 import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
-import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.recipe.transfer.IRecipeTransferError;
 import mezz.jei.api.recipe.transfer.IRecipeTransferHandler;
+import mezz.jei.api.recipe.types.IRecipeType;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -29,7 +29,7 @@ public class MultiblockAE2TransferHandler implements IRecipeTransferHandler<Patt
     }
 
     @Override
-    public RecipeType<MultiblockStructureRecipe> getRecipeType() {
+    public IRecipeType<MultiblockStructureRecipe> getRecipeType() {
         return MultiblockStructureCategory.TYPE;
     }
 
@@ -46,7 +46,7 @@ public class MultiblockAE2TransferHandler implements IRecipeTransferHandler<Patt
             }
         }
 
-        PacketDistributor.sendToServer(new PacketAE2PatternTransfer(inputItems, new ArrayList<>()));
+        ClientPacketDistributor.sendToServer(new PacketAE2PatternTransfer(inputItems, new ArrayList<>()));
         return null;
     }
 }

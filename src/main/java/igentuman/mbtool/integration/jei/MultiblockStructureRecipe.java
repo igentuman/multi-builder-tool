@@ -4,7 +4,7 @@ import igentuman.mbtool.util.MultiblockStructure;
 import mezz.jei.api.runtime.IIngredientManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.block.Block;
@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 
 public class MultiblockStructureRecipe {
-    private final ResourceLocation id;
+    private final Identifier id;
     private final CompoundTag structureNbt;
     private final String name;
     private final MultiblockStructure structure;
@@ -23,7 +23,7 @@ public class MultiblockStructureRecipe {
     public List<ItemStack> outputs = new ArrayList<>();
     private IIngredientManager ingredientManager;
 
-    public MultiblockStructureRecipe(ResourceLocation id, CompoundTag structureNbt, String name, IIngredientManager ingredientManager) {
+    public MultiblockStructureRecipe(Identifier id, CompoundTag structureNbt, String name, IIngredientManager ingredientManager) {
         this.id = id;
         this.structureNbt = structureNbt;
         this.name =  name;
@@ -31,7 +31,11 @@ public class MultiblockStructureRecipe {
         this.currentLayer = structure.getMaxY();
         List<Block> blocks = new ArrayList<>();
         for(BlockPos pos : structure.getBlocks().keySet()) {
-            Block block = structure.getBlocks().get(pos).getBlock();
+            BlockState state = structure.getBlocks().get(pos);
+            if (state.is(net.minecraft.world.level.block.Blocks.AIR)) {
+                continue;
+            }
+            Block block = state.getBlock();
             if (!blocks.contains(block)) {
                 blocks.add(block);
                 outputs.add(new ItemStack(block));
@@ -48,7 +52,7 @@ public class MultiblockStructureRecipe {
         this.ingredientManager = ingredientManager;
     }
     
-    public ResourceLocation getId() {
+    public Identifier getId() {
         return id;
     }
     
@@ -75,8 +79,7 @@ public class MultiblockStructureRecipe {
     }
 
     public Ingredient getIngredients() {
-        Ingredient ingredient = Ingredient.of(outputs.toArray(new ItemStack[0]));
-        return ingredient;
+        return Ingredient.of(outputs.stream().map(ItemStack::getItem));
     }
 
     public IIngredientManager getIngredientManager() {

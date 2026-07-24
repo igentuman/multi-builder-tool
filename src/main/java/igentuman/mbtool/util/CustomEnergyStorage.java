@@ -1,10 +1,9 @@
 package igentuman.mbtool.util;
 
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.IntTag;
-import net.minecraft.nbt.Tag;
 import igentuman.mbtool.registration.MbtoolDataComponents;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import net.neoforged.neoforge.energy.EnergyStorage;
 
 public class CustomEnergyStorage extends EnergyStorage {
@@ -169,20 +168,16 @@ public class CustomEnergyStorage extends EnergyStorage {
         maxExtract = i;
     }
 
-    public Tag serializeNBT() {
-        CompoundTag tag = new CompoundTag();
-        tag.putInt("energy", this.getEnergyStored());
-        tag.putInt("capacity", this.getMaxEnergyStored());
-        return tag;
+    @Override
+    public void serialize(ValueOutput output) {
+        output.putInt("energy", this.getEnergyStored());
+        output.putInt("capacity", capacity);
     }
 
-    public void deserializeNBT(Tag nbt) {
-        if (nbt instanceof IntTag intNbt) {
-            this.energy = intNbt.getAsInt();
-        } else {
-            energy = ((CompoundTag) nbt).getInt("energy");
-            capacity = ((CompoundTag) nbt).getInt("capacity");
-        }
+    @Override
+    public void deserialize(ValueInput input) {
+        this.energy = input.getIntOr("energy", 0);
+        capacity = input.getIntOr("capacity", capacity);
     }
 
     public void tick() {

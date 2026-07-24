@@ -15,7 +15,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.properties.DirectionProperty;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.core.particles.ParticleTypes;
@@ -43,7 +43,7 @@ public class MultiblockBuilder {
     public static BuildResult buildMultiblock(Level level, Player player, ItemStack multibuilderStack, 
                                             MultiblockStructure structure, BlockPos centerPos, int rotation) {
         
-        if (level.isClientSide) {
+        if (level.isClientSide()) {
             return new BuildResult(false, Component.literal("Cannot build on client side"));
         }
         
@@ -428,8 +428,9 @@ public class MultiblockBuilder {
         
         // Check all properties of the block state
         for (Property<?> property : blockState.getProperties()) {
-            if (property instanceof DirectionProperty) {
-                DirectionProperty dirProperty = (DirectionProperty) property;
+            if (property instanceof EnumProperty<?> ep && ep.getValueClass() == Direction.class) {
+                @SuppressWarnings("unchecked")
+                EnumProperty<Direction> dirProperty = (EnumProperty<Direction>) ep;
                 Direction currentDirection = blockState.getValue(dirProperty);
                 Direction rotatedDirection = rotateDirection(currentDirection, rotation, dirProperty);
                 
@@ -446,7 +447,7 @@ public class MultiblockBuilder {
     /**
      * Rotates a direction based on the rotation amount and property constraints
      */
-    private static Direction rotateDirection(Direction direction, int rotation, DirectionProperty property) {
+    private static Direction rotateDirection(Direction direction, int rotation, EnumProperty<Direction> property) {
         // Normalize rotation to 0-3 range
         rotation = ((rotation % 4) + 4) % 4;
         

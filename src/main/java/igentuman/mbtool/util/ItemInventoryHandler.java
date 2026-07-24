@@ -3,6 +3,7 @@ package igentuman.mbtool.util;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.ItemStackHandler;
@@ -11,6 +12,7 @@ import org.jetbrains.annotations.NotNull;
 import static igentuman.mbtool.Mbtool.MBTOOL;
 import static igentuman.mbtool.registration.MbtoolDataComponents.INVENTORY;
 
+@SuppressWarnings("deprecation")
 public class ItemInventoryHandler extends ItemStackHandler {
 
     protected ItemStack stack;
@@ -53,19 +55,22 @@ public class ItemInventoryHandler extends ItemStackHandler {
         }
     }
 
-    @Override
     public CompoundTag serializeNBT(HolderLookup.Provider provider) {
         ListTag nbtTagList = new ListTag();
         for (int i = 0; i < stacks.size(); i++) {
-            ItemStack stack = stacks.get(i);
-            if (!stack.isEmpty()) {
-                int realCount = stack.getCount();
-                stack.setCount(1);
-                CompoundTag itemTag = (CompoundTag) stack.save(provider);
-                stack.setCount(realCount);
-                itemTag.putInt("count", realCount);
-                itemTag.putByte("Slot", (byte) i);
-                nbtTagList.add(itemTag);
+            ItemStack itemStack = stacks.get(i);
+            if (!itemStack.isEmpty()) {
+                int realCount = itemStack.getCount();
+                ItemStack copy = itemStack.copy();
+                copy.setCount(1);
+                Tag savedTag = ItemStack.CODEC.encodeStart(
+                        provider.createSerializationContext(NbtOps.INSTANCE), copy
+                ).getOrThrow();
+                if (savedTag instanceof CompoundTag itemTag) {
+                    itemTag.putInt("count", realCount);
+                    itemTag.putByte("Slot", (byte) i);
+                    nbtTagList.add(itemTag);
+                }
             }
         }
         CompoundTag nbt = new CompoundTag();
@@ -74,17 +79,17 @@ public class ItemInventoryHandler extends ItemStackHandler {
         return nbt;
     }
 
-    @Override
     public void deserializeNBT(HolderLookup.Provider provider, CompoundTag nbt) {
-        setSize(nbt.contains("Size", Tag.TAG_INT) ? nbt.getInt("Size") : stacks.size());
-        ListTag tagList = nbt.getList("Items", Tag.TAG_COMPOUND);
+        setSize(nbt.contains("Size") ? nbt.getIntOr("Size", stacks.size()) : stacks.size());
+        ListTag tagList = nbt.getListOrEmpty("Items");
         for (int i = 0; i < tagList.size(); i++) {
-            CompoundTag itemTag = tagList.getCompound(i);
-            int slot = itemTag.getByte("Slot") & 255;
+            CompoundTag itemTag = tagList.getCompoundOrEmpty(i);
+            int slot = itemTag.getByteOr("Slot", (byte) 0) & 255;
             if (slot < stacks.size()) {
-                int realCount = itemTag.getInt("count");
-                itemTag.putInt("count", 1);
-                ItemStack parsed = ItemStack.parseOptional(provider, itemTag);
+                int realCount = itemTag.getIntOr("count", 1);
+                ItemStack parsed = ItemStack.OPTIONAL_CODEC.parse(
+                        provider.createSerializationContext(NbtOps.INSTANCE), itemTag
+                ).result().orElse(ItemStack.EMPTY);
                 if (!parsed.isEmpty()) {
                     parsed.setCount(realCount);
                 }

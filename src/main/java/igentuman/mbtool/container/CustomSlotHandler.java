@@ -11,8 +11,7 @@ public class CustomSlotHandler extends SlotItemHandler {
     }
 
     @Override
-    public int getMaxStackSize()
-    {
+    public int getMaxStackSize() {
         return 512;
     }
 

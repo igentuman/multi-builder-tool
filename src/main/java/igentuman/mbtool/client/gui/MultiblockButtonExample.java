@@ -1,7 +1,7 @@
 package igentuman.mbtool.client.gui;
 
 import igentuman.mbtool.util.MultiblockStructure;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.nbt.CompoundTag;
@@ -84,31 +84,15 @@ public class MultiblockButtonExample extends Screen {
     }
     
     @Override
-    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        // Render background
-        this.renderBackground(guiGraphics,mouseX, mouseY, partialTick);
-        
-        // Render title
-        guiGraphics.drawCenteredString(
-            this.font, 
-            this.title, 
-            this.width / 2, 
-            20, 
-            0xFFFFFF
-        );
-        
-        // Render instructions
+    public void extractRenderState(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
+        this.extractBackground(guiGraphics, mouseX, mouseY, partialTick);
+
+        guiGraphics.centeredText(this.font, this.title.getString(), this.width / 2, 20, 0xFFFFFF);
+
         Component instructions = Component.translatable("gui.mbtool.multiblock_button.instructions");
-        guiGraphics.drawCenteredString(
-            this.font,
-            instructions,
-            this.width / 2,
-            this.height - 30,
-            0xAAAAAA
-        );
-        
-        // Call super to render widgets
-        super.render(guiGraphics, mouseX, mouseY, partialTick);
+        guiGraphics.centeredText(this.font, instructions.getString(), this.width / 2, this.height - 30, 0xAAAAAA);
+
+        super.extractRenderState(guiGraphics, mouseX, mouseY, partialTick);
     }
     
     @Override

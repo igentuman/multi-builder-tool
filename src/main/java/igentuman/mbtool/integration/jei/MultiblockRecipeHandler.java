@@ -3,13 +3,13 @@ package igentuman.mbtool.integration.jei;
 import igentuman.mbtool.container.MultibuilderContainer;
 import igentuman.mbtool.network.PacketJeiRecipeTransfer;
 import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
-import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.recipe.transfer.IRecipeTransferError;
 import mezz.jei.api.recipe.transfer.IRecipeTransferHandler;
+import mezz.jei.api.recipe.types.IRecipeType;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -33,7 +33,7 @@ public class MultiblockRecipeHandler implements IRecipeTransferHandler<Multibuil
     }
 
     @Override
-    public RecipeType<MultiblockStructureRecipe> getRecipeType() {
+    public IRecipeType<MultiblockStructureRecipe> getRecipeType() {
         return MultiblockStructureCategory.TYPE;
     }
 
@@ -56,7 +56,7 @@ public class MultiblockRecipeHandler implements IRecipeTransferHandler<Multibuil
     }
 
     private @Nullable IRecipeTransferError performTransfer(MultiblockStructureRecipe recipe) {
-        PacketDistributor.sendToServer(new PacketJeiRecipeTransfer(new ArrayList<>(recipe.outputs)));
+        ClientPacketDistributor.sendToServer(new PacketJeiRecipeTransfer(new ArrayList<>(recipe.outputs)));
         return null;
     }
 

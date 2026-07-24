@@ -12,7 +12,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
@@ -21,8 +20,10 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
+import static igentuman.mbtool.Mbtool.rl;
+
 public class SyncMultibuilderParamsPacket implements CustomPacketPayload {
-    public static final Type<SyncMultibuilderParamsPacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(Mbtool.MODID, "sync_multibuilder_params"));
+    public static final Type<SyncMultibuilderParamsPacket> TYPE = new Type<>(rl( "sync_multibuilder_params"));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, SyncMultibuilderParamsPacket> STREAM_CODEC = StreamCodec.composite(
         ByteBufCodecs.INT, SyncMultibuilderParamsPacket::recipeIndex,

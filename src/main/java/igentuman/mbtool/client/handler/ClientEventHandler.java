@@ -18,38 +18,35 @@ import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import static igentuman.mbtool.Mbtool.MODID;
 import static igentuman.mbtool.Mbtool.MBTOOL;
 
-@EventBusSubscriber(modid = MODID, bus = EventBusSubscriber.Bus.GAME, value = Dist.CLIENT)
+@EventBusSubscriber(modid = MODID, value = Dist.CLIENT)
 public class ClientEventHandler {
 
     @SubscribeEvent
-    public static void onRenderLevelStage(RenderLevelStageEvent event) {
-        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) {
-            return;
-        }
-
+    public static void onRenderAfterTranslucentBlocks(RenderLevelStageEvent.AfterTranslucentBlocks event) {
         Minecraft mc = Minecraft.getInstance();
         Player player = mc.player;
-        
+
         if (player == null) return;
 
-        // Render dismantle overlay if dismantling is active
+        float partialTick = mc.getDeltaTracker().getRealtimeDeltaTicks();
+
         if (DismantleHandler.isDismantling()) {
             PlacedStructure dismantlingStructure = DismantleHandler.getDismantlingStructure();
             if (dismantlingStructure != null) {
-                DismantleOverlayRenderer.renderDismantleOverlay(event.getPoseStack(), dismantlingStructure, event.getPartialTick().getRealtimeDeltaTicks());
+                DismantleOverlayRenderer.renderDismantleOverlay(event.getPoseStack(), dismantlingStructure, partialTick);
             }
-            return; // Don't render preview when dismantling
+            return;
         }
 
         ItemStack mainItem = player.getItemInHand(InteractionHand.MAIN_HAND);
 
         boolean main = !mainItem.isEmpty() && mainItem.is(MBTOOL.get()) && ClientHandler.hasStructure(mainItem);
 
-        if (!main || !ClientHandler.canShowPreview(mainItem)) {
+        if (!main || !ClientHandler.canShowPreview(player, mainItem)) {
             return;
         }
 
-        PreviewRenderer.renderPreview(event.getPoseStack(), event.getPartialTick().getRealtimeDeltaTicks());
+        PreviewRenderer.renderPreview(event.getPoseStack(), partialTick);
     }
 
     @SubscribeEvent

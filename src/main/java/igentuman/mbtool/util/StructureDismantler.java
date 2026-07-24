@@ -28,7 +28,7 @@ public class StructureDismantler {
      * Dismantles a placed structure and adds blocks to the multibuilder inventory
      */
     public static DismantleResult dismantleStructure(Level level, Player player, ItemStack multibuilderStack, PlacedStructure structure) {
-        if (level.isClientSide) {
+        if (level.isClientSide()) {
             return new DismantleResult(false, Component.literal("Cannot dismantle on client side"));
         }
         

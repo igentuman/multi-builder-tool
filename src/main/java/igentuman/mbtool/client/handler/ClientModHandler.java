@@ -1,5 +1,7 @@
 package igentuman.mbtool.client.handler;
 
+import igentuman.mbtool.client.render.GuiStructureRenderState;
+import igentuman.mbtool.client.render.GuiStructureRenderer;
 import igentuman.mbtool.client.screen.MultibuilderScreen;
 import igentuman.mbtool.client.screen.MultibuilderSelectStructureScreen;
 import igentuman.mbtool.container.MultibuilderSelectStructureContainer;
@@ -10,12 +12,13 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
+import net.neoforged.neoforge.client.event.RegisterPictureInPictureRenderersEvent;
 
 import static igentuman.mbtool.Mbtool.MODID;
 import static igentuman.mbtool.Mbtool.MULTIBUILDER_CONTAINER;
 import static igentuman.mbtool.Mbtool.MULTIBUILDER_STRUCTURE_CONTAINER;
 
-@EventBusSubscriber(modid = MODID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+@EventBusSubscriber(modid = MODID, value = Dist.CLIENT)
 public class ClientModHandler {
     @SubscribeEvent
     public static void onClientSetup(FMLClientSetupEvent event) {
@@ -27,5 +30,10 @@ public class ClientModHandler {
         event.register(MULTIBUILDER_STRUCTURE_CONTAINER.get(),
                 (MultibuilderSelectStructureContainer container, Inventory inventory, Component title) ->
                         new MultibuilderSelectStructureScreen(container, inventory, title));
+    }
+
+    @SubscribeEvent
+    public static void onRegisterPictureInPictureRenderers(RegisterPictureInPictureRenderersEvent event) {
+        event.register(GuiStructureRenderState.class, GuiStructureRenderer::new);
     }
 }

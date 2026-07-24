@@ -25,14 +25,14 @@ public class PlacedStructure {
     }
     
     public PlacedStructure(CompoundTag tag) {
-        this.structureId = tag.getString("structureId");
+        this.structureId = tag.getStringOr("structureId", "");
         this.boundingBox = new AABB(
-            tag.getInt("minX"), tag.getInt("minY"), tag.getInt("minZ"),
-            tag.getInt("maxX"), tag.getInt("maxY"), tag.getInt("maxZ")
+            tag.getIntOr("minX", 0), tag.getIntOr("minY", 0), tag.getIntOr("minZ", 0),
+            tag.getIntOr("maxX", 0), tag.getIntOr("maxY", 0), tag.getIntOr("maxZ", 0)
         );
-        this.placedBy = tag.getUUID("placedBy");
-        this.placedTime = tag.getLong("placedTime");
-        this.rotation = tag.getInt("rotation");
+        this.placedBy = UUID.fromString(tag.getStringOr("placedBy", new UUID(0,0).toString()));
+        this.placedTime = tag.getLongOr("placedTime", 0L);
+        this.rotation = tag.getIntOr("rotation", 0);
     }
     
     public CompoundTag toNBT() {
@@ -44,7 +44,7 @@ public class PlacedStructure {
         tag.putInt("maxX", (int) boundingBox.maxX);
         tag.putInt("maxY", (int) boundingBox.maxY);
         tag.putInt("maxZ", (int) boundingBox.maxZ);
-        tag.putUUID("placedBy", placedBy);
+        tag.putString("placedBy", placedBy.toString());
         tag.putLong("placedTime", placedTime);
         tag.putInt("rotation", rotation);
         return tag;
