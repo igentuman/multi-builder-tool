@@ -107,7 +107,7 @@ dependencies {
 
     implementation "curse.maven:patchouli-306770:7730942"
 
-    implementation files("libs/nuclearcraftneohaul-1.21.1-0.9.11.jar")
+    implementation "curse.maven:nuclearcraft-neohaul-1523268:8467009"
     implementation "curse.maven:terrablender-neoforge-940057:6054947"
     implementation "curse.maven:applied-energistics-2-223794:7027323"
     implementation "curse.maven:guideme-1173950:7127444"

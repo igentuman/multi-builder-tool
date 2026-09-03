@@ -26,6 +26,12 @@ public class MultiblockStructure {
 
     public MultiblockStructure(CompoundTag nbt) {
         this.nbt = nbt;
+        if (nbt.contains("StructureName", Tag.TAG_STRING)) {
+            name = nbt.getString("StructureName");
+        }
+        if (nbt.contains("StructureLocation", Tag.TAG_STRING)) {
+            location = ResourceLocation.tryParse(nbt.getString("StructureLocation"));
+        }
         if (nbt.contains("blocks", Tag.TAG_LIST)) {
             ListTag blocksList = nbt.getList("blocks", Tag.TAG_COMPOUND);
             ListTag palette = nbt.getList("palette", Tag.TAG_COMPOUND);
@@ -33,13 +39,19 @@ public class MultiblockStructure {
             for (int i = 0; i < blocksList.size(); i++) {
                 CompoundTag blockTag = blocksList.getCompound(i);
                 CompoundTag state = palette.getCompound(blockTag.getInt("state"));
-                if (blockTag.get("pos") instanceof ListTag posList && state.getString("Name") != null) {
+                Tag posTag = blockTag.get("pos");
+                int[] posArr = null;
+                if (posTag instanceof ListTag posList && posList.size() == 3) {
+                    posArr = new int[]{posList.getInt(0), posList.getInt(1), posList.getInt(2)};
+                } else if (posTag instanceof net.minecraft.nbt.IntArrayTag intArrayTag && intArrayTag.getAsIntArray().length == 3) {
+                    posArr = intArrayTag.getAsIntArray();
+                }
+                if (posArr != null && state.getString("Name") != null) {
+                    {
+                        int x = posArr[0];
+                        int y = posArr[1];
+                        int z = posArr[2];
 
-                    if (posList.size() == 3) {
-                        int x = posList.getInt(0);
-                        int y = posList.getInt(1);
-                        int z = posList.getInt(2);
-                        
                         BlockPos pos = new BlockPos(x, y, z);
                         String blockId = state.getString("Name");
                         ResourceLocation rl = rlFromString(blockId);
@@ -85,6 +97,10 @@ public class MultiblockStructure {
         this(nbt);
         location = rl;
         name = file;
+        nbt.putString("StructureName", file);
+        if (rl != null) {
+            nbt.putString("StructureLocation", rl.toString());
+        }
     }
 
     @SuppressWarnings("unchecked")

@@ -306,8 +306,9 @@ public class MultiblockBuilder {
             MultibuilderItem.syncInventoryToClient((ServerPlayer) player, multibuilderStack, InteractionHand.MAIN_HAND);
         }
         
-        return new BuildResult(true, Component.translatable("message.mbtool.multiblock_built", 
-            blocksPlaced, Component.translatable(structure.getName())));
+        String structureName = structure.getName() != null ? structure.getName() : "mbtool.structure.unknown";
+        return new BuildResult(true, Component.translatable("message.mbtool.multiblock_built",
+            blocksPlaced, Component.translatable(structureName)));
     }
 
     private static boolean isMeAutocraftingEnabled(ItemStack multibuilderStack) {
