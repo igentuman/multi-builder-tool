@@ -20,6 +20,7 @@ import net.minecraft.world.level.block.Block;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.Future;
 
 public class AE2Helper {
@@ -38,18 +39,8 @@ public class AE2Helper {
         FAILED               // Generic failure
     }
 
-    /**
-     * Holds a reference to both the ME grid and the IActionHost (from the wireless terminal).
-     * The IActionHost is needed to create a proper action source that has grid node context,
-     * which is required for crafting calculations to access network storage.
-     */
     private record GridContext(IGrid grid, IActionHost actionHost) {}
 
-    /**
-     * Finds the ME grid accessible by the player via a wireless terminal
-     * in their inventory or curios slots. Returns both the grid and the
-     * IActionHost so callers can build a proper IActionSource.
-     */
     private static GridContext getPlayerGridContext(ServerPlayer player) {
         for (int i = 0; i < player.getInventory().items.size(); i++) {
             ItemStack itemStack = player.getInventory().items.get(i);
@@ -104,9 +95,6 @@ public class AE2Helper {
         return stacks.get(key);
     }
 
-    /**
-     * Extracts items from the ME network via the player's wireless terminal.
-     */
     public static long extractItems(ServerPlayer player, Block block, int amount) {
         IGrid grid = getPlayerGrid(player);
         if (grid == null) return 0;
@@ -115,9 +103,6 @@ public class AE2Helper {
         return storage.extract(key, amount, Actionable.MODULATE, IActionSource.ofPlayer(player));
     }
 
-    /**
-     * Quick check if a block is craftable via the ME network.
-     */
     public static boolean isCraftable(ServerPlayer player, Block block) {
         IGrid grid = getPlayerGrid(player);
         if (grid == null) return false;
@@ -125,13 +110,13 @@ public class AE2Helper {
         return grid.getCraftingService().isCraftable(key);
     }
 
-    /**
-     * Non-blocking: starts an async crafting calculation and stores the Future in AutocraftTracker.
-     * Returns immediately without blocking the server thread.
-     *
-     * @return CALCULATING if the calculation was started, NO_PATTERN if no pattern exists, NO_GRID if no grid.
-     */
     public static AutocraftResult startCraftingCalculation(ServerPlayer player, Block block, int amount) {
+        AutocraftTracker.CraftRequest existing = AutocraftTracker.getRequest(player.getUUID(), block);
+        if (existing != null && AutocraftTracker.hasActiveRequest(player.getUUID(), block)) {
+            return existing.status == AutocraftTracker.RequestStatus.SUBMITTED
+                    ? AutocraftResult.ALREADY_REQUESTING : AutocraftResult.CALCULATING;
+        }
+
         GridContext ctx = getPlayerGridContext(player);
         if (ctx == null) return AutocraftResult.NO_GRID;
 
@@ -148,9 +133,6 @@ public class AE2Helper {
         }
 
         try {
-            // Use IActionSource.ofPlayer(player, actionHost) to provide grid node context.
-            // Without the IActionHost, the crafting calculation cannot access network storage
-            // and reports all items as missing (plan.simulation() == true).
             IActionSource actionSource = ctx.actionHost != null
                     ? IActionSource.ofPlayer(player, ctx.actionHost)
                     : IActionSource.ofPlayer(player);
@@ -181,6 +163,7 @@ public class AE2Helper {
         Set<Map.Entry<Block, AutocraftTracker.CraftRequest>> snapshot = Set.copyOf(requests.entrySet());
         for (Map.Entry<Block, AutocraftTracker.CraftRequest> entry : snapshot) {
             Block block = entry.getKey();
+            boolean wasWaitingForCpu = entry.getValue().status == AutocraftTracker.RequestStatus.WAITING_FOR_CPU;
             AutocraftResult result = trySubmitCraftingJob(player, block);
             if (result == null) continue;
             switch (result) {
@@ -188,8 +171,12 @@ public class AE2Helper {
                         Component.translatable("message.mbtool.autocrafting_missing_ingredients", block.getName()));
                 case NO_GRID -> player.sendSystemMessage(
                         Component.translatable("message.mbtool.autocrafting_no_grid"));
-                case CPU_BUSY -> player.sendSystemMessage(
-                        Component.translatable("message.mbtool.autocrafting_cpu_busy", block.getName()));
+                case CPU_BUSY -> {
+                    if (!wasWaitingForCpu) {
+                        player.sendSystemMessage(Component.translatable(
+                                "message.mbtool.autocrafting_cpu_busy", block.getName()));
+                    }
+                }
                 case FAILED -> player.sendSystemMessage(
                         Component.translatable("message.mbtool.autocrafting_failed"));
                 default -> {} // CALCULATING, SUBMITTED, etc. — no message needed
@@ -197,19 +184,15 @@ public class AE2Helper {
         }
     }
 
-    /**
-     * Non-blocking: checks if a previously started crafting calculation has completed.
-     * If done, submits the crafting job. Never blocks the server thread.
-     *
-     * @return the current status, or null if there is no pending request for this block.
-     */
     public static AutocraftResult trySubmitCraftingJob(ServerPlayer player, Block block) {
         AutocraftTracker.CraftRequest request = AutocraftTracker.getRequest(player.getUUID(), block);
         if (request == null) return null;
 
-        // Already submitted successfully on a previous call
+        // Keep submitted requests tracked while the ME network is crafting them.
         if (request.status == AutocraftTracker.RequestStatus.SUBMITTED) {
-            if(request.planFuture == null) {
+            GridContext ctx = getPlayerGridContext(player);
+            if (ctx != null && !ctx.grid.getCraftingService().isRequesting(
+                    AEItemKey.of(block.asItem().getDefaultInstance()))) {
                 AutocraftTracker.markFailed(player.getUUID(), block);
                 return null;
             }
@@ -241,31 +224,39 @@ public class AE2Helper {
                     : IActionSource.ofPlayer(player);
             ICraftingSubmitResult submitResult = ctx.grid.getCraftingService().submitJob(
                     plan, null, null, false, actionSource);
-
-            if (submitResult.successful()) {
-                AutocraftTracker.markSubmitted(player.getUUID(), block);
-                return AutocraftResult.SUBMITTED;
-            }
-
-            // Map error codes
-            AutocraftTracker.markFailed(player.getUUID(), block);
-            CraftingSubmitErrorCode errorCode = submitResult.errorCode();
-            if (errorCode == CraftingSubmitErrorCode.CPU_BUSY
-                    || errorCode == CraftingSubmitErrorCode.NO_CPU_FOUND
-                    || errorCode == CraftingSubmitErrorCode.NO_SUITABLE_CPU_FOUND
-                    || errorCode == CraftingSubmitErrorCode.CPU_TOO_SMALL) {
-                return AutocraftResult.CPU_BUSY;
-            }
-            if (errorCode == CraftingSubmitErrorCode.MISSING_INGREDIENT
-                    || errorCode == CraftingSubmitErrorCode.INCOMPLETE_PLAN) {
-                return AutocraftResult.MISSING_INGREDIENTS;
-            }
-
-            return AutocraftResult.FAILED;
+            return recordSubmitResult(player.getUUID(), block, submitResult);
 
         } catch (Exception e) {
             AutocraftTracker.markFailed(player.getUUID(), block);
             return AutocraftResult.FAILED;
         }
+    }
+
+    static AutocraftResult recordSubmitResult(UUID playerId, Block block, ICraftingSubmitResult submitResult) {
+        if (submitResult.successful()) {
+            AutocraftTracker.markSubmitted(playerId, block);
+            return AutocraftResult.SUBMITTED;
+        }
+
+        // Retain the completed plan and its original amount until a CPU is available.
+        CraftingSubmitErrorCode errorCode = submitResult.errorCode();
+        if (isCpuUnavailable(errorCode)) {
+            AutocraftTracker.markWaitingForCpu(playerId, block);
+            return AutocraftResult.CPU_BUSY;
+        }
+        AutocraftTracker.markFailed(playerId, block);
+        if (errorCode == CraftingSubmitErrorCode.MISSING_INGREDIENT
+                || errorCode == CraftingSubmitErrorCode.INCOMPLETE_PLAN) {
+            return AutocraftResult.MISSING_INGREDIENTS;
+        }
+
+        return AutocraftResult.FAILED;
+    }
+
+    static boolean isCpuUnavailable(CraftingSubmitErrorCode errorCode) {
+        return errorCode == CraftingSubmitErrorCode.CPU_BUSY
+                || errorCode == CraftingSubmitErrorCode.NO_CPU_FOUND
+                || errorCode == CraftingSubmitErrorCode.NO_SUITABLE_CPU_FOUND
+                || errorCode == CraftingSubmitErrorCode.CPU_TOO_SMALL;
     }
 }

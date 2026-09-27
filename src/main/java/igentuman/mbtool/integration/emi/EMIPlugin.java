@@ -32,7 +32,7 @@ public class EMIPlugin implements EmiPlugin {
         return MultiblocksProvider.getStructures()
                 .stream()
                 .map(structure -> new MultiblockStructureEmiRecipe(
-                        rl("/"+structure.getId().getPath()),
+                        rl("multiblock_structure/" + structure.getId().getNamespace() + "/" + structure.getId().getPath()),
                         structure.getStructureNbt(),
                         structure.getName()))
                 .toList();

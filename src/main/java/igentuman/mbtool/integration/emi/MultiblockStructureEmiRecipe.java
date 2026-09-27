@@ -123,6 +123,11 @@ public class MultiblockStructureEmiRecipe implements EmiRecipe {
     public void addWidgets(WidgetHolder widgets) {
         // Add structure name
         widgets.addText(Component.translatable(name), 5, 2, 0xFFFFFFFF, false);
+
+        // A recipe-context slot gives the structure its own bookmark target.
+        ItemStack bookmarkIcon = new ItemStack(Mbtool.MBTOOL.get());
+        bookmarkIcon.setHoverName(Component.translatable(name));
+        widgets.addSlot(EmiStack.of(bookmarkIcon), 153, 137).recipeContext(this);
         
         // Add ingredients as slots
         int slotIndex = 0;

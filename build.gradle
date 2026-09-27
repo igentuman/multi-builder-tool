@@ -153,7 +153,7 @@ dependencies {
 
     compileOnly fg.deobf("mezz.jei:jei-${mc_version}-common-api:${jei_version}")
     compileOnly fg.deobf("mezz.jei:jei-${mc_version}-forge-api:${jei_version}")
-    compileOnly fg.deobf("mezz.jei:jei-${mc_version}-forge:${jei_version}")
+    implementation fg.deobf("mezz.jei:jei-${mc_version}-forge:${jei_version}")
 
     runtimeOnly fg.deobf("curse.maven:fps-monitor-548447:4578682")
 
@@ -179,7 +179,7 @@ dependencies {
     //runtimeOnly fg.deobf("curse.maven:nbtedit-reborn-678133:4420565")
     //runtimeOnly fg.deobf("com.blamejared.crafttweaker:CraftTweaker-forge-${mc_version}:${ct_version}")
     runtimeOnly fg.deobf("curse.maven:construction-wand-399558:4684054")
-    implementation fg.deobf("curse.maven:emi-580555:5872526") {
+    compileOnly fg.deobf("curse.maven:emi-580555:5872526") {
         transitive = false
     }
 

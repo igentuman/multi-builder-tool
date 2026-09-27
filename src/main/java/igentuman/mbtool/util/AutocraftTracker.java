@@ -13,11 +13,12 @@ import java.util.concurrent.Future;
  */
 public class AutocraftTracker {
 
-    public enum RequestStatus { CALCULATING, SUBMITTED, FAILED }
+    public enum RequestStatus { CALCULATING, WAITING_FOR_CPU, SUBMITTED, FAILED }
 
     /**
      * Holds the state of a single autocrafting request.
      * When status is CALCULATING, the planFuture is non-null and being computed off-thread.
+     * When waiting for a CPU, the completed plan and requested amount stay available for retry.
      */
     public static class CraftRequest {
         public RequestStatus status;
@@ -42,7 +43,9 @@ public class AutocraftTracker {
 
     public static boolean hasActiveRequest(UUID playerUUID, Block block) {
         CraftRequest request = getRequest(playerUUID, block);
-        return request != null && (request.status == RequestStatus.CALCULATING || request.status == RequestStatus.SUBMITTED);
+        return request != null && (request.status == RequestStatus.CALCULATING
+                || request.status == RequestStatus.WAITING_FOR_CPU
+                || request.status == RequestStatus.SUBMITTED);
     }
 
     public static void trackCalculation(UUID playerUUID, Block block, Future<?> planFuture, int amount) {
@@ -55,6 +58,13 @@ public class AutocraftTracker {
         if (request != null) {
             request.status = RequestStatus.SUBMITTED;
             request.planFuture = null;
+        }
+    }
+
+    public static void markWaitingForCpu(UUID playerUUID, Block block) {
+        CraftRequest request = getRequest(playerUUID, block);
+        if (request != null) {
+            request.status = RequestStatus.WAITING_FOR_CPU;
         }
     }
 

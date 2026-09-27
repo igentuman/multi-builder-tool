@@ -340,6 +340,12 @@ public class MultiblockBuilder {
 
             // First, check if there's already a tracked request for this block
             if (AutocraftTracker.hasActiveRequest(player.getUUID(), block)) {
+                AutocraftTracker.CraftRequest request = AutocraftTracker.getRequest(player.getUUID(), block);
+                if (request.status == AutocraftTracker.RequestStatus.SUBMITTED) {
+                    anySubmitted = true;
+                } else {
+                    anyCalculating = true;
+                }
                 continue;
             }
 

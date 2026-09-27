@@ -91,10 +91,19 @@ public class MultiblockStructureCategory implements IRecipeCategory<MultiblockSt
     public void setRecipe(IRecipeLayoutBuilder builder, MultiblockStructureRecipe recipe, IFocusGroup focuses) {
         builder.addInvisibleIngredients(RecipeIngredientRole.CATALYST).addItemLike(MBTOOL.get());
         builder.addInvisibleIngredients(RecipeIngredientRole.OUTPUT).addItemLike(MBTOOL.get());
+        // JEI needs a visible output to create and restore a recipe bookmark.
+        ItemStack bookmarkIcon = new ItemStack(MBTOOL.get());
+        bookmarkIcon.setHoverName(__(recipe.getName()));
+        builder.addOutputSlot(140, 100).addItemStack(bookmarkIcon);
         builder.addInvisibleIngredients(RecipeIngredientRole.OUTPUT).addIngredients(recipe.getIngredients());
         builder.addInvisibleIngredients(RecipeIngredientRole.INPUT).addIngredients(recipe.getIngredients());
         ingredientsButton = IngredientsButton.create(recipe);
         ingredientsButton.updateBounds(new Rect2i(5, 15, 10, 10));
+    }
+
+    @Override
+    public ResourceLocation getRegistryName(MultiblockStructureRecipe recipe) {
+        return recipe.getId();
     }
     
     @Override
