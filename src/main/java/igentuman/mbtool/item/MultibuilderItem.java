@@ -165,7 +165,22 @@ public class MultibuilderItem extends Item {
     }
     
     public IItemHandler getInventory(ItemStack stack) {
-        return getInventory(stack, null);
+        return getInventory(stack, resolveRegistryAccess());
+    }
+
+    private static HolderLookup.Provider resolveRegistryAccess() {
+        if (net.neoforged.fml.loading.FMLEnvironment.dist.isClient()) {
+            net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+            if (mc.level != null) {
+                return mc.level.registryAccess();
+            }
+        } else {
+            net.minecraft.server.MinecraftServer server = net.neoforged.neoforge.server.ServerLifecycleHooks.getCurrentServer();
+            if (server != null) {
+                return server.registryAccess();
+            }
+        }
+        return null;
     }
 
     public IItemHandler getInventory(ItemStack stack, HolderLookup.Provider provider) {

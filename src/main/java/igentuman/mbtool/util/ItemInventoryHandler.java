@@ -28,7 +28,7 @@ public class ItemInventoryHandler extends ItemStackHandler {
     }
 
     private void load() {
-        if (stack != null && stack.has(INVENTORY.get())) {
+        if (provider != null && stack != null && stack.has(INVENTORY.get())) {
             CompoundTag tag = stack.get(INVENTORY.get());
             if (tag != null) {
                 deserializeNBT(provider, tag);
@@ -48,7 +48,7 @@ public class ItemInventoryHandler extends ItemStackHandler {
 
     @Override
     public void onContentsChanged(int slot) {
-        if (stack != null) {
+        if (stack != null && provider != null) {
             stack.set(INVENTORY.get(), serializeNBT(provider));
         }
     }

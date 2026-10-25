@@ -106,6 +106,8 @@ dependencies {
     implementation "curse.maven:rhino-416294:6886923"
 
     implementation "curse.maven:patchouli-306770:7730942"
+    implementation "curse.maven:functional-storage-556861:8459097"
+    implementation "curse.maven:titanium-287342:9129904"
 
     implementation "curse.maven:nuclearcraft-neohaul-1523268:8467009"
     implementation "curse.maven:terrablender-neoforge-940057:6054947"
