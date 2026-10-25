@@ -1,10 +1,10 @@
 package igentuman.mbtool.mixin;
 
-import giselle.jei_mekanism_multiblocks.client.JEI_MekanismMultiblocks_Client;
 import giselle.jei_mekanism_multiblocks.client.gui.IntSliderWithButtons;
 import giselle.jei_mekanism_multiblocks.client.jei.CostList;
 import giselle.jei_mekanism_multiblocks.client.jei.MultiblockWidget;
 import igentuman.mbtool.client.gui.PassToMbtoolBtn;
+import igentuman.mbtool.integration.jei.JemmMouseState;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.network.chat.Component;
@@ -55,7 +55,7 @@ public abstract class MultiblockWidgetMixin {
         if(!MULTIBLOCK_TYPE_PATTERN.matcher(this.getClass().toString()).find()) {
             return;
         }
-        if (JEI_MekanismMultiblocks_Client.PRESSED) {
+        if (JemmMouseState.isPressed()) {
             if(passToMbtoolBtn.isMouseOver(pMouseX, pMouseY)) {
                 passToMbtoolBtn.mouseClicked(pMouseX, pMouseY, 0);
             }

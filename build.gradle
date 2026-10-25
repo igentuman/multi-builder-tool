@@ -134,7 +134,7 @@ dependencies {
     implementation fg.deobf("curse.maven:extreme-reactors-250277:6772552")
     implementation fg.deobf("curse.maven:zerocore-247921:5850671")
     compileOnly fg.deobf("curse.maven:ldlib-626676:6849454")
-    compileOnly fg.deobf("curse.maven:just-enough-mekanism-multiblocks-898746:6170219"){
+    compileOnly fg.deobf("curse.maven:just-enough-mekanism-multiblocks-898746:9068209"){
         transitive = false
     }
     compileOnly fg.deobf("curse.maven:masterful-machinery-423476:7042768")
