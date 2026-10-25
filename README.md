@@ -2,7 +2,7 @@
 
 A Minecraft NeoForge mod for Minecraft 1.21.1 that adds a powerful tool for building multiblock structures with a single click.
 
-## 📋 Project Information
+## Project Information
 
 - **Mod ID**: `mbtool`
 - **Display Name**: Multibuilder Tool
@@ -13,7 +13,7 @@ A Minecraft NeoForge mod for Minecraft 1.21.1 that adds a powerful tool for buil
 - **License**: MIT
 - **Author**: igentuman
 
-## 🎯 Features
+## Features
 
 ### Core Functionality
 - **One-Click Multiblock Building**: Select a multiblock structure and build it instantly
@@ -39,7 +39,7 @@ A Minecraft NeoForge mod for Minecraft 1.21.1 that adds a powerful tool for buil
 - **Configuration System**: Customizable energy settings and behavior via NeoForge config
 - **Data Components**: Uses modern Minecraft Data Components for item state
 
-## 🎮 How to Use
+## How to Use
 
 1. **Craft the Multibuilder Tool** - Find it in the Tools & Utilities creative tab.
 2. **Select Structure** - Use the tool to open the structure selection GUI.
@@ -47,7 +47,48 @@ A Minecraft NeoForge mod for Minecraft 1.21.1 that adds a powerful tool for buil
 4. **Charge Tool** - Ensure the tool has enough energy (FE/Forge Energy).
 5. **Build** - Click on a block in the world to place the selected multiblock structure.
 
-## 🔧 Configuration
+## KubeJS structure scripts
+
+With KubeJS installed, put structure scripts in `kubejs/server_scripts/`:
+
+```js
+MbtoolKJSEvents.InitMbtoolStructures(event => {
+    // Remove a structure by its full resource ID, including the directory and extension.
+    event.structures.removeIf(structure =>
+        structure.getId().toString() === 'mbtool:mbtool_structures/ie_coke_oven.nbt'
+    )
+})
+```
+
+The event runs on the server at initial data loading and every datapack `/reload`,
+before the final structure list is validated and stored. Edit the existing Java
+list with `add`, `removeIf`, or `clear`; do not assign a new list to
+`event.structures`. The event is not cancellable. Use `event.structures.clear()`
+to disable all structures.
+
+To add a structure from NBT, construct a `MultiblockStructure` with a unique
+resource ID and a filename:
+
+```js
+const MultiblockStructure = Java.loadClass('igentuman.mbtool.util.MultiblockStructure')
+
+MbtoolKJSEvents.InitMbtoolStructures(event => {
+    const nbt = NBT.compoundTag({
+        size: [1, 1, 1],
+        palette: [{ Name: 'minecraft:stone' }],
+        blocks: [{ pos: [0, 0, 0], state: 0 }],
+        entities: []
+    })
+    event.structures.add(new MultiblockStructure(
+        'kubejs:mbtool_structures/stone.nbt', nbt, 'stone.nbt'
+    ))
+})
+```
+
+Each reload starts from the datapack structures, so script additions do not
+accumulate. Structures referring to missing blocks are skipped during validation.
+
+## Configuration
 
 The mod includes configurable energy settings (found in `serverconfig/mbtool-server.toml` or `commonconfig/mbtool-common.toml`):
 
@@ -63,7 +104,7 @@ energyTransferRate = 1000
 energyPerBlock = 100
 ```
 
-## 🏗️ Project Structure
+## Project Structure
 
 ```
 src/main/java/igentuman/mbtool/
@@ -79,7 +120,7 @@ src/main/java/igentuman/mbtool/
 └── util/                      # Utility classes (Multiblock Provider, Mod Util)
 ```
 
-## 🛠️ Development Setup
+## Development Setup
 
 ### Prerequisites
 - Java 21 JDK
@@ -108,7 +149,7 @@ src/main/java/igentuman/mbtool/
 ./gradlew test
 ```
 
-## 📦 Dependencies
+## Dependencies
 
 ### Required Dependencies
 - **NeoForge**: 21.1.199+
@@ -124,12 +165,12 @@ src/main/java/igentuman/mbtool/
 - **Immersive Engineering**: Latest
 - **GregTech Modern**: 1.6.4+
 
-## 🔗 Links
+## Links
 
 - **Issues**: [GitHub Issues](https://github.com/igentuman/multi-builder-tool/issues)
 - **License**: [MIT License](LICENSE.md)
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please feel free to submit pull requests or open issues for bugs and feature requests.
 

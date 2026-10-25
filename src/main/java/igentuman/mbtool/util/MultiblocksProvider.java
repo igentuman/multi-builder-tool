@@ -22,7 +22,6 @@ import java.util.concurrent.Executor;
 
 import static igentuman.mbtool.Mbtool.rlFromString;
 import static igentuman.mbtool.util.ModUtil.isGtLoaded;
-import static igentuman.mbtool.util.ModUtil.isKubeJsLoaded;
 
 public class MultiblocksProvider implements PreparableReloadListener {
 
@@ -56,9 +55,6 @@ public class MultiblocksProvider implements PreparableReloadListener {
         }, backgroundExecutor).thenCompose(preparationBarrier::wait).thenAcceptAsync(loadedStructures -> {
             InitMbtoolStructuresEvent event = new InitMbtoolStructuresEvent(loadedStructures);
             NeoForge.EVENT_BUS.post(event);
-/*            if(isKubeJsLoaded()) {
-                MbtoolKubeJsEvents.onInitMbtoolStructures(event);
-            }*/
             List<MultiblockStructure> structuresToAdd = new ArrayList<>();
             for (MultiblockStructure structure : event.structures) {
                 if(!validateStructureBlocks(structure.getStructureNbt())) {
