@@ -98,7 +98,7 @@ public class MultiblockStructureCategory implements IRecipeCategory<MultiblockSt
         builder.addInvisibleIngredients(RecipeIngredientRole.OUTPUT).addIngredients(recipe.getIngredients());
         builder.addInvisibleIngredients(RecipeIngredientRole.INPUT).addIngredients(recipe.getIngredients());
         ingredientsButton = IngredientsButton.create(recipe);
-        ingredientsButton.updateBounds(new Rect2i(5, 15, 10, 10));
+        ingredientsButton.updateBounds(new Rect2i(5, 15, 10, 9));
     }
 
     @Override
@@ -111,10 +111,7 @@ public class MultiblockStructureCategory implements IRecipeCategory<MultiblockSt
         // Draw structure name
         Font font = Minecraft.getInstance().font;
         ingredientsButton.recipe = recipe;
-        ingredientsButton.draw(graphics, 5, 15, 1);
-        if(ingredientsButton.isMouseOver(mouseX, mouseY)) {
-            ingredientsButton.drawTooltips(graphics, (int) mouseX, (int) mouseY);
-        }
+        ingredientsButton.draw(graphics, mouseX, mouseY);
         graphics.drawString(font, __(recipe.getName()), 5, 2, 0xFFFFFFFF);
         long window = Minecraft.getInstance().getWindow().getWindow();
         boolean leftMouseDown = GLFW.glfwGetMouseButton(window, GLFW.GLFW_MOUSE_BUTTON_LEFT)
@@ -179,6 +176,10 @@ public class MultiblockStructureCategory implements IRecipeCategory<MultiblockSt
         renderer.render(recipe.getStructure(), graphics.pose(), recipe.currentLayer);
 
         graphics.pose().popPose();
+
+        if(ingredientsButton.isMouseOver(mouseX, mouseY)) {
+            ingredientsButton.drawTooltips(graphics, (int) mouseX, (int) mouseY);
+        }
     }
     
     // Inner class to handle rendering of the multiblock structure

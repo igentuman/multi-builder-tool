@@ -1,48 +1,57 @@
 package igentuman.mbtool.integration.jei;
 
-import mezz.jei.api.gui.drawable.IDrawable;
-import mezz.jei.common.Internal;
-import mezz.jei.common.gui.JeiTooltip;
-import mezz.jei.common.gui.textures.Textures;
-import mezz.jei.gui.elements.GuiIconToggleButton;
-import mezz.jei.gui.input.UserInput;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.network.chat.FormattedText;
+import net.minecraft.client.renderer.Rect2i;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
-public class IngredientsButton extends GuiIconToggleButton {
+import java.util.ArrayList;
+import java.util.List;
+
+public class IngredientsButton {
+	private static final ResourceLocation RECIPE_BUTTON = new ResourceLocation("textures/gui/recipe_button.png");
+	private static final int TEX_W = 20;
+	private static final int TEX_H = 18;
+	private static final int HOVER_V = 19;
+
 	public static IngredientsButton create(MultiblockStructureRecipe recipe) {
-		Textures textures = Internal.getTextures();
 		return new IngredientsButton(recipe);
 	}
 
 	public MultiblockStructureRecipe recipe;
+	private Rect2i area = new Rect2i(0, 0, 10, 10);
+
 	private IngredientsButton(MultiblockStructureRecipe recipe) {
-		super(Internal.getTextures().getBookmarkButtonEnabledIcon(), Internal.getTextures().getBookmarkButtonEnabledIcon());
 		this.recipe = recipe;
 	}
 
-	@Override
-	protected void getTooltips(JeiTooltip tooltip) {
-		for(ItemStack i : recipe.getIngredients().getItems())
-			tooltip.add(FormattedText.of(i.getCount() + "x " + i.getHoverName().getString()));
+	public void updateBounds(Rect2i area) {
+		this.area = area;
 	}
 
-	public void draw(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks) {
+	public boolean isMouseOver(double mouseX, double mouseY) {
+		return mouseX >= area.getX() && mouseX < area.getX() + area.getWidth()
+				&& mouseY >= area.getY() && mouseY < area.getY() + area.getHeight();
+	}
+
+	public void draw(GuiGraphics guiGraphics, double mouseX, double mouseY) {
+		int v = isMouseOver(mouseX, mouseY) ? HOVER_V : 0;
 		guiGraphics.pose().pushPose();
-		guiGraphics.pose().translate(8, 8, 0);
-		guiGraphics.pose().scale(0.5f, 0.5f, 1f);
-		super.draw(guiGraphics, mouseX, mouseY, partialTicks);
+		guiGraphics.pose().translate(area.getX(), area.getY(), 0);
+		guiGraphics.pose().scale(area.getWidth() / (float) TEX_W, area.getHeight() / (float) TEX_H, 1f);
+		guiGraphics.blit(RECIPE_BUTTON, 0, 0, 0, v, TEX_W, TEX_H, 256, 256);
 		guiGraphics.pose().popPose();
 	}
 
-	@Override
-	protected boolean isIconToggledOn() {
-		return false;
-	}
-
-	@Override
-	protected boolean onMouseClicked(UserInput input) {
-		return false;
+	public void drawTooltips(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+		List<Component> lines = new ArrayList<>();
+		for (ItemStack i : recipe.getIngredients().getItems()) {
+			lines.add(Component.literal(i.getCount() + "x " + i.getHoverName().getString()));
+		}
+		if (!lines.isEmpty()) {
+			guiGraphics.renderComponentTooltip(Minecraft.getInstance().font, lines, mouseX, mouseY);
+		}
 	}
 }
