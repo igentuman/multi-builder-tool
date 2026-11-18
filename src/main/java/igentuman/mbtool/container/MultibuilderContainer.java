@@ -83,6 +83,10 @@ public class MultibuilderContainer extends AbstractContainerMenu {
         }
     }
 
+    public int getPlayerSlot() {
+        return playerSlot;
+    }
+
     @Override
     public ItemStack quickMoveStack(Player pPlayer, int pIndex) {
         ItemStack itemstack = ItemStack.EMPTY;

@@ -92,5 +92,12 @@
   "message.mbtool.dismantle_protected": "Nie można zdemontować struktury w chronionym obszarze",
   "message.mbtool.block_not_part_of_structure": "Ten blok nie jest częścią struktury",
   "message.mbtool.hold_f_to_dismantle": "Przytrzymaj F, aby zdemontować",
-  "message.mbtool.insufficient_inventory_space": "Za mało miejsca na przedmioty struktury w ekwipunku Narzędzia Multi-budowniczy"
+  "message.mbtool.insufficient_inventory_space": "Za mało miejsca na przedmioty struktury w ekwipunku Narzędzia Multi-budowniczy",
+  "gui.mbtool.inventory": "Ekwipunek",
+  "gui.mbtool.search_structures": "Szukaj struktur...",
+  "gui.mbtool.folders": "Foldery",
+  "gui.mbtool.all_structures": "Wszystkie (%s)",
+  "gui.mbtool.ungrouped": "Bez folderu",
+  "gui.mbtool.structure_count": "Struktury: %s / %s",
+  "gui.mbtool.no_matching_structures": "Brak pasujących struktur"
 }

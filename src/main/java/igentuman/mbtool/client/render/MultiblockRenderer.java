@@ -1,47 +1,77 @@
 package igentuman.mbtool.client.render;
 
+import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import igentuman.mbtool.util.MultiblockStructure;
+import igentuman.mbtool.util.MultiblocksProvider;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.world.level.block.state.BlockState;
+import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 
-import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.WeakHashMap;
 
 /**
  * Renders a {@link MultiblockStructure} into a GUI.
  *
- * <p>Geometry is baked once per structure into a {@link StructureMesh} (GPU vertex buffers) and
- * drawn straight from GPU memory every frame. This replaces the old single-static-{@code fakeLevel}
- * path, which re-tessellated every block every frame and — with several structures on screen at
- * once (e.g. the structure-picker button list) — rebuilt the shared level for <em>every</em>
- * structure <em>every</em> frame because the single {@code builtStructure} guard could never
- * match more than one of them.</p>
+ * <p>Static geometry is baked into a transparent GPU texture on first display. Subsequent frames
+ * draw a single textured quad; temporary mesh buffers are freed immediately after baking.
+ * Snapshots survive screen changes and are invalidated on resource reload or provider revision.</p>
  *
- * <p>Note: block-entity renderers are no longer invoked for GUI previews (the cached mesh only
- * holds static block models). Dynamic BE geometry — chest lids, sign text, etc. — is not shown.</p>
+ * <p>Note: block-entity renderers are not invoked for GUI previews (thumbnails only hold static
+ * block models). Dynamic BE geometry — chest lids, sign text, etc. — is not shown.</p>
  */
 public class MultiblockRenderer {
 
     public static MultiblockStructure structure;
 
-    /** Bounded LRU cache of baked meshes keyed by a stable structure signature. */
-    private static final int MAX_CACHED = 64;
-    private static final LinkedHashMap<String, StructureMesh> MESH_CACHE =
-            new LinkedHashMap<>(16, 0.75f, true) {
-                @Override
-                protected boolean removeEldestEntry(Map.Entry<String, StructureMesh> eldest) {
-                    if (size() > MAX_CACHED) {
-                        eldest.getValue().close(); // free the evicted VBOs
-                        return true;
-                    }
-                    return false;
-                }
-            };
+    private static final int MIN_CACHED = 64;
+    private static final long MAX_CACHE_BYTES = 64L * 1024 * 1024;
+    private static final int BAKES_PER_FRAME = 2;
+    private static int remainingBakes = BAKES_PER_FRAME;
+    private static final PreviewCache<ImageKey, StructureThumbnail> IMAGE_CACHE =
+            new PreviewCache<>(MIN_CACHED, MAX_CACHE_BYTES, StructureThumbnail::close);
+
+    record ImageKey(MeshKey<BlockPos, BlockState> geometry, int width, int height, StructureThumbnail.Size pixels) {}
+
+    private static final Map<MultiblockStructure, MeshKey<BlockPos, BlockState>> STRUCTURE_KEYS = new WeakHashMap<>();
+    private static int sourceRevision = -1;
+
+    /** Immutable geometry snapshot, with its hash computed only once for repeated render calls. */
+    static final class MeshKey<P, S> {
+        private final Map<P, S> blocks;
+        private final int hash;
+
+        MeshKey(Map<P, S> blocks) {
+            this.blocks = Map.copyOf(blocks);
+            hash = this.blocks.hashCode();
+        }
+
+        @Override
+        public int hashCode() {
+            return hash;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            return this == other || other instanceof MeshKey<?, ?> key && blocks.equals(key.blocks);
+        }
+    }
+
+    /** Spread cold-cache work across frames instead of baking the entire visible grid at once. */
+    public static void beginFrame() {
+        remainingBakes = BAKES_PER_FRAME;
+    }
+
+    /** Allow all visible cards to remain resident, subject to the GPU memory limit. */
+    public static void setVisiblePreviewCount(int count) {
+        IMAGE_CACHE.setCapacity(Math.max(MIN_CACHED, count));
+    }
 
     public static Vec3i getSize(MultiblockStructure structure) {
         if (structure == null || structure.getBlocks().isEmpty()) {
@@ -55,20 +85,47 @@ public class MultiblockRenderer {
         render(stack, x, y, w, h);
     }
 
+    public static void render(MultiblockStructure blocksMap, GuiGraphics graphics, int x, int y, int w, int h) {
+        // Finish queued GUI geometry before switching framebuffers or drawing the snapshot.
+        graphics.flush();
+        render(blocksMap, graphics.pose(), x, y, w, h);
+    }
+
     public static void render(PoseStack stack, int x, int y, int w, int h) {
-        if (structure == null || structure.getBlocks().isEmpty()) {
+        if (structure == null || structure.getBlocks().isEmpty() || w <= 0 || h <= 0) {
             return;
         }
-
-        StructureMesh mesh = getOrBakeMesh(structure);
-        if (mesh == null || mesh.isEmpty()) {
-            return;
+        if (sourceRevision != MultiblocksProvider.getRevision()) {
+            MultiblockStructure current = structure;
+            invalidateCache();
+            structure = current;
+            sourceRevision = MultiblocksProvider.getRevision();
         }
+        MeshKey<BlockPos, BlockState> geometry = STRUCTURE_KEYS.computeIfAbsent(structure, value -> new MeshKey<>(value.getBlocks()));
+        StructureThumbnail.Size pixels = StructureThumbnail.Size.forGui(w, h, Minecraft.getInstance().getWindow().getGuiScale());
+        ImageKey key = new ImageKey(geometry, w, h, pixels);
+        StructureThumbnail image = IMAGE_CACHE.get(key);
+        if (image == null) {
+            if (remainingBakes <= 0) return;
+            remainingBakes--;
+            MultiblockStructure baking = structure;
+            StructureMesh mesh = bakeMesh(baking);
+            try {
+                image = StructureThumbnail.bake(pixels, target -> drawMesh(baking, mesh, target, w, h));
+            } finally {
+                mesh.close();
+            }
+            IMAGE_CACHE.put(key, image, image.allocationBytes());
+        }
+        image.draw(stack, x, y, w, h);
+    }
 
-        stack.pushPose();
+    private static void drawMesh(MultiblockStructure structure, StructureMesh mesh, RenderTarget target, int w, int h) {
+        if (mesh.isEmpty()) return;
+        PoseStack stack = new PoseStack();
 
-        // Center within the provided x, y, w, h bounds with proper Z positioning for GUI
-        stack.translate(x + w / 2.0f, y + h / 2.0f, 100.0f);
+        // Use local GUI coordinates, independent of the card's position, scroll, and clipping.
+        stack.translate(w / 2.0f, h / 2.0f, -1900.0f);
 
         // Calculate appropriate scale to fit within the provided dimensions
         float maxDimension = Math.max(Math.max(structure.getWidth(), structure.getHeight()), structure.getDepth());
@@ -93,24 +150,12 @@ public class MultiblockRenderer {
                 -(structure.getMinZ() + depth / 2.0f)
         );
 
-        // Draw the baked mesh straight from the GPU. Solid (alpha 1) with depth test so front
-        // blocks occlude back ones. Combine GL model-view with the poseStack so the VBO gets
-        // the full transform (same pattern as the in-world preview renderer).
-        org.joml.Matrix4f modelView = new org.joml.Matrix4f(RenderSystem.getModelViewMatrix());
-        modelView.mul(stack.last().pose());
-        mesh.draw(modelView, RenderSystem.getProjectionMatrix(), 1.0f, true);
-
-        stack.popPose();
+        Matrix4f projection = new Matrix4f().setOrtho(0, w, h, 0, 1000, 3000);
+        mesh.draw(stack.last().pose(), projection, 1.0f, true, target);
     }
 
-    /** Returns the cached mesh for the structure, baking it on first use / cache miss. */
-    private static StructureMesh getOrBakeMesh(MultiblockStructure structure) {
-        String key = cacheKey(structure);
-        StructureMesh cached = MESH_CACHE.get(key);
-        if (cached != null) {
-            return cached;
-        }
-
+    /** Temporary geometry, used only while rendering a new snapshot. */
+    private static StructureMesh bakeMesh(MultiblockStructure structure) {
         // Build a fake level from the structure's absolute positions so tesselateBlock can resolve
         // neighbours for CTM and internal face culling.
         FakeStructureLevel level = new FakeStructureLevel();
@@ -127,27 +172,17 @@ public class MultiblockRenderer {
             // don't re-bake every frame.
             mesh.close();
         }
-        MESH_CACHE.put(key, mesh);
         return mesh;
     }
 
-    /**
-     * Stable cache key. {@code getCurrentStructure} may hand back a fresh {@link MultiblockStructure}
-     * instance each frame, so object identity is unusable — key on name plus dimensions and block
-     * count instead.
-     */
-    private static String cacheKey(MultiblockStructure structure) {
-        String name = structure.getName();
-        return (name == null ? "?" : name)
-                + '|' + structure.getWidth() + 'x' + structure.getHeight() + 'x' + structure.getDepth()
-                + '|' + structure.getBlocks().size();
-    }
-
-    /** Drops all cached meshes and frees their VBOs (call on resource reload if wired up). */
+    /** Drops all snapshots and frees their GPU textures on resource reload. */
     public static void invalidateCache() {
-        for (Iterator<StructureMesh> it = MESH_CACHE.values().iterator(); it.hasNext(); ) {
-            it.next().close();
+        if (!RenderSystem.isOnRenderThread()) {
+            RenderSystem.recordRenderCall(MultiblockRenderer::invalidateCache);
+            return;
         }
-        MESH_CACHE.clear();
+        IMAGE_CACHE.clear();
+        STRUCTURE_KEYS.clear();
+        structure = null;
     }
 }

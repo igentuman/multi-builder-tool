@@ -27,6 +27,16 @@ public class MultiblocksProvider implements PreparableReloadListener {
 
     public static List<MultiblockStructure> structures = new ArrayList<>();
     private static MultiblocksProvider INSTANCE = new MultiblocksProvider();
+    private static volatile int revision;
+
+    /** Incremented whenever the structure list is replaced, so open GUIs and preview caches can refresh. */
+    public static int getRevision() {
+        return revision;
+    }
+
+    public static void markChanged() {
+        revision++;
+    }
 
     public static MultiblocksProvider getInstance() {
         return INSTANCE;
@@ -44,6 +54,7 @@ public class MultiblocksProvider implements PreparableReloadListener {
         structures.clear();
 
         structures.addAll(newStructures);
+        markChanged();
     }
 
     @Override
@@ -65,6 +76,7 @@ public class MultiblocksProvider implements PreparableReloadListener {
             }
             structures.clear();
             structures.addAll(structuresToAdd);
+            markChanged();
         }, gameExecutor);
     }
 

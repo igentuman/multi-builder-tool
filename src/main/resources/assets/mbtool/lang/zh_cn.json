@@ -92,5 +92,12 @@
     "message.mbtool.dismantle_protected": "无法在受保护区域拆除结构",
     "message.mbtool.block_not_part_of_structure": "此方块不是该结构的一部分",
     "message.mbtool.hold_f_to_dismantle": "按住 F 键拆除",
-    "message.mbtool.insufficient_inventory_space": "多方块建造工具物品栏中没有足够的空间存放结构物品"
+    "message.mbtool.insufficient_inventory_space": "多方块建造工具物品栏中没有足够的空间存放结构物品",
+    "gui.mbtool.inventory": "物品栏",
+    "gui.mbtool.search_structures": "搜索结构...",
+    "gui.mbtool.folders": "文件夹",
+    "gui.mbtool.all_structures": "全部（%s）",
+    "gui.mbtool.ungrouped": "未分组",
+    "gui.mbtool.structure_count": "%s / %s 个结构",
+    "gui.mbtool.no_matching_structures": "没有匹配的结构"
 }

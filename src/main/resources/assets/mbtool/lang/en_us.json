@@ -156,5 +156,12 @@
   "message.mbtool.autocrafting_failed": "Autocrafting request failed",
   "message.mbtool.autocrafting_missing_ingredients": "Autocrafting failed for %s: missing ingredients",
   "message.mbtool.autocrafting_no_grid": "Autocrafting failed: ME network not available",
-  "message.mbtool.autocrafting_cpu_busy": "Autocrafting failed for %s: all crafting CPUs are busy"
+  "message.mbtool.autocrafting_cpu_busy": "Autocrafting failed for %s: all crafting CPUs are busy",
+  "gui.mbtool.inventory": "Inventory",
+  "gui.mbtool.search_structures": "Search structures...",
+  "gui.mbtool.folders": "Folders",
+  "gui.mbtool.all_structures": "All (%s)",
+  "gui.mbtool.ungrouped": "Ungrouped",
+  "gui.mbtool.structure_count": "%s / %s structures",
+  "gui.mbtool.no_matching_structures": "No matching structures"
 }

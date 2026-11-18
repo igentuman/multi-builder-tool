@@ -1,7 +1,7 @@
 package igentuman.mbtool.client.handler;
 
-import igentuman.mbtool.client.screen.MultibuilderScreen;
 import igentuman.mbtool.client.screen.MultibuilderSelectStructureScreen;
+import igentuman.mbtool.container.MultibuilderContainer;
 import igentuman.mbtool.container.MultibuilderSelectStructureContainer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
@@ -23,9 +23,12 @@ public class ClientModHandler {
 
     @SubscribeEvent
     public static void onRegisterScreens(RegisterMenuScreensEvent event) {
-        event.register(MULTIBUILDER_CONTAINER.get(), MultibuilderScreen::new);
+        // The tool GUI opens on the structure browser; its Inventory button switches to the slot view.
+        event.register(MULTIBUILDER_CONTAINER.get(),
+                (MultibuilderContainer container, Inventory inventory, Component title) ->
+                        new MultibuilderSelectStructureScreen<>(container, inventory, title));
         event.register(MULTIBUILDER_STRUCTURE_CONTAINER.get(),
                 (MultibuilderSelectStructureContainer container, Inventory inventory, Component title) ->
-                        new MultibuilderSelectStructureScreen(container, inventory, title));
+                        new MultibuilderSelectStructureScreen<>(container, inventory, title));
     }
 }

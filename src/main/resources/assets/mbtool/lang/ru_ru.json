@@ -92,5 +92,12 @@
   "message.mbtool.dismantle_protected": "Невозможно разобрать структуру в защищённой области",
   "message.mbtool.block_not_part_of_structure": "Этот блок не является частью структуры",
   "message.mbtool.hold_f_to_dismantle": "Удерживайте F для разборки",
-  "message.mbtool.insufficient_inventory_space": "Недостаточно места для предметов структуры в инвентаре Мультистроителя"
+  "message.mbtool.insufficient_inventory_space": "Недостаточно места для предметов структуры в инвентаре Мультистроителя",
+  "gui.mbtool.inventory": "Инвентарь",
+  "gui.mbtool.search_structures": "Поиск структур...",
+  "gui.mbtool.folders": "Папки",
+  "gui.mbtool.all_structures": "Все (%s)",
+  "gui.mbtool.ungrouped": "Без папки",
+  "gui.mbtool.structure_count": "Структуры: %s / %s",
+  "gui.mbtool.no_matching_structures": "Структуры не найдены"
 }

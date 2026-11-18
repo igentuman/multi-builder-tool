@@ -97,6 +97,7 @@ public class SyncSingleStructurePacket implements CustomPacketPayload {
             
             // Add the structure to the client's list
             MultiblocksProvider.getStructures().add(structure);
+            MultiblocksProvider.markChanged();
             
             // Log progress
             System.out.println("Synced structure " + (this.index + 1) + "/" + this.total + ": " + this.name);

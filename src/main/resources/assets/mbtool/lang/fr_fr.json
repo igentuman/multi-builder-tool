@@ -92,5 +92,12 @@
   "message.mbtool.dismantle_protected": "Impossible de démonter la structure dans une zone protégée",
   "message.mbtool.block_not_part_of_structure": "Ce bloc ne fait pas partie de la structure",
   "message.mbtool.hold_f_to_dismantle": "Maintenez F pour démonter",
-  "message.mbtool.insufficient_inventory_space": "Pas assez d'espace pour les objets de structure dans l'inventaire de l'Outil Multi-constructeur"
+  "message.mbtool.insufficient_inventory_space": "Pas assez d'espace pour les objets de structure dans l'inventaire de l'Outil Multi-constructeur",
+  "gui.mbtool.inventory": "Inventaire",
+  "gui.mbtool.search_structures": "Rechercher des structures...",
+  "gui.mbtool.folders": "Dossiers",
+  "gui.mbtool.all_structures": "Toutes (%s)",
+  "gui.mbtool.ungrouped": "Sans dossier",
+  "gui.mbtool.structure_count": "%s / %s structures",
+  "gui.mbtool.no_matching_structures": "Aucune structure correspondante"
 }

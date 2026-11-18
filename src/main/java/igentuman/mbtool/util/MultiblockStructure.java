@@ -23,6 +23,8 @@ public class MultiblockStructure {
     private int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE;
     private int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
     private ResourceLocation location;
+    public static final String DEFAULT_GROUP = "default";
+    private static final String GROUP_TAG = "StructureGroup";
 
     public MultiblockStructure(CompoundTag nbt) {
         this.nbt = nbt;
@@ -152,6 +154,32 @@ public class MultiblockStructure {
             return name.replace(".nbt", "");
         }
         return name;
+    }
+
+    /**
+     * Folder used by the structure browser. An explicit group (e.g. set from KubeJS) is stored in the
+     * structure NBT so it survives client sync; otherwise the first sub-folder of the resource path
+     * is used ({@code mbtool_structures/<group>/name.nbt}).
+     */
+    public String getGroup() {
+        if (nbt != null && nbt.contains(GROUP_TAG, Tag.TAG_STRING)) {
+            String group = nbt.getString(GROUP_TAG);
+            if (!group.isBlank()) return group;
+        }
+        if (location != null) {
+            String[] parts = location.getPath().split("/");
+            if (parts.length > 2 && !parts[1].isBlank()) return parts[1];
+        }
+        return DEFAULT_GROUP;
+    }
+
+    public void setGroup(String group) {
+        if (nbt == null) return;
+        if (group == null || group.isBlank()) {
+            nbt.remove(GROUP_TAG);
+        } else {
+            nbt.putString(GROUP_TAG, group);
+        }
     }
 
     public CompoundTag getStructureNbt() {

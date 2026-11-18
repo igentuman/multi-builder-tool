@@ -2,6 +2,7 @@ package igentuman.mbtool.client.handler;
 
 import igentuman.mbtool.client.DismantleHandler;
 import igentuman.mbtool.client.render.DismantleOverlayRenderer;
+import igentuman.mbtool.client.render.MultiblockRenderer;
 import igentuman.mbtool.client.render.PreviewRenderer;
 import igentuman.mbtool.item.MultibuilderItem;
 import igentuman.mbtool.util.PlacedStructure;
@@ -13,6 +14,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.InputEvent;
+import net.neoforged.neoforge.client.event.RenderFrameEvent;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 
 import static igentuman.mbtool.Mbtool.MODID;
@@ -20,6 +22,11 @@ import static igentuman.mbtool.Mbtool.MBTOOL;
 
 @EventBusSubscriber(modid = MODID, bus = EventBusSubscriber.Bus.GAME, value = Dist.CLIENT)
 public class ClientEventHandler {
+
+    @SubscribeEvent
+    public static void onRenderFrame(RenderFrameEvent.Pre event) {
+        MultiblockRenderer.beginFrame();
+    }
 
     @SubscribeEvent
     public static void onRenderLevelStage(RenderLevelStageEvent event) {

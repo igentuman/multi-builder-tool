@@ -92,5 +92,12 @@
   "message.mbtool.dismantle_protected": "Impossibile smantellare la struttura in area protetta",
   "message.mbtool.block_not_part_of_structure": "Questo blocco non fa parte della struttura",
   "message.mbtool.hold_f_to_dismantle": "Tieni premuto F per smantellare",
-  "message.mbtool.insufficient_inventory_space": "Spazio insufficiente per gli oggetti della struttura nell'inventario dello Strumento Multi-costruttore"
+  "message.mbtool.insufficient_inventory_space": "Spazio insufficiente per gli oggetti della struttura nell'inventario dello Strumento Multi-costruttore",
+  "gui.mbtool.inventory": "Inventario",
+  "gui.mbtool.search_structures": "Cerca strutture...",
+  "gui.mbtool.folders": "Cartelle",
+  "gui.mbtool.all_structures": "Tutte (%s)",
+  "gui.mbtool.ungrouped": "Senza cartella",
+  "gui.mbtool.structure_count": "%s / %s strutture",
+  "gui.mbtool.no_matching_structures": "Nessuna struttura corrispondente"
 }
