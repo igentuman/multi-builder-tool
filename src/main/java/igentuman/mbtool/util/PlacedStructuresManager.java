@@ -21,11 +21,16 @@ public class PlacedStructuresManager {
      * Add a placed structure to the multibuilder tool's NBT data
      */
     public static void addPlacedStructure(ItemStack multibuilderStack, String structureId, AABB boundingBox, UUID placedBy, int rotation) {
+        addPlacedStructure(multibuilderStack, structureId, boundingBox, placedBy, rotation, java.util.Set.of());
+    }
+
+    public static void addPlacedStructure(ItemStack multibuilderStack, String structureId, AABB boundingBox, UUID placedBy,
+                                          int rotation, java.util.Collection<net.minecraft.core.BlockPos> sharedPositions) {
         if(structureId == null) return;
         CompoundTag tag = multibuilderStack.getOrCreateTag();
         ListTag structuresList = tag.getList(NBT_KEY, Tag.TAG_COMPOUND);
         
-        PlacedStructure structure = new PlacedStructure(structureId, boundingBox, placedBy, rotation);
+        PlacedStructure structure = new PlacedStructure(structureId, boundingBox, placedBy, rotation, sharedPositions);
         structuresList.add(structure.toNBT());
         
         tag.put(NBT_KEY, structuresList);
@@ -54,14 +59,21 @@ public class PlacedStructuresManager {
      */
     public static PlacedStructure findStructureAt(ItemStack multibuilderStack, BlockPos pos) {
         List<PlacedStructure> structures = getPlacedStructures(multibuilderStack);
+        PlacedStructure sharedMatch = null;
         
         for (PlacedStructure structure : structures) {
             if (structure.contains(pos)) {
-                return structure;
+                // Prefer the structure that owns the block over one that only shares it
+                if (!structure.isShared(pos)) {
+                    return structure;
+                }
+                if (sharedMatch == null) {
+                    sharedMatch = structure;
+                }
             }
         }
         
-        return null;
+        return sharedMatch;
     }
     
     /**

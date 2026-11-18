@@ -25,6 +25,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraftforge.items.IItemHandler;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -48,9 +49,49 @@ public class MultiblockBuilder {
         }
         
         boolean isCreative = player.isCreative();
-        
+        boolean ignoreCollisions = MultibuilderItem.isIgnoreCollisions(multibuilderStack);
+
+        Set<BlockPos> skippedPositions = new HashSet<>();
+        Set<BlockPos> skippedWorldPositions = new HashSet<>();
+        for (Map.Entry<BlockPos, BlockState> entry : structure.getBlocks().entrySet()) {
+            BlockPos relativePos = entry.getKey();
+            BlockState blockState = entry.getValue();
+
+            if (blockState.isAir()) {
+                continue;
+            }
+
+            BlockPos worldPos = centerPos.offset(rotateBlockPos(relativePos, structure, rotation));
+
+            // Verify if position is outside build height
+            if (level.isOutsideBuildHeight(worldPos)) {
+                return new BuildResult(false, Component.translatable("message.mbtool.outside_build_height",
+                    worldPos.getX(), worldPos.getY(), worldPos.getZ()));
+            }
+
+            // Check if we can place the block here
+            if (!level.getBlockState(worldPos).canBeReplaced()) {
+                if (ignoreCollisions) {
+                    skippedPositions.add(relativePos);
+                    skippedWorldPositions.add(worldPos.immutable());
+                    continue;
+                }
+                return new BuildResult(false, Component.translatable("message.mbtool.cannot_place_at",
+                    worldPos.getX(), worldPos.getY(), worldPos.getZ()));
+            }
+
+            // Check if the player can place blocks at this position (respects claims)
+            if (!canPlayerPlaceBlockAt(level, player, worldPos, rotateBlockState(blockState, rotation))) {
+                return new BuildResult(false, Component.translatable("message.mbtool.cannot_place_protected",
+                    worldPos.getX(), worldPos.getY(), worldPos.getZ()));
+            }
+        }
+
         // Calculate required materials
-        Map<Block, Integer> requiredBlocks = calculateRequiredBlocks(structure);
+        Map<Block, Integer> requiredBlocks = calculateRequiredBlocks(structure, skippedPositions);
+        if (requiredBlocks.isEmpty()) {
+            return new BuildResult(false, Component.translatable("message.mbtool.nothing_to_place"));
+        }
         
         // Calculate total energy cost
         int totalEnergyCost = requiredBlocks.values().stream().mapToInt(Integer::intValue).sum() * MbtoolConfig.getEnergyPerBlock();
@@ -112,7 +153,7 @@ public class MultiblockBuilder {
                 BlockPos relativePos = entry.getKey();
                 BlockState blockState = entry.getValue();
                 
-                if (blockState.isAir()) {
+                if (blockState.isAir() || skippedPositions.contains(relativePos)) {
                     continue;
                 }
                 
@@ -188,41 +229,6 @@ public class MultiblockBuilder {
             }
         }
         
-        for (Map.Entry<BlockPos, BlockState> entry : structure.getBlocks().entrySet()) {
-            BlockPos relativePos = entry.getKey();
-            BlockState blockState = entry.getValue();
-            
-            // Skip air blocks in the structure
-            if (blockState.isAir()) {
-                continue;
-            }
-            
-            // Apply rotation to position and block state
-            BlockPos rotatedRelativePos = rotateBlockPos(relativePos, structure, rotation);
-            BlockPos worldPos = centerPos.offset(rotatedRelativePos);
-            
-            // Verify if position is outside build height
-            if (level.isOutsideBuildHeight(worldPos)) {
-                return new BuildResult(false, Component.translatable("message.mbtool.outside_build_height", 
-                    worldPos.getX(), worldPos.getY(), worldPos.getZ()));
-            }
-            
-            BlockState currentState = level.getBlockState(worldPos);
-            BlockState rotatedBlockState = rotateBlockState(blockState, rotation);
-            
-            // Check if we can place the block here
-            if (!currentState.canBeReplaced() || !canPlayerPlaceBlockAt(level, player, worldPos, blockState)) {
-                return new BuildResult(false, Component.translatable("message.mbtool.cannot_place_at", 
-                    worldPos.getX(), worldPos.getY(), worldPos.getZ()));
-            }
-            
-            // Check if the player can place blocks at this position (respects claims)
-            if (!canPlayerPlaceBlockAt(level, player, worldPos, rotatedBlockState)) {
-                return new BuildResult(false, Component.translatable("message.mbtool.cannot_place_protected", 
-                    worldPos.getX(), worldPos.getY(), worldPos.getZ()));
-            }
-        }
-        
         // All checks passed, start building
         int blocksPlaced = 0;
         
@@ -257,8 +263,8 @@ public class MultiblockBuilder {
             BlockPos relativePos = entry.getKey();
             BlockState blockState = entry.getValue();
             
-            // Skip air blocks
-            if (blockState.isAir()) {
+            // Skip air blocks and positions kept due to ignored collisions
+            if (blockState.isAir() || skippedPositions.contains(relativePos)) {
                 continue;
             }
             
@@ -300,7 +306,7 @@ public class MultiblockBuilder {
         if (blocksPlaced > 0) {
             AABB structureBounds = calculateStructureBounds(structure, centerPos, rotation);
             PlacedStructuresManager.addPlacedStructure(multibuilderStack, structure.getName(), 
-                structureBounds, player.getUUID(), rotation);
+                structureBounds, player.getUUID(), rotation, skippedWorldPositions);
         }
         
         // Spawn smoke particles around the built structure
@@ -314,6 +320,10 @@ public class MultiblockBuilder {
             MultibuilderItem.syncInventoryToClient((ServerPlayer) player, multibuilderStack, InteractionHand.MAIN_HAND);
         }
         
+        if (!skippedPositions.isEmpty()) {
+            return new BuildResult(true, Component.translatable("message.mbtool.multiblock_built_shared",
+                blocksPlaced, Component.translatable(structure.getName()), skippedPositions.size()));
+        }
         return new BuildResult(true, Component.translatable("message.mbtool.multiblock_built", 
             blocksPlaced, Component.translatable(structure.getName())));
     }
@@ -533,11 +543,12 @@ public class MultiblockBuilder {
     /**
      * Calculate required blocks for the structure
      */
-    private static Map<Block, Integer> calculateRequiredBlocks(MultiblockStructure structure) {
+    private static Map<Block, Integer> calculateRequiredBlocks(MultiblockStructure structure, Set<BlockPos> skippedPositions) {
         Map<Block, Integer> requiredBlocks = new HashMap<>();
         
-        for (BlockState blockState : structure.getBlocks().values()) {
-            if (!blockState.isAir()) {
+        for (Map.Entry<BlockPos, BlockState> entry : structure.getBlocks().entrySet()) {
+            BlockState blockState = entry.getValue();
+            if (!blockState.isAir() && !skippedPositions.contains(entry.getKey())) {
                 Block block = blockState.getBlock();
                 requiredBlocks.put(block, requiredBlocks.getOrDefault(block, 0) + 1);
             }

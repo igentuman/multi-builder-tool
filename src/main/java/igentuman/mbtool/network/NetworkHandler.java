@@ -56,6 +56,12 @@ public class NetworkHandler {
             .consumerMainThread(MultibuilderContainerSetContentPacket::handle)
             .add();
 
+        INSTANCE.messageBuilder(ToggleIgnoreCollisionsPacket.class, packetId++)
+            .encoder(ToggleIgnoreCollisionsPacket::encode)
+            .decoder(ToggleIgnoreCollisionsPacket::decode)
+            .consumerMainThread(ToggleIgnoreCollisionsPacket::handle)
+            .add();
+
         if(ModUtil.isAe2Loaded()) {
             INSTANCE.messageBuilder(ToggleMeAccessPacket.class, packetId++)
                     .encoder(ToggleMeAccessPacket::encode)

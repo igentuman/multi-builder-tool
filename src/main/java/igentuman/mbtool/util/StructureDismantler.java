@@ -68,6 +68,11 @@ public class StructureDismantler {
             // Calculate the world position using the same rotation math as MultiblockBuilder
             BlockPos rotatedRelativePos = rotateBlockPos(originalPos, originalStructure, rotation);
             BlockPos worldPos = anchor.offset(rotatedRelativePos);
+            // Blocks that existed before placement (ignored collisions) belong to someone else
+            if (structure.isShared(worldPos)) {
+                continue;
+            }
+
             BlockState currentState = level.getBlockState(worldPos);
             
             // Skip if the current block is air (already removed or never placed)

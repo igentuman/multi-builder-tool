@@ -561,4 +561,12 @@ public class MultibuilderItem extends Item {
     public static void setMeAutocraftingEnabled(ItemStack stack, boolean enabled) {
         stack.getOrCreateTag().putBoolean("meAutocrafting", enabled);
     }
+
+    public static boolean isIgnoreCollisions(ItemStack stack) {
+        return stack.hasTag() && stack.getTag().getBoolean("ignoreCollisions");
+    }
+
+    public static void setIgnoreCollisions(ItemStack stack, boolean enabled) {
+        stack.getOrCreateTag().putBoolean("ignoreCollisions", enabled);
+    }
 }

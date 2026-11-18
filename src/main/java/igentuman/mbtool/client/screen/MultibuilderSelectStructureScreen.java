@@ -10,6 +10,7 @@ import igentuman.mbtool.container.MultibuilderSelectStructureContainer;
 import igentuman.mbtool.item.MultibuilderItem;
 import igentuman.mbtool.network.NetworkHandler;
 import igentuman.mbtool.network.SelectStructurePacket;
+import igentuman.mbtool.network.ToggleIgnoreCollisionsPacket;
 import igentuman.mbtool.network.ToggleMeAccessPacket;
 import igentuman.mbtool.network.ToggleMeAutocraftPacket;
 import igentuman.mbtool.util.ModUtil;
@@ -36,6 +37,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.IdentityHashMap;
+import java.util.function.BooleanSupplier;
 
 import static igentuman.mbtool.util.TextUtils.__;
 
@@ -54,7 +56,7 @@ public class MultibuilderSelectStructureScreen<T extends AbstractContainerMenu> 
     private int totalStructures;
     private int sourceRevision = -1;
     private EditBox search;
-    private MeToggleButton autocraftButton;
+    private ToggleButton autocraftButton;
     private BrowserScrollPanel folderPanel;
     private BrowserScrollPanel grid;
     private MultibuilderScreen inventoryScreen;
@@ -100,10 +102,15 @@ public class MultibuilderSelectStructureScreen<T extends AbstractContainerMenu> 
                 .bounds(panelX + panelWidth - 82, panelY + 5, 76, 20).build());
         autocraftButton = null;
         if (ModUtil.isAe2Loaded()) {
-            addRenderableWidget(new MeToggleButton(panelX + panelWidth - 123, panelY + 6, false));
-            autocraftButton = addRenderableWidget(new MeToggleButton(panelX + panelWidth - 104, panelY + 6, true));
+            addRenderableWidget(new ToggleButton(panelX + panelWidth - 123, panelY + 6, "gui.mbtool.me_access",
+                    "ae2:wireless_terminal", () -> meEnabled(false), () -> toggleMe(false), ChatFormatting.GREEN, false));
+            autocraftButton = addRenderableWidget(new ToggleButton(panelX + panelWidth - 104, panelY + 6, "gui.mbtool.me_autocraft",
+                    "minecraft:crafting_table", () -> meEnabled(true), () -> toggleMe(true), ChatFormatting.AQUA, true));
             autocraftButton.visible = meEnabled(false);
         }
+        addRenderableWidget(new ToggleButton(panelX + panelWidth - (ModUtil.isAe2Loaded() ? 142 : 104), panelY + 6,
+                "gui.mbtool.ignore_collisions", "minecraft:barrier", this::ignoreCollisions, this::toggleIgnoreCollisions,
+                ChatFormatting.GREEN, false));
         search = new EditBox(font, panelX + 7, panelY + 28, panelWidth - 14, 16,
                 __("gui.mbtool.search_structures"));
         search.setMaxLength(128);
@@ -265,32 +272,50 @@ public class MultibuilderSelectStructureScreen<T extends AbstractContainerMenu> 
         }
     }
 
-    private final class MeToggleButton extends Button {
-        private final boolean autocraft;
+    private boolean ignoreCollisions() {
+        ItemStack stack = toolStack();
+        return stack.getItem() instanceof MultibuilderItem && MultibuilderItem.isIgnoreCollisions(stack);
+    }
+
+    private void toggleIgnoreCollisions() {
+        ItemStack stack = toolStack();
+        if (!(stack.getItem() instanceof MultibuilderItem)) return;
+        boolean enabled = !MultibuilderItem.isIgnoreCollisions(stack);
+        MultibuilderItem.setIgnoreCollisions(stack, enabled);
+        InteractionHand hand = playerSlot == 40 ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
+        NetworkHandler.INSTANCE.sendToServer(new ToggleIgnoreCollisionsPacket(enabled, hand));
+    }
+
+    private final class ToggleButton extends Button {
+        private final String key;
+        private final BooleanSupplier state;
+        private final ChatFormatting enabledColor;
+        private final boolean notice;
         private final ItemStack icon;
         private Boolean lastEnabled;
 
-        private MeToggleButton(int x, int y, boolean autocraft) {
-            super(x, y, 18, 18, __(autocraft ? "gui.mbtool.me_autocraft" : "gui.mbtool.me_access"),
-                    button -> toggleMe(autocraft), DEFAULT_NARRATION);
-            this.autocraft = autocraft;
-            var item = ForgeRegistries.ITEMS.getValue(autocraft
-                    ? ResourceLocation.fromNamespaceAndPath("minecraft", "crafting_table")
-                    : ResourceLocation.fromNamespaceAndPath("ae2", "wireless_terminal"));
+        private ToggleButton(int x, int y, String key, String iconId, BooleanSupplier state, Runnable toggle,
+                             ChatFormatting enabledColor, boolean notice) {
+            super(x, y, 18, 18, __(key), button -> toggle.run(), DEFAULT_NARRATION);
+            this.key = key;
+            this.state = state;
+            this.enabledColor = enabledColor;
+            this.notice = notice;
+            ResourceLocation id = ResourceLocation.tryParse(iconId);
+            var item = id == null ? null : ForgeRegistries.ITEMS.getValue(id);
             icon = item == null ? ItemStack.EMPTY : new ItemStack(item);
         }
 
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-            boolean enabled = meEnabled(autocraft);
+            boolean enabled = state.getAsBoolean();
             if (lastEnabled == null || lastEnabled != enabled) {
-                String key = autocraft ? "gui.mbtool.me_autocraft" : "gui.mbtool.me_access";
                 var tooltip = Component.empty().append(getMessage()).append("\n")
                         .append(__(key + ".descr").withStyle(ChatFormatting.GOLD));
-                if (autocraft) tooltip.append("\n")
+                if (notice) tooltip.append("\n")
                         .append(__(key + ".notice").withStyle(ChatFormatting.RED));
                 tooltip.append("\n").append(__(key + (enabled ? ".enabled" : ".disabled"))
-                        .withStyle(enabled ? (autocraft ? ChatFormatting.AQUA : ChatFormatting.GREEN) : ChatFormatting.RED));
+                        .withStyle(enabled ? enabledColor : ChatFormatting.RED));
                 setTooltip(Tooltip.create(tooltip));
                 lastEnabled = enabled;
             }
@@ -313,7 +338,7 @@ public class MultibuilderSelectStructureScreen<T extends AbstractContainerMenu> 
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         renderBackground(graphics);
         BrowserScrollPanel.bevel(graphics, panelX, panelY, panelWidth, panelHeight, 0xFFC6C6C6, false);
-        drawFitted(graphics, title.getString(), panelX + 7, panelY + 11, panelWidth - (ModUtil.isAe2Loaded() ? 139 : 98), 0x404040, false);
+        drawFitted(graphics, title.getString(), panelX + 7, panelY + 11, panelWidth - (ModUtil.isAe2Loaded() ? 158 : 117), 0x404040, false);
         ItemStack stack = toolStack();
         selectedIndex = stack.hasTag() && stack.getTag().contains("recipe") && !stack.getTag().contains("runtimeStructure")
                 ? stack.getTag().getInt("recipe") : -1;

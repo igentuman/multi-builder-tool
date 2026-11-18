@@ -4,6 +4,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.phys.AABB;
 
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -15,13 +18,20 @@ public class PlacedStructure {
     private final UUID placedBy;
     private final long placedTime;
     private final int rotation;
+    /** World positions that already held blocks at build time (ignored collisions); not owned by this structure. */
+    private final Set<Long> sharedPositions = new HashSet<>();
     
     public PlacedStructure(String structureId, AABB boundingBox, UUID placedBy, int rotation) {
+        this(structureId, boundingBox, placedBy, rotation, Set.of());
+    }
+
+    public PlacedStructure(String structureId, AABB boundingBox, UUID placedBy, int rotation, Collection<BlockPos> sharedPositions) {
         this.structureId = structureId;
         this.boundingBox = boundingBox;
         this.placedBy = placedBy;
         this.placedTime = System.currentTimeMillis();
         this.rotation = rotation;
+        for (BlockPos pos : sharedPositions) this.sharedPositions.add(pos.asLong());
     }
     
     public PlacedStructure(CompoundTag tag) {
@@ -33,6 +43,7 @@ public class PlacedStructure {
         this.placedBy = tag.getUUID("placedBy");
         this.placedTime = tag.getLong("placedTime");
         this.rotation = tag.getInt("rotation");
+        for (long pos : tag.getLongArray("sharedPositions")) this.sharedPositions.add(pos);
     }
     
     public CompoundTag toNBT() {
@@ -47,6 +58,9 @@ public class PlacedStructure {
         tag.putUUID("placedBy", placedBy);
         tag.putLong("placedTime", placedTime);
         tag.putInt("rotation", rotation);
+        if (!sharedPositions.isEmpty()) {
+            tag.putLongArray("sharedPositions", sharedPositions.stream().mapToLong(Long::longValue).toArray());
+        }
         return tag;
     }
     
@@ -70,6 +84,10 @@ public class PlacedStructure {
         return rotation;
     }
     
+    public boolean isShared(BlockPos pos) {
+        return sharedPositions.contains(pos.asLong());
+    }
+
     public boolean contains(BlockPos pos) {
         return boundingBox.contains(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
     }
