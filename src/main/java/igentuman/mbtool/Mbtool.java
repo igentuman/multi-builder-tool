@@ -1,7 +1,6 @@
 package igentuman.mbtool;
 
 import igentuman.mbtool.client.DismantleHandler;
-import igentuman.mbtool.client.screen.MultibuilderScreen;
 import igentuman.mbtool.client.screen.MultibuilderSelectStructureScreen;
 import igentuman.mbtool.config.MbtoolConfig;
 import igentuman.mbtool.container.MultibuilderContainer;
@@ -86,10 +85,11 @@ public class Mbtool
 
     public static void init(FMLClientSetupEvent event) {
         event.enqueueWork(() -> {
-            MenuScreens.register(MULTIBUILDER_CONTAINER.get(), MultibuilderScreen::new);
+            MenuScreens.register(MULTIBUILDER_CONTAINER.get(),
+                    (MultibuilderContainer container, Inventory inventory, Component title) -> new MultibuilderSelectStructureScreen<>(container, inventory, title));
             MenuScreens.register(MULTIBUILDER_STRUCTURE_CONTAINER.get(), 
                 (MultibuilderSelectStructureContainer container, Inventory inventory, Component title) -> 
-                    new MultibuilderSelectStructureScreen(container, inventory, title));
+                    new MultibuilderSelectStructureScreen<>(container, inventory, title));
         });
         
         // Register client-side event handlers

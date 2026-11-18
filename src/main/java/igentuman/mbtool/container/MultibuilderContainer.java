@@ -134,6 +134,10 @@ public class MultibuilderContainer extends AbstractContainerMenu {
         }
     }
 
+    public int getPlayerSlot() {
+        return playerSlot;
+    }
+
     @Override
     public ItemStack quickMoveStack(Player pPlayer, int pIndex) {
         ItemStack itemstack = ItemStack.EMPTY;
@@ -262,7 +266,7 @@ public class MultibuilderContainer extends AbstractContainerMenu {
 
     @Override
     public boolean stillValid(Player pPlayer) {
-        ItemStack stack = pPlayer.getItemInHand(InteractionHand.MAIN_HAND);
+        ItemStack stack = pPlayer.getInventory().getItem(playerSlot);
         if(stack.getItem() instanceof MultibuilderItem multibuilderItem) {
             return multibuilderItem.getUUID(stack).equals(uuid);
         }

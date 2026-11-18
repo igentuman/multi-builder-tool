@@ -1,6 +1,8 @@
 package igentuman.mbtool.client.render;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.pipeline.RenderTarget;
+import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -121,6 +123,11 @@ public class StructureMesh {
      *                  {@code false} for the see-through in-world ghost
      */
     public void draw(Matrix4f modelViewMatrix, Matrix4f projMatrix, float alpha, boolean depthTest) {
+        draw(modelViewMatrix, projMatrix, alpha, depthTest, null);
+    }
+
+    /** An explicit target keeps translucent layers in the thumbnail even with Fabulous graphics. */
+    public void draw(Matrix4f modelViewMatrix, Matrix4f projMatrix, float alpha, boolean depthTest, RenderTarget target) {
         Minecraft.getInstance().gameRenderer.lightTexture().turnOnLightLayer();
 
         for (RenderType rt : CHUNK_LAYERS) {
@@ -132,9 +139,17 @@ public class StructureMesh {
 
             RenderSystem.setShaderTexture(0, TextureAtlas.LOCATION_BLOCKS);
             rt.setupRenderState();
+            if (target != null) target.bindWrite(false);
 
             RenderSystem.enableBlend();
-            RenderSystem.defaultBlendFunc();
+            if (target == null) {
+                RenderSystem.defaultBlendFunc();
+            } else {
+                // Accumulate premultiplied RGB and coverage over the transparent clear color.
+                RenderSystem.blendFuncSeparate(GlStateManager.SourceFactor.SRC_ALPHA,
+                        GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA, GlStateManager.SourceFactor.ONE,
+                        GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
+            }
             if (depthTest) {
                 RenderSystem.enableDepthTest();
             } else {

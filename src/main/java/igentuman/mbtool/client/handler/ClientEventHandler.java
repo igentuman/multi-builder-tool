@@ -3,6 +3,7 @@ package igentuman.mbtool.client.handler;
 import igentuman.mbtool.client.DismantleHandler;
 import igentuman.mbtool.client.render.DismantleOverlayRenderer;
 import igentuman.mbtool.client.render.PreviewRenderer;
+import igentuman.mbtool.client.render.MultiblockRenderer;
 import igentuman.mbtool.item.MultibuilderItem;
 import igentuman.mbtool.util.PlacedStructure;
 import net.minecraft.client.Minecraft;
@@ -14,12 +15,18 @@ import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.event.TickEvent;
 
 import static igentuman.mbtool.Mbtool.MODID;
 import static igentuman.mbtool.Mbtool.MBTOOL;
 
 @Mod.EventBusSubscriber(modid = MODID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
 public class ClientEventHandler {
+
+    @SubscribeEvent
+    public static void onRenderTick(TickEvent.RenderTickEvent event) {
+        if (event.phase == TickEvent.Phase.START) MultiblockRenderer.beginFrame();
+    }
 
     @SubscribeEvent
     public static void onRenderLevelStage(RenderLevelStageEvent event) {

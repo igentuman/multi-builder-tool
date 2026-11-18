@@ -4,6 +4,7 @@ import igentuman.mbtool.Mbtool;
 import igentuman.mbtool.util.ModUtil;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.network.NetworkRegistry;
+import net.minecraftforge.network.NetworkDirection;
 import net.minecraftforge.network.simple.SimpleChannel;
 
 public class NetworkHandler {
@@ -81,5 +82,10 @@ public class NetworkHandler {
                     .consumerMainThread(PacketJeiRecipeTransfer::handle)
                     .add();
         }
+        INSTANCE.messageBuilder(SelectStructurePacket.class, packetId++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(SelectStructurePacket::encode)
+                .decoder(SelectStructurePacket::decode)
+                .consumerMainThread(SelectStructurePacket::handle)
+                .add();
     }
 }

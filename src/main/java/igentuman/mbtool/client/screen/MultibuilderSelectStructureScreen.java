@@ -1,513 +1,398 @@
 package igentuman.mbtool.client.screen;
 
-import igentuman.mbtool.client.gui.MultiblockButton;
-import igentuman.mbtool.client.render.PreviewRenderer;
-import igentuman.mbtool.item.MultibuilderItem;
-import igentuman.mbtool.util.MultiblocksProvider;
+import igentuman.mbtool.client.gui.BrowserScrollPanel;
+import igentuman.mbtool.client.gui.StructureBrowserModel;
+import igentuman.mbtool.client.gui.StructureBrowserModel.Entry;
+import igentuman.mbtool.client.gui.StructureBrowserModel.Folder;
+import igentuman.mbtool.client.render.MultiblockRenderer;
+import igentuman.mbtool.container.MultibuilderContainer;
 import igentuman.mbtool.container.MultibuilderSelectStructureContainer;
+import igentuman.mbtool.item.MultibuilderItem;
+import igentuman.mbtool.network.NetworkHandler;
+import igentuman.mbtool.network.SelectStructurePacket;
+import igentuman.mbtool.network.ToggleMeAccessPacket;
+import igentuman.mbtool.network.ToggleMeAutocraftPacket;
+import igentuman.mbtool.util.ModUtil;
 import igentuman.mbtool.util.MultiblockStructure;
+import igentuman.mbtool.util.MultiblocksProvider;
+import igentuman.mbtool.util.TextUtils;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.gui.screens.inventory.MenuAccess;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
-import org.jetbrains.annotations.NotNull;
+import net.minecraftforge.registries.ForgeRegistries;
+import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.LinkedHashMap;
-import java.util.stream.Collectors;
+import java.util.IdentityHashMap;
 
-import static igentuman.mbtool.Mbtool.rl;
-import static igentuman.mbtool.Mbtool.MBTOOL;
+import static igentuman.mbtool.util.TextUtils.__;
 
-public class MultibuilderSelectStructureScreen extends AbstractContainerScreen<MultibuilderSelectStructureContainer> {
-    private static final ResourceLocation TEXTURE = rl("textures/gui/container/mbtool.png");
-    private final Screen previousScreen;
-    private int currentPage = 0;
-    private int pages = 1;
-    
-    private Button prevButton;
-    private Button nextButton;
-    private EditBox searchField;
-    
-    // Grid configuration
-    private static final int GRID_COLUMNS = 3;
-    private static final int GRID_ROWS = 2;
-    private static final int BUTTON_SIZE = 64;
-    private static final int BUTTON_SPACING = 2;
-    private static final int STRUCTURES_PER_PAGE = GRID_COLUMNS * GRID_ROWS;
-    
-    // Multiblock data
-    private List<MultiblockStructure> allStructures = new ArrayList<>();
-    private List<MultiblockStructure> filteredStructures = new ArrayList<>();
-    private List<MultiblockButton> multiblockButtons = new ArrayList<>();
-    private String currentFilter = "";
-    private String currentGroup = "default";
-    private List<MultiblockStructure> defaultAndGroupButtons = new ArrayList<>();
-    private Button backButton;
+/** Both views share the live server menu. Switching views must never create a client-only inventory. */
+public class MultibuilderSelectStructureScreen<T extends AbstractContainerMenu> extends Screen implements MenuAccess<T> {
+    private final T menu;
+    private final Inventory playerInventory;
+    private final int playerSlot;
+    private StructureBrowserModel<MultiblockStructure> model;
+    private final Map<MultiblockStructure, List<ItemStack>> requiredItems = new IdentityHashMap<>();
+    private List<Entry<MultiblockStructure>> filtered = List.of();
+    private List<Folder> folders = List.of();
+    private String query = "";
+    private String folder;
+    private int allMatches;
+    private int totalStructures;
+    private int sourceRevision = -1;
+    private EditBox search;
+    private MeToggleButton autocraftButton;
+    private BrowserScrollPanel folderPanel;
+    private BrowserScrollPanel grid;
+    private MultibuilderScreen inventoryScreen;
+    private int panelX;
+    private int panelY;
+    private int panelWidth;
+    private int panelHeight;
+    private int selectedIndex = -1;
+    private List<MultiblockStructure> sourceStructures = List.of();
 
-    public MultibuilderSelectStructureScreen(MultibuilderSelectStructureContainer pMenu, Inventory pPlayerInventory, Component pTitle) {
-        this(pMenu, pPlayerInventory, pTitle, null);
+    public MultibuilderSelectStructureScreen(T menu, Inventory inventory, Component title) {
+        super(__("gui.mbtool.select_structure"));
+        this.menu = menu;
+        this.playerInventory = inventory;
+        this.playerSlot = menu instanceof MultibuilderContainer container ? container.getPlayerSlot()
+                : menu instanceof MultibuilderSelectStructureContainer container ? container.getPlayerSlot() : -1;
     }
 
-    public MultibuilderSelectStructureScreen(MultibuilderSelectStructureContainer pMenu, Inventory pPlayerInventory, Component pTitle, Screen previousScreen) {
-        super(pMenu, pPlayerInventory, pTitle);
-        
-        // Calculate screen size based on grid
-        int gridWidth = GRID_COLUMNS * BUTTON_SIZE + (GRID_COLUMNS - 1) * BUTTON_SPACING;
-        int gridHeight = GRID_ROWS * BUTTON_SIZE + (GRID_ROWS - 1) * BUTTON_SPACING;
-        
-        this.imageWidth = Math.max(226, gridWidth + 10); // Add padding
-        this.imageHeight = Math.max(186, gridHeight + 20); // Add padding for title, search field and pagination
-        this.previousScreen = previousScreen;
-        
-        // Load structures from provider
-        loadStructures();
+    @Override
+    public T getMenu() {
+        return menu;
     }
 
     @Override
     protected void init() {
-        super.init();
-        
-        int screenX = (this.width - this.imageWidth) / 2;
-        int screenY = (this.height - this.imageHeight) / 2;
-        
-        // Clear existing multiblock buttons
-        multiblockButtons.clear();
-        
-        // Create search field
-        int searchFieldWidth = Math.min(200, this.imageWidth - 80);
-        int searchFieldX = screenX + (this.imageWidth - searchFieldWidth) / 2;
-        int searchFieldY = screenY + this.imageHeight - 28;
-        
-        this.searchField = new EditBox(this.font, searchFieldX, searchFieldY, searchFieldWidth, 16, Component.literal("Search structures..."));
-        this.searchField.setHint(Component.literal("Search structures..."));
-        this.searchField.setResponder(this::onSearchChanged);
-        this.searchField.setFocused(true); // Focus by default
-        this.addRenderableWidget(this.searchField);
-        
-        // Calculate grid starting position (centered in the screen, below search field)
-        int gridWidth = GRID_COLUMNS * BUTTON_SIZE + (GRID_COLUMNS - 1) * BUTTON_SPACING;
-        int gridHeight = GRID_ROWS * BUTTON_SIZE + (GRID_ROWS - 1) * BUTTON_SPACING;
-        int gridStartX = screenX + (this.imageWidth - gridWidth) / 2;
-        int gridStartY = screenY + 20; // Leave space for title and search field
-        
-        // Create multiblock buttons in a 3x3 grid
-        for (int row = 0; row < GRID_ROWS; row++) {
-            for (int col = 0; col < GRID_COLUMNS; col++) {
-                int buttonX = gridStartX + col * (BUTTON_SIZE + BUTTON_SPACING);
-                int buttonY = gridStartY + row * (BUTTON_SIZE + BUTTON_SPACING);
-                
-                MultiblockButton button = MultiblockButton.builder()
-                        .bounds(buttonX, buttonY, BUTTON_SIZE, BUTTON_SIZE)
-                        .structure(null) // Will be set when updating page
-                        .container(getMenu())
-                        .onPress(this::onMultiblockButtonPressed)
-                        .build();
-                
-                multiblockButtons.add(button);
-                this.addRenderableWidget(button);
-            }
-        }
-        
-        // Previous button (left side)
-        this.prevButton = Button.builder(Component.literal("<"), button -> previousPage())
-                .bounds(screenX + 10, screenY + this.imageHeight - 30, 20, 20)
-                .build();
-        
-        // Next button (right side)
-        this.nextButton = Button.builder(Component.literal(">"), button -> nextPage())
-                .bounds(screenX + this.imageWidth - 30, screenY + this.imageHeight - 30, 20, 20)
-                .build();
-        
-        this.addRenderableWidget(this.prevButton);
-        this.addRenderableWidget(this.nextButton);
+        double folderScroll = folderPanel == null ? 0 : folderPanel.getScroll();
+        double gridScroll = grid == null ? 0 : grid.getScroll();
+        panelX = 8;
+        panelY = 8;
+        panelWidth = width - 16;
+        panelHeight = height - 16;
+        int sidebarWidth = Math.min(160, Math.max(80, panelWidth / 5));
+        int contentY = panelY + 48;
+        int contentHeight = Math.max(24, panelHeight - 74);
+        int gridX = panelX + sidebarWidth + 12;
+        int gridWidth = panelWidth - sidebarWidth - 18;
+        int columns = Math.max(1, (gridWidth - 6) / 100);
+        int cardWidth = (gridWidth - 10 - (columns - 1) * 3) / columns;
+        int cardHeight = Math.min(132, Math.max(84, cardWidth));
+        MultiblockRenderer.setVisiblePreviewCount(columns * (contentHeight / (cardHeight + 3) + 2));
 
-        // Back button (for group navigation)
-        this.backButton = Button.builder(Component.literal("<"), button -> returnToDefaultGroup())
-                .bounds(screenX + 2, screenY + 2, 15, 15)
-                .build();
-        this.addRenderableWidget(this.backButton);
-        
+        addRenderableWidget(Button.builder(__("gui.mbtool.inventory"), button -> showInventory())
+                .bounds(panelX + panelWidth - 82, panelY + 5, 76, 20).build());
+        autocraftButton = null;
+        if (ModUtil.isAe2Loaded()) {
+            addRenderableWidget(new MeToggleButton(panelX + panelWidth - 123, panelY + 6, false));
+            autocraftButton = addRenderableWidget(new MeToggleButton(panelX + panelWidth - 104, panelY + 6, true));
+            autocraftButton.visible = meEnabled(false);
+        }
+        search = new EditBox(font, panelX + 7, panelY + 28, panelWidth - 14, 16,
+                __("gui.mbtool.search_structures"));
+        search.setMaxLength(128);
+        search.setHint(__("gui.mbtool.search_structures"));
+        search.setValue(query);
+        search.setResponder(value -> {
+            query = value;
+            applyFilter();
+        });
+        addRenderableWidget(search);
+        folderPanel = addRenderableWidget(new BrowserScrollPanel(panelX + 6, contentY, sidebarWidth,
+                contentHeight, 1, 16, 1, __("gui.mbtool.folders")) {
+            @Override
+            protected Component entryNarration(int index) {
+                return folderLabel(index);
+            }
+
+            @Override
+            protected void renderEntry(GuiGraphics graphics, int index, int x, int y, int w, int h, boolean hovered) {
+                boolean selected = index == 0 ? folder == null : folders.get(index - 1).id().equals(folder);
+                bevel(graphics, x, y, w, h, selected ? 0xFF8B8B8B : hovered ? 0xFFAAAAAA : 0xFF999999, selected);
+                drawFitted(graphics, folderLabel(index).getString(), x + 4, y + (h - font.lineHeight) / 2, w - 8, selected ? 0xFFFFFF : 0xE0E0E0);
+            }
+
+            @Override
+            protected void activateEntry(int index) {
+                folder = index == 0 ? null : folders.get(index - 1).id();
+                double scroll = getScroll();
+                applyFilter();
+                setScroll(scroll);
+            }
+        });
+        grid = addRenderableWidget(new BrowserScrollPanel(gridX, contentY, gridWidth, contentHeight,
+                columns, cardHeight, 3, __("gui.mbtool.select_structure")) {
+            @Override
+            protected Component entryNarration(int index) {
+                return Component.literal(filtered.get(index).name());
+            }
+
+            @Override
+            protected void renderEntry(GuiGraphics graphics, int index, int x, int y, int w, int h, boolean hovered) {
+                Entry<MultiblockStructure> entry = filtered.get(index);
+                boolean selected = entry.sourceIndex() == selectedIndex;
+                bevel(graphics, x, y, w, h, hovered ? 0xFFA0A0A0 : 0xFF8B8B8B, selected);
+                int previewHeight = h - 29;
+                graphics.fill(x + 3, y + 3, x + w - 3, y + previewHeight, 0xFF686868);
+                graphics.enableScissor(x + 3, Math.max(getY(), y + 3), x + w - 3,
+                        Math.min(getY() + getHeight(), y + previewHeight));
+                try {
+                    MultiblockRenderer.render(entry.value(), graphics, x + 4, y + 4, w - 8, previewHeight - 6);
+                } finally {
+                    graphics.disableScissor();
+                }
+                drawFitted(graphics, entry.name(), x + 4, y + h - 24, w - 8, 0xFFFFFF);
+                drawFitted(graphics, entry.folderName(), x + 4, y + h - 12, w - 8, 0xD0D0D0);
+            }
+
+            @Override
+            protected void activateEntry(int index) {
+                selectStructure(filtered.get(index));
+            }
+        });
+        addRenderableWidget(Button.builder(__("gui.done"), button -> onClose())
+                .bounds(panelX + panelWidth - 66, panelY + panelHeight - 23, 60, 20).build());
+        loadStructures();
+        folderPanel.setScroll(folderScroll);
+        grid.setScroll(gridScroll);
+        setInitialFocus(search);
+    }
+
+    private Component folderLabel(int index) {
+        if (index == 0) return __("gui.mbtool.all_structures", allMatches);
+        Folder value = folders.get(index - 1);
+        return Component.literal(value.name() + " (" + value.count() + ")");
+    }
+
+    private static String displayName(String key) {
+        if (key == null || key.isBlank()) return "";
+        String translated = __(key).getString();
+        return translated.equals(key) ? TextUtils.convertToName(key.replace("mbtool.structure.", "")) : translated;
+    }
+
+    private void loadStructures() {
+        sourceStructures = List.copyOf(MultiblocksProvider.getStructures());
+        requiredItems.clear();
+        List<Entry<MultiblockStructure>> entries = new ArrayList<>();
+        for (int i = 0; i < sourceStructures.size(); i++) {
+            MultiblockStructure structure = sourceStructures.get(i);
+            if (structure.isGroup()) continue;
+            String group = structure.getGroup();
+            if (group == null || group.isBlank()) group = "default";
+            String groupName = "default".equals(group) ? __("gui.mbtool.ungrouped").getString() : displayName(group);
+            entries.add(new Entry<>(structure, i, displayName(structure.getName()), group, groupName));
+        }
+        totalStructures = entries.size();
+        model = new StructureBrowserModel<>(entries);
+        sourceRevision = MultiblocksProvider.getRevision();
+        if (folder != null && model.folders("").stream().noneMatch(value -> value.id().equals(folder))) folder = null;
         applyFilter();
     }
 
-    @Override
-    protected void renderBg(GuiGraphics pGuiGraphics, float pPartialTick, int pMouseX, int pMouseY) {
-        int x = (this.width - this.imageWidth) / 2;
-        int y = (this.height - this.imageHeight) / 2;
-        pGuiGraphics.blit(TEXTURE, x, y, 0, 0, this.imageWidth, this.imageHeight);
+    private void applyFilter() {
+        if (model == null) return;
+        filtered = model.filter(query, folder);
+        folders = model.folders(query);
+        allMatches = model.filter(query, null).size();
+        if (grid != null) grid.setItemCount(filtered.size());
+        if (folderPanel != null) folderPanel.setItemCount(folders.size() + 1);
+    }
+
+    private ItemStack toolStack() {
+        return playerSlot >= 0 && playerSlot < playerInventory.getContainerSize()
+                ? playerInventory.getItem(playerSlot) : ItemStack.EMPTY;
+    }
+
+    private void selectStructure(Entry<MultiblockStructure> entry) {
+        ItemStack stack = toolStack();
+        if (!(stack.getItem() instanceof MultibuilderItem)) return;
+        // Synchronization can replace the provider list while the browser is open.
+        List<MultiblockStructure> current = MultiblocksProvider.getStructures();
+        if (entry.sourceIndex() >= current.size() || current.get(entry.sourceIndex()) != entry.value()) {
+            loadStructures();
+            return;
+        }
+        SelectStructurePacket selection = new SelectStructurePacket(menu.containerId, playerSlot, entry.sourceIndex());
+        selection.applyTo(stack.getOrCreateTag());
+        NetworkHandler.INSTANCE.sendToServer(selection);
+        selectedIndex = entry.sourceIndex();
+        onClose();
+    }
+
+    private void showInventory() {
+        if (minecraft == null) return;
+        if (menu instanceof MultibuilderContainer container) {
+            if (inventoryScreen == null) inventoryScreen = new MultibuilderScreen(container, playerInventory,
+                    __("gui.mbtool.multibuilder"), this);
+            minecraft.setScreen(inventoryScreen);
+        }
+    }
+
+    private boolean meEnabled(boolean autocraft) {
+        ItemStack stack = toolStack();
+        return stack.getItem() instanceof MultibuilderItem && stack.hasTag()
+                && stack.getTag().getBoolean(autocraft ? "meAutocrafting" : "meAccessAllowed");
+    }
+
+    private void toggleMe(boolean autocraft) {
+        ItemStack stack = toolStack();
+        if (!(stack.getItem() instanceof MultibuilderItem) || (autocraft && !meEnabled(false))) return;
+        boolean enabled = !meEnabled(autocraft);
+        InteractionHand hand = playerSlot == 40 ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
+        if (autocraft) {
+            MultibuilderItem.setMeAutocraftingEnabled(stack, enabled);
+            NetworkHandler.INSTANCE.sendToServer(new ToggleMeAutocraftPacket(enabled, hand));
+        } else {
+            stack.getOrCreateTag().putBoolean("meAccessAllowed", enabled);
+            NetworkHandler.INSTANCE.sendToServer(new ToggleMeAccessPacket(enabled, hand));
+            if (autocraftButton != null) autocraftButton.visible = enabled;
+        }
+    }
+
+    private final class MeToggleButton extends Button {
+        private final boolean autocraft;
+        private final ItemStack icon;
+        private Boolean lastEnabled;
+
+        private MeToggleButton(int x, int y, boolean autocraft) {
+            super(x, y, 18, 18, __(autocraft ? "gui.mbtool.me_autocraft" : "gui.mbtool.me_access"),
+                    button -> toggleMe(autocraft), DEFAULT_NARRATION);
+            this.autocraft = autocraft;
+            var item = ForgeRegistries.ITEMS.getValue(autocraft
+                    ? ResourceLocation.fromNamespaceAndPath("minecraft", "crafting_table")
+                    : ResourceLocation.fromNamespaceAndPath("ae2", "wireless_terminal"));
+            icon = item == null ? ItemStack.EMPTY : new ItemStack(item);
+        }
+
+        @Override
+        protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+            boolean enabled = meEnabled(autocraft);
+            if (lastEnabled == null || lastEnabled != enabled) {
+                String key = autocraft ? "gui.mbtool.me_autocraft" : "gui.mbtool.me_access";
+                var tooltip = Component.empty().append(getMessage()).append("\n")
+                        .append(__(key + ".descr").withStyle(ChatFormatting.GOLD));
+                if (autocraft) tooltip.append("\n")
+                        .append(__(key + ".notice").withStyle(ChatFormatting.RED));
+                tooltip.append("\n").append(__(key + (enabled ? ".enabled" : ".disabled"))
+                        .withStyle(enabled ? (autocraft ? ChatFormatting.AQUA : ChatFormatting.GREEN) : ChatFormatting.RED));
+                setTooltip(Tooltip.create(tooltip));
+                lastEnabled = enabled;
+            }
+            BrowserScrollPanel.bevel(graphics, getX(), getY(), width, height,
+                    isHoveredOrFocused() ? 0xFFAAAAAA : enabled ? 0xFF8B8B8B : 0xFFC6C6C6, enabled);
+            if (!icon.isEmpty()) graphics.renderItem(icon, getX() + 1, getY() + 1);
+        }
+    }
+
+    private void drawFitted(GuiGraphics graphics, String text, int x, int y, int maxWidth, int color) {
+        drawFitted(graphics, text, x, y, maxWidth, color, true);
+    }
+
+    private void drawFitted(GuiGraphics graphics, String text, int x, int y, int maxWidth, int color, boolean shadow) {
+        if (font.width(text) > maxWidth) text = font.plainSubstrByWidth(text, Math.max(0, maxWidth - font.width("..."))) + "...";
+        graphics.drawString(font, text, x, y, color, shadow);
     }
 
     @Override
-    public void render(GuiGraphics pGuiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
-        this.renderBackground(pGuiGraphics);
-        
-        // Temporarily disable tooltips for multiblock buttons to prevent double tooltips
-        List<Tooltip> savedTooltips = new ArrayList<>();
-        for (MultiblockButton button : multiblockButtons) {
-            savedTooltips.add(button.getTooltip());
-            button.setTooltip(null);
-        }
-        
-        super.render(pGuiGraphics, pMouseX, pMouseY, pPartialTick);
-        
-        // Restore tooltips
-        for (int i = 0; i < multiblockButtons.size(); i++) {
-            multiblockButtons.get(i).setTooltip(savedTooltips.get(i));
-        }
-        
-        this.renderCustomTooltip(pGuiGraphics, pMouseX, pMouseY);
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        renderBackground(graphics);
+        BrowserScrollPanel.bevel(graphics, panelX, panelY, panelWidth, panelHeight, 0xFFC6C6C6, false);
+        drawFitted(graphics, title.getString(), panelX + 7, panelY + 11, panelWidth - (ModUtil.isAe2Loaded() ? 139 : 98), 0x404040, false);
+        ItemStack stack = toolStack();
+        selectedIndex = stack.hasTag() && stack.getTag().contains("recipe") && !stack.getTag().contains("runtimeStructure")
+                ? stack.getTag().getInt("recipe") : -1;
+        if (autocraftButton != null) autocraftButton.visible = meEnabled(false);
+        super.render(graphics, mouseX, mouseY, partialTick);
+        drawFitted(graphics, __("gui.mbtool.structure_count", filtered.size(),
+                totalStructures).getString(),
+                panelX + 7, panelY + panelHeight - 16, panelWidth - 80, 0x404040, false);
+        if (filtered.isEmpty()) graphics.drawCenteredString(font, __("gui.mbtool.no_matching_structures"),
+                grid.getX() + grid.getWidth() / 2, grid.getY() + grid.getHeight() / 2, 0xFFFFFF);
+        renderBrowserTooltip(graphics, mouseX, mouseY);
     }
-    
-    /**
-     * Custom tooltip rendering that adjusts position based on button location
-     */
-    private void renderCustomTooltip(GuiGraphics pGuiGraphics, int pMouseX, int pMouseY) {
-        // Check if we're hovering over a multiblock button
-        MultiblockButton hoveredButton = null;
-        for (MultiblockButton button : multiblockButtons) {
-            if (button.isMouseOver(pMouseX, pMouseY) && button.visible && button.getTooltip() != null) {
-                hoveredButton = button;
-                break;
-            }
-        }
-        
-        if (hoveredButton != null) {
-            // Get the tooltip from the button
-            var tooltip = hoveredButton.getTooltip();
-            if (tooltip != null) {
-                // Calculate screen center
-                int screenCenterY = this.height / 2;
-                
-                // Check if button is in the top half of the screen
-                boolean buttonInTopHalf = hoveredButton.getY() < screenCenterY;
-                
-                if (buttonInTopHalf) {
-                    // For buttons in top half, render tooltip below the button
-                    int tooltipX = pMouseX;
-                    int tooltipY = hoveredButton.getY() + hoveredButton.getHeight() + 5;
-                    
-                    // Ensure tooltip doesn't go off screen
-                    tooltipY = Math.min(tooltipY, this.height - 50); // Leave some margin at bottom
-                    
-                    pGuiGraphics.renderTooltip(this.font, tooltip.toCharSequence(this.minecraft), tooltipX, tooltipY);
-                } else {
-                    // For buttons in bottom half, render tooltip above the button
-                    int tooltipX = pMouseX;
-                    int tooltipY = hoveredButton.getY() - 5;
-                    
-                    // Ensure tooltip doesn't go off screen
-                    tooltipY = Math.max(tooltipY, 20); // Leave some margin at top
-                    
-                    pGuiGraphics.renderTooltip(this.font, tooltip.toCharSequence(this.minecraft), tooltipX, tooltipY);
+
+    private void renderBrowserTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
+        int index = grid.hoveredIndex(mouseX, mouseY);
+        if (index >= 0) {
+            Entry<MultiblockStructure> entry = filtered.get(index);
+            MultiblockStructure structure = entry.value();
+            List<Component> tooltip = new ArrayList<>();
+            tooltip.add(Component.literal(entry.name()));
+            tooltip.add(Component.literal(entry.folderName()).withStyle(ChatFormatting.GRAY));
+            tooltip.add(__("gui.mbtool.multiblock_button.dimensions",
+                    structure.getWidth(), structure.getHeight(), structure.getDepth()).withStyle(ChatFormatting.GRAY));
+            ItemStack tool = toolStack();
+            if (tool.getItem() instanceof MultibuilderItem item) {
+                var inventory = item.getInventory(tool);
+                for (ItemStack needed : requiredItems.computeIfAbsent(structure, MultiblockStructure::getNeededItems)) {
+                    int available = 0;
+                    for (int slot = 0; inventory != null && slot < inventory.getSlots(); slot++) {
+                        ItemStack stored = inventory.getStackInSlot(slot);
+                        if (ItemStack.isSameItemSameTags(stored, needed)) available += stored.getCount();
+                    }
+                    boolean enough = playerInventory.player.isCreative() || available >= needed.getCount();
+                    tooltip.add(Component.literal(needed.getCount() + "x ").append(needed.getHoverName())
+                            .withStyle(enough ? ChatFormatting.GREEN : ChatFormatting.RED));
                 }
-                return;
             }
-        }
-        
-        // Default tooltip rendering for other elements
-        //this.renderTooltip(pGuiGraphics, pMouseX, pMouseY);
-    }
-    
-    @Override
-    public boolean keyPressed(int pKeyCode, int pScanCode, int pModifiers) {
-        // If search field is focused, handle all key presses to prevent default Minecraft key bindings
-        if (this.searchField != null && this.searchField.isFocused()) {
-            if (this.searchField.keyPressed(pKeyCode, pScanCode, pModifiers)) {
-                return true;
-            }
-            // Return true for any key press when search field is focused to prevent default handling
-            // except for ESC key which should still close the GUI
-            if (pKeyCode != 256) { // 256 is ESC key
-                return true;
-            }
-        }
-        
-        if (this.searchField != null && this.searchField.keyPressed(pKeyCode, pScanCode, pModifiers)) {
-            return true;
-        }
-        return super.keyPressed(pKeyCode, pScanCode, pModifiers);
-    }
-    
-    @Override
-    public boolean charTyped(char pCodePoint, int pModifiers) {
-        // If search field is focused, prioritize it for character input
-        if (this.searchField != null && this.searchField.isFocused()) {
-            if (this.searchField.charTyped(pCodePoint, pModifiers)) {
-                return true;
-            }
-            // Return true to prevent other character handling when search field is focused
-            return true;
-        }
-        
-        if (this.searchField != null && this.searchField.charTyped(pCodePoint, pModifiers)) {
-            return true;
-        }
-        return super.charTyped(pCodePoint, pModifiers);
-    }
-    
-    @Override
-    protected void containerTick() {
-        super.containerTick();
-        if (this.searchField != null) {
-            this.searchField.tick();
+            graphics.renderComponentTooltip(font, tooltip, mouseX, mouseY);
+        } else {
+            int folderIndex = folderPanel.hoveredIndex(mouseX, mouseY);
+            if (folderIndex >= 0) graphics.renderTooltip(font, folderLabel(folderIndex), mouseX, mouseY);
         }
     }
-    
-    @Override
-    public boolean mouseClicked(double pMouseX, double pMouseY, int pButton) {
-        if (this.searchField.mouseClicked(pMouseX, pMouseY, pButton)) {
-            return true;
-        }
-        return super.mouseClicked(pMouseX, pMouseY, pButton);
-    }
-    @Override
-    protected void renderLabels(@NotNull GuiGraphics graphics, int mouseX, int mouseY) {
-        FormattedCharSequence formattedcharsequence = title.getVisualOrderText();
-        graphics.drawString(this.font, formattedcharsequence, 110 - this.font.width(formattedcharsequence) / 2, 6, 4210752, false);
 
-    }
-    
-    private void previousPage() {
-        if (currentPage > 0) {
-            currentPage--;
-            updateButtonStates();
-            onPageChanged();
+    @Override
+    public void tick() {
+        if (minecraft == null || minecraft.player == null) return;
+        if (!minecraft.player.isAlive() || minecraft.player.isRemoved() || !(toolStack().getItem() instanceof MultibuilderItem)) {
+            onClose();
+            return;
         }
+        search.tick();
+        if (sourceRevision != MultiblocksProvider.getRevision()) loadStructures();
     }
-    
-    private void nextPage() {
-        if (currentPage < pages - 1) {
-            currentPage++;
-            updateButtonStates();
-            onPageChanged();
+
+    @Override
+    public boolean keyPressed(int key, int scanCode, int modifiers) {
+        if (key == GLFW.GLFW_KEY_ESCAPE) {
+            onClose();
+            return true;
         }
-    }
-    
-    private void updateButtonStates() {
-        if (prevButton != null) {
-            prevButton.active = currentPage > 0;
+        if (search.isFocused() && key != GLFW.GLFW_KEY_TAB) {
+            search.keyPressed(key, scanCode, modifiers);
+            return true;
         }
-        if (nextButton != null) {
-            nextButton.active = currentPage < pages - 1;
+        if (minecraft != null && minecraft.options.keyInventory.matches(key, scanCode) && !search.isFocused()) {
+            onClose();
+            return true;
         }
-    }
-    
-    protected void onPageChanged() {
-        updateMultiblockButtons();
-    }
-    
-    public int getCurrentPage() {
-        return currentPage;
-    }
-    
-    public void setCurrentPage(int page) {
-        if (page >= 0 && page < pages) {
-            this.currentPage = page;
-            updateButtonStates();
-            onPageChanged();
-        }
-    }
-    
-    public void setPages(int pages) {
-        this.pages = Math.max(1, pages);
-        if (currentPage >= this.pages) {
-            currentPage = this.pages - 1;
-        }
-        updateButtonStates();
+        return super.keyPressed(key, scanCode, modifiers);
     }
 
     @Override
     public void onClose() {
-        if (this.previousScreen != null && this.minecraft != null) {
-            this.minecraft.setScreen(this.previousScreen);
-        } else {
-            super.onClose();
-        }
-    }
-    
-    /**
-     * Load structures from MultiblocksProvider and calculate pagination
-     */
-    private void loadStructures() {
-        allStructures = MultiblocksProvider.getStructures();
-        buildDefaultAndGroupElements();
-        applyFilter();
+        if (minecraft != null && minecraft.player != null) minecraft.player.closeContainer();
     }
 
-    private void buildDefaultAndGroupElements() {
-        defaultAndGroupButtons.clear();
-        
-        // 1. Collect all individual structures with group "default"
-        for (MultiblockStructure s : allStructures) {
-            if ("default".equals(s.getGroup())) {
-                defaultAndGroupButtons.add(s);
-            }
-        }
-        
-        // 2. Group non-default structures by their group name
-        Map<String, List<MultiblockStructure>> groups = new LinkedHashMap<>();
-        for (MultiblockStructure s : allStructures) {
-            if (!"default".equals(s.getGroup())) {
-                groups.computeIfAbsent(s.getGroup(), k -> new ArrayList<>()).add(s);
-            }
-        }
-        
-        // 3. For each group, create a dummy representative MultiblockStructure, add structures, and add to defaultAndGroupButtons
-        for (Map.Entry<String, List<MultiblockStructure>> entry : groups.entrySet()) {
-            String groupName = entry.getKey();
-            List<MultiblockStructure> list = entry.getValue();
-            MultiblockStructure dummy = new MultiblockStructure(groupName);
-            for (MultiblockStructure s : list) {
-                dummy.addGroupStructure(s);
-            }
-            defaultAndGroupButtons.add(dummy);
-        }
-    }
-
-    private void returnToDefaultGroup() {
-        this.currentGroup = "default";
-        this.currentPage = 0;
-        applyFilter();
-    }
-    
-    /**
-     * Handle search field changes
-     */
-    private void onSearchChanged(String searchText) {
-        currentFilter = searchText.toLowerCase().trim();
-        applyFilter();
-    }
-    
-    /**
-     * Apply current filter to structures
-     */
-    private void applyFilter() {
-        if (!currentFilter.isEmpty()) {
-            // Search is active - global match across all individual structures
-            String[] words = currentFilter.split("\\s+");
-            filteredStructures = allStructures.stream()
-                    .filter(structure -> !structure.isGroup() && structure.getName() != null)
-                    .filter(structure -> {
-                        String name = Component.translatable(structure.getName()).getString().toLowerCase();
-                        for (String word : words) {
-                            if (!name.contains(word)) return false;
-                        }
-                        return true;
-                    })
-                    .collect(Collectors.toList());
-            if (backButton != null) backButton.visible = false;
-        } else if (!"default".equals(currentGroup)) {
-            // Active group view - show all structures within current group
-            filteredStructures = allStructures.stream()
-                    .filter(structure -> currentGroup.equals(structure.getGroup()))
-                    .collect(Collectors.toList());
-            if (backButton != null) {
-                backButton.visible = true;
-                backButton.active = true;
-            }
-        } else {
-            // Default view - show default group structures + group representatives
-            filteredStructures = new ArrayList<>(defaultAndGroupButtons);
-            if (backButton != null) backButton.visible = false;
-        }
-        
-        // Reset to first page and update pagination
-        currentPage = 0;
-        updatePagination();
-        updateButtonStates();
-        updateMultiblockButtons();
-    }
-    
-    /**
-     * Update pagination based on filtered structures
-     */
-    private void updatePagination() {
-        if (filteredStructures.isEmpty()) {
-            pages = 1;
-        } else {
-            pages = (int) Math.ceil((double) filteredStructures.size() / STRUCTURES_PER_PAGE);
-        }
-        
-        // Reset to first page if current page is out of bounds
-        if (currentPage >= pages) {
-            currentPage = 0;
-        }
-    }
-    
-    /**
-     * Update multiblock buttons with structures for current page
-     */
-    private void updateMultiblockButtons() {
-        int startIndex = currentPage * STRUCTURES_PER_PAGE;
-        
-        for (int i = 0; i < multiblockButtons.size(); i++) {
-            MultiblockButton button = multiblockButtons.get(i);
-            int structureIndex = startIndex + i;
-            
-            if (structureIndex < filteredStructures.size()) {
-                button.setStructure(filteredStructures.get(structureIndex));
-                button.visible = true;
-                button.active = true;
-            } else {
-                button.setStructure(null);
-                button.visible = false;
-                button.active = false;
-            }
-        }
-    }
-    
-    /**
-     * Handle multiblock button press
-     */
-    private void onMultiblockButtonPressed(MultiblockButton button) {
-        MultiblockStructure structure = button.getStructure();
-        if (structure != null) {
-            if (structure.isGroup()) {
-                this.currentGroup = structure.getGroup();
-                this.currentPage = 0;
-                applyFilter();
-                return;
-            }
-            if (minecraft != null && minecraft.player != null) {
-                // Find the index in the original allStructures list
-                int originalIndex = allStructures.indexOf(structure);
-                
-                // Save to the item's NBT
-                int slot = menu.getPlayerSlot();
-                if (slot >= 0) {
-                    ItemStack multibuilderStack;
-                    if (slot == 40) { // Offhand
-                        multibuilderStack = minecraft.player.getOffhandItem();
-                    } else {
-                        multibuilderStack = minecraft.player.getInventory().getItem(slot);
-                    }
-                    
-                    if (multibuilderStack.is(MBTOOL.get())) {
-                        multibuilderStack.getOrCreateTag().putInt("recipe", originalIndex);
-                        
-                        // Nullify runtimeStructure when player chooses a structure
-                        MultibuilderItem multibuilderItem = (MultibuilderItem) multibuilderStack.getItem();
-                        multibuilderItem.setRuntimeStructure(multibuilderStack, null);
-                    }
-                }
-                
-                // Update the previous screen if it exists
-                if (previousScreen instanceof MultibuilderScreen) {
-                    ((MultibuilderScreen)previousScreen).selectedStructure = originalIndex;
-                }
-                
-                onClose();
-            }
-        }
+    @Override
+    public boolean isPauseScreen() {
+        return false;
     }
 }

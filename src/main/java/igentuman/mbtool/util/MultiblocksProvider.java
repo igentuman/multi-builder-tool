@@ -31,6 +31,11 @@ public class MultiblocksProvider implements PreparableReloadListener {
     public static List<MultiblockStructure> structures = new ArrayList<>();
     private static MultiblocksProvider INSTANCE = new MultiblocksProvider();
     private static Runnable onStructuresChangedCallback = null;
+    private static volatile int revision;
+
+    public static int getRevision() {
+        return revision;
+    }
 
     public static MultiblocksProvider getInstance() {
         return INSTANCE;
@@ -45,6 +50,7 @@ public class MultiblocksProvider implements PreparableReloadListener {
     }
 
     public static void notifyStructuresChanged() {
+        revision++;
         if (onStructuresChangedCallback != null) {
             onStructuresChangedCallback.run();
         }
@@ -78,6 +84,8 @@ public class MultiblocksProvider implements PreparableReloadListener {
             }
             structures.clear();
             structures.addAll(structuresToAdd);
+            // Server reloads must not invoke the client integration callback.
+            revision++;
         }, gameExecutor);
     }
 

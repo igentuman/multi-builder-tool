@@ -109,5 +109,12 @@
     "message.mbtool.autocrafting_missing_ingredients": "%s 的自动合成失败：缺少材料",
     "message.mbtool.autocrafting_no_grid": "自动合成失败：ME 网络不可用",
     "message.mbtool.autocrafting_cpu_busy": "%s 的自动合成失败：所有合成 CPU 均繁忙",
-    "gui.mbtool.me_autocraft.notice": "实验性功能。如遇问题请报告 Bug"
+    "gui.mbtool.me_autocraft.notice": "实验性功能。如遇问题请报告 Bug",
+  "gui.mbtool.inventory": "物品栏",
+  "gui.mbtool.search_structures": "搜索结构...",
+  "gui.mbtool.folders": "文件夹",
+  "gui.mbtool.all_structures": "全部（%s）",
+  "gui.mbtool.ungrouped": "未分组",
+  "gui.mbtool.structure_count": "%s / %s 个结构",
+  "gui.mbtool.no_matching_structures": "没有匹配的结构"
 }

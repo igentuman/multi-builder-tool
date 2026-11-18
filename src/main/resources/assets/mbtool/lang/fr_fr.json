@@ -109,5 +109,12 @@
   "message.mbtool.autocrafting_missing_ingredients": "Fabrication automatique de %s échouée : ingrédients manquants",
   "message.mbtool.autocrafting_no_grid": "Fabrication automatique échouée : réseau ME non disponible",
   "message.mbtool.autocrafting_cpu_busy": "Fabrication automatique de %s échouée : tous les CPU de fabrication sont occupés",
-  "gui.mbtool.me_autocraft.notice": "Expérimental. Signalez les bugs en cas de problèmes"
+  "gui.mbtool.me_autocraft.notice": "Expérimental. Signalez les bugs en cas de problèmes",
+  "gui.mbtool.inventory": "Inventaire",
+  "gui.mbtool.search_structures": "Rechercher des structures...",
+  "gui.mbtool.folders": "Dossiers",
+  "gui.mbtool.all_structures": "Toutes (%s)",
+  "gui.mbtool.ungrouped": "Sans dossier",
+  "gui.mbtool.structure_count": "%s / %s structures",
+  "gui.mbtool.no_matching_structures": "Aucune structure correspondante"
 }

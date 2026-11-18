@@ -109,5 +109,12 @@
   "message.mbtool.autocrafting_missing_ingredients": "Produzione automatica di %s fallita: ingredienti mancanti",
   "message.mbtool.autocrafting_no_grid": "Produzione automatica fallita: rete ME non disponibile",
   "message.mbtool.autocrafting_cpu_busy": "Produzione automatica di %s fallita: tutte le CPU di produzione sono occupate",
-  "gui.mbtool.me_autocraft.notice": "Sperimentale. Segnala bug in caso di problemi"
+  "gui.mbtool.me_autocraft.notice": "Sperimentale. Segnala bug in caso di problemi",
+  "gui.mbtool.inventory": "Inventario",
+  "gui.mbtool.search_structures": "Cerca strutture...",
+  "gui.mbtool.folders": "Cartelle",
+  "gui.mbtool.all_structures": "Tutte (%s)",
+  "gui.mbtool.ungrouped": "Senza cartella",
+  "gui.mbtool.structure_count": "%s / %s strutture",
+  "gui.mbtool.no_matching_structures": "Nessuna struttura corrispondente"
 }

@@ -201,7 +201,7 @@ public class MultiblockButton extends AbstractButton {
                 int renderHeight = Math.max(1, this.height - (padding * 2));
                 
                 // Render the multiblock structure
-                MultiblockRenderer.render(structure, guiGraphics.pose(), renderX, renderY, renderWidth, renderHeight);
+                MultiblockRenderer.render(structure, guiGraphics, renderX, renderY, renderWidth, renderHeight);
                 
             } catch (Exception e) {
                 // If rendering fails, just continue without the structure

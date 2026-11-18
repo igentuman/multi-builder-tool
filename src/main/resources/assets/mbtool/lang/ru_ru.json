@@ -109,5 +109,12 @@
   "message.mbtool.autocrafting_missing_ingredients": "Автокрафт %s не удался: недостаточно ингредиентов",
   "message.mbtool.autocrafting_no_grid": "Автокрафт не удался: сеть ME недоступна",
   "message.mbtool.autocrafting_cpu_busy": "Автокрафт %s не удался: все процессоры крафта заняты",
-  "gui.mbtool.me_autocraft.notice": "Экспериментально. Сообщайте об ошибках в случае проблем"
+  "gui.mbtool.me_autocraft.notice": "Экспериментально. Сообщайте об ошибках в случае проблем",
+  "gui.mbtool.inventory": "Инвентарь",
+  "gui.mbtool.search_structures": "Поиск структур...",
+  "gui.mbtool.folders": "Папки",
+  "gui.mbtool.all_structures": "Все (%s)",
+  "gui.mbtool.ungrouped": "Без папки",
+  "gui.mbtool.structure_count": "Структуры: %s / %s",
+  "gui.mbtool.no_matching_structures": "Структуры не найдены"
 }
