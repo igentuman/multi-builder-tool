@@ -4,6 +4,7 @@ import appeng.menu.me.items.PatternEncodingTermMenu;
 import dev.emi.emi.api.EmiEntrypoint;
 import dev.emi.emi.api.EmiPlugin;
 import dev.emi.emi.api.EmiRegistry;
+import dev.emi.emi.api.stack.EmiStack;
 import igentuman.mbtool.integration.ae2.MbtoolRecipeHandler;
 import igentuman.mbtool.util.MultiblocksProvider;
 import net.minecraft.resources.ResourceLocation;
@@ -11,6 +12,7 @@ import net.minecraft.resources.ResourceLocation;
 import java.util.List;
 
 import static igentuman.mbtool.Mbtool.MULTIBUILDER_CONTAINER;
+import static igentuman.mbtool.Mbtool.STRUCTURE_REQUEST;
 import static igentuman.mbtool.Mbtool.rl;
 
 @EmiEntrypoint
@@ -19,6 +21,7 @@ public class EMIPlugin implements EmiPlugin {
     @Override
     public void register(EmiRegistry registry) {
         registry.addCategory(MultiblockStructureEmiCategory.INSTANCE);
+        registry.removeEmiStacks(EmiStack.of(STRUCTURE_REQUEST.get()));
         registry.addRecipeHandler(MULTIBUILDER_CONTAINER.get(), new MultiblockRecipeHandler<>());
         registry.addRecipeHandler(PatternEncodingTermMenu.TYPE, new MbtoolRecipeHandler<>());
         

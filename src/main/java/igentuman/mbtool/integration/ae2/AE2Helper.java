@@ -39,9 +39,10 @@ public class AE2Helper {
         FAILED               // Generic failure
     }
 
-    private record GridContext(IGrid grid, IActionHost actionHost) {}
+    /** {@code slot} is the terminal's player inventory slot, or -1 when it is equipped as a curio. */
+    record GridContext(IGrid grid, IActionHost actionHost, int slot) {}
 
-    private static GridContext getPlayerGridContext(ServerPlayer player) {
+    static GridContext getPlayerGridContext(ServerPlayer player) {
         for (int i = 0; i < player.getInventory().items.size(); i++) {
             ItemStack itemStack = player.getInventory().items.get(i);
             if (itemStack.getItem() instanceof WirelessTerminalItem terminal) {
@@ -49,7 +50,7 @@ public class AE2Helper {
                 if (grid != null) {
                     ItemMenuHost menuHost = terminal.getMenuHost(player, i, itemStack, null);
                     IActionHost actionHost = menuHost instanceof IActionHost ah ? ah : null;
-                    return new GridContext(grid, actionHost);
+                    return new GridContext(grid, actionHost, i);
                 }
             }
         }
@@ -61,7 +62,7 @@ public class AE2Helper {
                         // Curios items don't have a standard inventory slot; fall back to grid pivot node
                         IActionHost actionHost = grid.getPivot() != null
                                 && grid.getPivot().getOwner() instanceof IActionHost ah ? ah : null;
-                        return new GridContext(grid, actionHost);
+                        return new GridContext(grid, actionHost, -1);
                     }
                 }
             }

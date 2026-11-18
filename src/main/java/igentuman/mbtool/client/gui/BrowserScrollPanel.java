@@ -125,8 +125,29 @@ public abstract class BrowserScrollPanel extends AbstractWidget {
         int index = hoveredIndex(mouseX, mouseY);
         if (index >= 0) {
             keyboardIndex = index;
+            if (clickEntry(index, entryX(index), entryY(index), cellWidth, cellHeight, mouseX, mouseY)) return;
             activateEntry(index);
         }
+    }
+
+    public int entryX(int index) {
+        return getX() + index % columns * (cellWidth + gap);
+    }
+
+    public int entryY(int index) {
+        return getY() + index / columns * (cellHeight + gap) - (int) scroll;
+    }
+
+    protected boolean clickEntry(int index, int x, int y, int width, int height, double mouseX, double mouseY) {
+        return false;
+    }
+
+    public int getCellWidth() {
+        return cellWidth;
+    }
+
+    public int getCellHeight() {
+        return cellHeight;
     }
 
     private void dragScrollbar(double mouseY) {

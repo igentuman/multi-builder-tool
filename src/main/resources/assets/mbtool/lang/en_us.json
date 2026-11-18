@@ -166,5 +166,19 @@
   "gui.mbtool.all_structures": "All (%s)",
   "gui.mbtool.ungrouped": "Ungrouped",
   "gui.mbtool.structure_count": "%s / %s structures",
-  "gui.mbtool.no_matching_structures": "No matching structures"
+  "gui.mbtool.no_matching_structures": "No matching structures",
+  "item.mbtool.structure_request": "Structure Materials",
+  "item.mbtool.structure_request.named": "Structure Materials: %s",
+  "gui.mbtool.craft": "Craft",
+  "gui.mbtool.craft.descr": "Plan one ME crafting job for every block the Multibuilder is missing for this structure",
+  "gui.mbtool.craft.notice": "Crafted blocks are stored in the ME network. Logging out cancels the job.",
+  "message.mbtool.structure_craft.me_disabled": "Enable ME access on the Multibuilder first",
+  "message.mbtool.structure_craft.terminal_slot": "Structure crafting needs a wireless terminal in your main inventory",
+  "message.mbtool.structure_craft.already_running": "The ME network is already crafting materials for %s",
+  "message.mbtool.structure_craft.nothing_needed": "The Multibuilder already holds every block for %s",
+  "message.mbtool.structure_craft.skipped": "%s block types have no item form and were left out",
+  "message.mbtool.structure_craft.menu_failed": "Could not open the ME crafting screen for %s. Is the terminal powered and in range?",
+  "message.mbtool.structure_craft.pattern_timeout": "The ME network did not pick up the crafting request for %s",
+  "message.mbtool.structure_craft.done": "Materials for %s are ready in ME storage",
+  "message.mbtool.structure_craft.cancelled": "Crafting materials for %s was cancelled"
 }

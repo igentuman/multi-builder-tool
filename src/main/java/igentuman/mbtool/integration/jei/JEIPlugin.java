@@ -1,6 +1,8 @@
 package igentuman.mbtool.integration.jei;
 
+import igentuman.mbtool.Mbtool;
 import igentuman.mbtool.util.MultiblocksProvider;
+import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
 import mezz.jei.api.recipe.IRecipeManager;
@@ -10,6 +12,7 @@ import mezz.jei.api.registration.IRecipeTransferRegistration;
 import mezz.jei.api.runtime.IIngredientManager;
 import mezz.jei.api.runtime.IJeiRuntime;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -44,6 +47,8 @@ public class JEIPlugin implements IModPlugin {
     @Override
     public void onRuntimeAvailable(@NotNull IJeiRuntime runtime) {
         jeiRuntime = runtime;
+        runtime.getIngredientManager().removeIngredientsAtRuntime(VanillaTypes.ITEM_STACK,
+                List.of(new ItemStack(Mbtool.STRUCTURE_REQUEST.get())));
         MultiblocksProvider.setOnStructuresChangedCallback(JEIPlugin::reloadRecipes);
     }
 

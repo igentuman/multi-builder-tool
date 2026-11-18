@@ -9,6 +9,7 @@ import igentuman.mbtool.container.MultibuilderContainer;
 import igentuman.mbtool.container.MultibuilderSelectStructureContainer;
 import igentuman.mbtool.item.MultibuilderItem;
 import igentuman.mbtool.network.NetworkHandler;
+import igentuman.mbtool.network.RequestStructureCraftPacket;
 import igentuman.mbtool.network.SelectStructurePacket;
 import igentuman.mbtool.network.ToggleIgnoreCollisionsPacket;
 import igentuman.mbtool.network.ToggleMeAccessPacket;
@@ -24,8 +25,10 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.MenuAccess;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -66,6 +69,8 @@ public class MultibuilderSelectStructureScreen<T extends AbstractContainerMenu> 
     private int panelHeight;
     private int selectedIndex = -1;
     private List<MultiblockStructure> sourceStructures = List.of();
+    private int mouseX;
+    private int mouseY;
 
     public MultibuilderSelectStructureScreen(T menu, Inventory inventory, Component title) {
         super(__("gui.mbtool.select_structure"));
@@ -166,6 +171,14 @@ public class MultibuilderSelectStructureScreen<T extends AbstractContainerMenu> 
                 }
                 drawFitted(graphics, entry.name(), x + 4, y + h - 24, w - 8, 0xFFFFFF);
                 drawFitted(graphics, entry.folderName(), x + 4, y + h - 12, w - 8, 0xD0D0D0);
+                if (hovered && craftAvailable()) renderCraftButton(graphics, x, y, w);
+            }
+
+            @Override
+            protected boolean clickEntry(int index, int x, int y, int w, int h, double mouseX, double mouseY) {
+                if (!craftAvailable() || !overCraftButton(x, y, w, mouseX, mouseY)) return false;
+                requestCraft(filtered.get(index));
+                return true;
             }
 
             @Override
@@ -240,6 +253,40 @@ public class MultibuilderSelectStructureScreen<T extends AbstractContainerMenu> 
         NetworkHandler.INSTANCE.sendToServer(selection);
         selectedIndex = entry.sourceIndex();
         onClose();
+    }
+
+    private boolean craftAvailable() {
+        return ModUtil.isAe2Loaded() && meEnabled(false);
+    }
+
+    private int craftButtonWidth() {
+        return font.width(__("gui.mbtool.craft")) + 8;
+    }
+
+    private boolean overCraftButton(int x, int y, int w, double mouseX, double mouseY) {
+        int left = x + w - craftButtonWidth() - 5;
+        int top = y + 5;
+        return mouseX >= left && mouseX < left + craftButtonWidth() && mouseY >= top && mouseY < top + 13;
+    }
+
+    private void renderCraftButton(GuiGraphics graphics, int x, int y, int w) {
+        int width = craftButtonWidth();
+        int left = x + w - width - 5;
+        int top = y + 5;
+        boolean hover = overCraftButton(x, y, w, mouseX, mouseY);
+        BrowserScrollPanel.bevel(graphics, left, top, width, 13, hover ? 0xFF5F9EA0 : 0xFF3C6E71, false);
+        graphics.drawCenteredString(font, __("gui.mbtool.craft"), left + width / 2, top + 3, hover ? 0xFFFFA0 : 0xFFFFFF);
+    }
+
+    private void requestCraft(Entry<MultiblockStructure> entry) {
+        if (minecraft == null || !(toolStack().getItem() instanceof MultibuilderItem)) return;
+        List<MultiblockStructure> current = MultiblocksProvider.getStructures();
+        if (entry.sourceIndex() >= current.size() || current.get(entry.sourceIndex()) != entry.value()) {
+            loadStructures();
+            return;
+        }
+        minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+        NetworkHandler.INSTANCE.sendToServer(new RequestStructureCraftPacket(menu.containerId, playerSlot, entry.sourceIndex()));
     }
 
     private void showInventory() {
@@ -336,6 +383,8 @@ public class MultibuilderSelectStructureScreen<T extends AbstractContainerMenu> 
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        this.mouseX = mouseX;
+        this.mouseY = mouseY;
         renderBackground(graphics);
         BrowserScrollPanel.bevel(graphics, panelX, panelY, panelWidth, panelHeight, 0xFFC6C6C6, false);
         drawFitted(graphics, title.getString(), panelX + 7, panelY + 11, panelWidth - (ModUtil.isAe2Loaded() ? 158 : 117), 0x404040, false);
@@ -354,7 +403,12 @@ public class MultibuilderSelectStructureScreen<T extends AbstractContainerMenu> 
 
     private void renderBrowserTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
         int index = grid.hoveredIndex(mouseX, mouseY);
-        if (index >= 0) {
+        if (index >= 0 && craftAvailable()
+                && overCraftButton(grid.entryX(index), grid.entryY(index), grid.getCellWidth(), mouseX, mouseY)) {
+            graphics.renderComponentTooltip(font, List.of(__("gui.mbtool.craft"),
+                    __("gui.mbtool.craft.descr").withStyle(ChatFormatting.GOLD),
+                    __("gui.mbtool.craft.notice").withStyle(ChatFormatting.GRAY)), mouseX, mouseY);
+        } else if (index >= 0) {
             Entry<MultiblockStructure> entry = filtered.get(index);
             MultiblockStructure structure = entry.value();
             List<Component> tooltip = new ArrayList<>();

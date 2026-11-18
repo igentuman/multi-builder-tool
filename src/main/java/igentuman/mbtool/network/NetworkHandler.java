@@ -80,6 +80,12 @@ public class NetworkHandler {
                     .decoder(PacketAE2PatternTransfer::decode)
                     .consumerMainThread(PacketAE2PatternTransfer::handle)
                     .add();
+
+            INSTANCE.messageBuilder(RequestStructureCraftPacket.class, packetId++, NetworkDirection.PLAY_TO_SERVER)
+                    .encoder(RequestStructureCraftPacket::encode)
+                    .decoder(RequestStructureCraftPacket::decode)
+                    .consumerMainThread(RequestStructureCraftPacket::handle)
+                    .add();
         }
         if(ModUtil.isJEILoaded()) {
             INSTANCE.messageBuilder(PacketJeiRecipeTransfer.class, packetId++)
