@@ -1,6 +1,7 @@
 package igentuman.mbtool.mixin;
 
 import igentuman.mbtool.util.ModUtil;
+import net.minecraftforge.fml.loading.LoadingModList;
 import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
@@ -22,6 +23,10 @@ public class MBToolMixinPlugin implements IMixinConfigPlugin {
 
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
+        if (mixinClassName.endsWith(".CraftingCPUClusterMixin")
+                || mixinClassName.endsWith(".CraftingCpuLogicMixin")) {
+            return LoadingModList.get().getModFileById("ae2") != null;
+        }
         // Check if JEMM is loaded before applying MultiblockWidgetMixin
         /*if (mixinClassName.equals("igentuman.mbtool.mixin.MultiblockWidgetMixin")) {
             return ModUtil.isJEMMLoaded();

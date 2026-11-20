@@ -1,7 +1,6 @@
 package igentuman.mbtool.item;
 
 import igentuman.mbtool.Mbtool;
-import igentuman.mbtool.integration.ae2.AE2Helper;
 import igentuman.mbtool.util.MultiblocksProvider;
 import igentuman.mbtool.config.MbtoolConfig;
 import igentuman.mbtool.container.MultibuilderContainer;
@@ -492,9 +491,6 @@ public class MultibuilderItem extends Item {
     public void inventoryTick(ItemStack pStack, Level pLevel, Entity pEntity, int pSlotId, boolean pIsSelected) {
         if(delay > 0) {
             delay--;
-        }
-        if(ModUtil.isAe2Loaded() && pEntity instanceof ServerPlayer player) {
-            AE2Helper.tickJobs(player);
         }
     }
     

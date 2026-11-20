@@ -1,11 +1,18 @@
 package igentuman.mbtool.integration.ae2;
 
+import appeng.api.networking.IGrid;
+import appeng.api.networking.crafting.ICraftingCPU;
+import appeng.api.networking.crafting.ICraftingPlan;
+import appeng.api.networking.crafting.ICraftingSubmitResult;
 import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.GenericStack;
+import appeng.hooks.ticking.TickHandler;
 import igentuman.mbtool.Mbtool;
 import igentuman.mbtool.item.MultibuilderItem;
 import igentuman.mbtool.item.StructureRequestItem;
 import igentuman.mbtool.util.BlockEquivalencyManager;
 import igentuman.mbtool.util.MultiblockStructure;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -19,7 +26,6 @@ import net.minecraftforge.items.IItemHandler;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -29,7 +35,6 @@ import java.util.UUID;
 
 public final class StructureCraftingManager {
     private static final Map<UUID, StructureCraftingSession> SESSIONS = new HashMap<>();
-    private static int nextRequestId;
 
     private StructureCraftingManager() {}
 
@@ -47,16 +52,11 @@ public final class StructureCraftingManager {
             player.sendSystemMessage(Component.translatable("message.mbtool.structure_craft.terminal_slot"));
             return;
         }
-        UUID id = player.getUUID();
-        StructureCraftingSession existing = SESSIONS.get(id);
-        if (existing != null) {
-            if (existing.isCrafting()) {
-                player.sendSystemMessage(Component.translatable("message.mbtool.structure_craft.already_running",
-                        StructureRequestItem.structureName(existing.structureName)));
-                return;
-            }
-            SESSIONS.remove(id);
-            existing.close(player);
+        CraftingJobLedger ledger = CraftingJobLedger.get(player.server);
+        if (ledger.active(player.getUUID(), structure.getName()) != null) {
+            player.sendSystemMessage(Component.translatable("message.mbtool.structure_craft.already_running",
+                    StructureRequestItem.structureName(structure.getName())));
+            return;
         }
 
         Component name = StructureRequestItem.structureName(structure.getName());
@@ -69,12 +69,31 @@ public final class StructureCraftingManager {
             player.sendSystemMessage(Component.translatable("message.mbtool.structure_craft.nothing_needed", name));
             return;
         }
+        CraftingJobLedger.Job job = new CraftingJobLedger.Job();
+        job.owner = player.getUUID();
+        ledger.associate(job, structure.getName(), job.id);
+        job.amount = 1;
+        job.grid = terminal.grid();
+        job.network = CraftingJobTracker.networkLocation(terminal.grid());
+        CompoundTag result = new CompoundTag();
+        result.putString(StructureRequestItem.TAG_STRUCTURE, structure.getName());
+        result.putUUID("owner", player.getUUID());
+        result.putUUID("request", job.id);
+        job.output = AEItemKey.of(Mbtool.STRUCTURE_REQUEST.get(), result);
+        for (StructureCraftingPattern.Input input : inputs) {
+            for (GenericStack key : input.getPossibleInputs()) {
+                job.coverage.add(new GenericStack(key.what(), input.getMultiplier()));
+            }
+        }
+        ledger.add(job);
         try {
-            SESSIONS.put(id, new StructureCraftingSession(player, terminal.grid(), structure.getName(), inputs, nextRequestId++));
+            SESSIONS.put(job.id, new StructureCraftingSession(player, terminal.grid(), structure.getName(), inputs, job));
         } catch (RuntimeException e) {
+            job.finish(CraftingJobLedger.Stage.FAILED);
             Mbtool.logger.error("Failed to start structure crafting request", e);
             player.sendSystemMessage(Component.translatable("message.mbtool.autocrafting_failed"));
         }
+        CraftingJobTracker.sync(player);
     }
 
     private static List<StructureCraftingPattern.Input> collectInputs(IItemHandler inventory, MultiblockStructure structure,
@@ -126,41 +145,88 @@ public final class StructureCraftingManager {
         return needed - used;
     }
 
+    public static boolean canSubmit(MinecraftServer server, ICraftingPlan plan) {
+        if (!(plan.finalOutput().what() instanceof AEItemKey key) || key.getItem() != Mbtool.STRUCTURE_REQUEST.get()) return true;
+        if (key.getTag() == null || !key.getTag().hasUUID("request")) return false;
+        CraftingJobLedger.Job job = CraftingJobLedger.get(server).jobs.get(key.getTag().getUUID("request"));
+        return job != null && job.output.equals(key) && job.active() && !job.cancelRequested
+                && job.stage != CraftingJobLedger.Stage.CRAFTING;
+    }
+
+    public static void recordSubmitted(MinecraftServer server, ICraftingPlan plan,
+                                       ICraftingSubmitResult result,
+                                       ICraftingCPU cpu) {
+        if (!result.successful() || !(plan.finalOutput().what() instanceof AEItemKey key)
+                || key.getItem() != Mbtool.STRUCTURE_REQUEST.get() || key.getTag() == null
+                || !key.getTag().hasUUID("request")) return;
+        CraftingJobLedger ledger = CraftingJobLedger.get(server);
+        CraftingJobLedger.Job job = ledger.jobs.get(key.getTag().getUUID("request"));
+        if (job == null || !job.active() || !job.output.equals(key)) return;
+        job.amount = plan.finalOutput().amount();
+        job.link = result.link();
+        job.craftingId = result.link().getCraftingID();
+        job.stage = CraftingJobLedger.Stage.CRAFTING;
+        job.display = "crafting";
+        CraftingJobTracker.bind(job, cpu);
+        ledger.setDirty();
+    }
+
     public static void tick(MinecraftServer server) {
-        if (SESSIONS.isEmpty()) return;
-        Iterator<Map.Entry<UUID, StructureCraftingSession>> it = SESSIONS.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<UUID, StructureCraftingSession> entry = it.next();
-            ServerPlayer player = server.getPlayerList().getPlayer(entry.getKey());
-            boolean keep;
-            try {
-                keep = player != null && entry.getValue().tick(player);
-            } catch (RuntimeException e) {
-                Mbtool.logger.error("Structure crafting request failed", e);
-                keep = false;
-            }
-            if (!keep) {
-                it.remove();
+        if (server.getTickCount() % 20 == 0) {
+            for (IGrid grid : TickHandler.instance().getGridList()) {
+                if (grid.getPivot() == null || grid.getPivot().getLevel().getServer() != server) continue;
                 try {
-                    entry.getValue().close(player);
-                } catch (RuntimeException e) {
-                    Mbtool.logger.error("Failed to close structure crafting request", e);
+                    StructureCraftingOutput.removeStoredTokens(grid, AEItemKey.of(Mbtool.STRUCTURE_REQUEST.get()));
+                } catch (RuntimeException exception) {
+                    if (server.getTickCount() % 200 == 0) {
+                        Mbtool.logger.warn("Could not remove stored structure crafting tokens", exception);
+                    }
+                }
+            }
+        }
+        CraftingJobLedger ledger = CraftingJobLedger.get(server);
+        for (CraftingJobLedger.Job job : List.copyOf(ledger.jobs.values())) {
+            if (job.session.isEmpty()) continue;
+            StructureCraftingSession session = SESSIONS.get(job.id);
+            ServerPlayer player = server.getPlayerList().getPlayer(job.owner);
+            try {
+                if (session == null) {
+                    if (!job.active() && job.session.getList("returned", net.minecraft.nbt.Tag.TAG_COMPOUND).isEmpty()) {
+                        job.session = new CompoundTag();
+                        ledger.setDirty();
+                        continue;
+                    }
+                    IGrid grid = CraftingJobTracker.resolveGrid(server, job);
+                    boolean recoverToPlayer = !job.active() && player != null;
+                    if (!recoverToPlayer && (grid == null || CraftingJobTracker.loadedLevel(server, job.network) == null)) {
+                        if (job.active()) job.display = job.cancelRequested ? "cancelling" : "disconnected";
+                        if (job.active() && job.stage != CraftingJobLedger.Stage.CRAFTING) {
+                            job.finish(CraftingJobLedger.Stage.CANCELLED);
+                        }
+                        continue;
+                    }
+                    session = StructureCraftingSession.restore(server, job, grid);
+                    SESSIONS.put(job.id, session);
+                }
+                session.closeSubmittedConfirmation(player);
+                if ((!job.active() || !session.tick(server, player)) && session.close(server, player)) {
+                    SESSIONS.remove(job.id);
+                }
+            } catch (RuntimeException exception) {
+                if (job.active()) job.display = "disconnected";
+                if (server.getTickCount() % 200 == 0) {
+                    Mbtool.logger.warn("Could not update structure crafting request {}", job.id, exception);
                 }
             }
         }
     }
 
-    public static void onLogout(ServerPlayer player) {
-        StructureCraftingSession session = SESSIONS.remove(player.getUUID());
-        if (session != null) session.close(player);
-    }
-
     public static void shutdown(MinecraftServer server) {
-        for (Map.Entry<UUID, StructureCraftingSession> entry : SESSIONS.entrySet()) {
+        for (StructureCraftingSession session : SESSIONS.values()) {
             try {
-                entry.getValue().close(server.getPlayerList().getPlayer(entry.getKey()));
+                session.suspend(server); // Save the provider and its inputs; do not cancel AE2 work.
             } catch (RuntimeException e) {
-                Mbtool.logger.error("Failed to close structure crafting request", e);
+                Mbtool.logger.error("Failed to save structure crafting request", e);
             }
         }
         SESSIONS.clear();

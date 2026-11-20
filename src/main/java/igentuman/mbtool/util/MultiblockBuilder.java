@@ -2,8 +2,12 @@ package igentuman.mbtool.util;
 
 import igentuman.mbtool.config.MbtoolConfig;
 import igentuman.mbtool.integration.ae2.AE2Helper;
+import igentuman.mbtool.integration.ae2.CraftingJobTracker;
 import igentuman.mbtool.item.MultibuilderItem;
-import java.util.ArrayList;
+import igentuman.mbtool.item.StructureRequestItem;
+
+import java.util.*;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
@@ -23,11 +27,6 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.phys.AABB;
 import net.minecraftforge.items.IItemHandler;
-
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 
 public class MultiblockBuilder {
     
@@ -219,7 +218,7 @@ public class MultiblockBuilder {
             // If there are missing blocks, attempt autocrafting if enabled
             if (!missingBlocks.isEmpty()) {
                 if (isMeAutocraftingEnabled(multibuilderStack)) {
-                    return attemptAutocrafting((ServerPlayer) player, missingBlocks);
+                    return attemptAutocrafting((ServerPlayer) player, missingBlocks, structure.getName());
                 } else {
                     // Return error for the first missing block
                     Map.Entry<Block, Integer> first = missingBlocks.entrySet().iterator().next();
@@ -335,46 +334,37 @@ public class MultiblockBuilder {
 
     /**
      * Attempts to request autocrafting for all missing blocks via the ME network.
-     * This method is fully non-blocking — it starts async calculations and polls
-     * for results on subsequent build attempts.
+     * Starts asynchronous calculations; the server tracker polls them independently of the tool.
      */
-    private static BuildResult attemptAutocrafting(ServerPlayer player, Map<Block, Integer> missingBlocks) {
+    private static BuildResult attemptAutocrafting(ServerPlayer player, Map<Block, Integer> missingBlocks, String structure) {
         boolean anyCalculating = false;
         boolean anySubmitted = false;
-        boolean anyNewlyStarted = false;
-        java.util.List<Block> unrequestable = new ArrayList<>();
+        List<Block> unrequestable = new ArrayList<>();
 
+        UUID batch = CraftingJobTracker.beginBatch(player, structure);
+        if (batch == null) {
+            return new BuildResult(false, Component.translatable("message.mbtool.structure_craft.already_running",
+                    StructureRequestItem.structureName(structure)));
+        }
         for (Map.Entry<Block, Integer> missing : missingBlocks.entrySet()) {
             Block block = missing.getKey();
             int amount = missing.getValue();
 
-            // First, check if there's already a tracked request for this block
-            if (AutocraftTracker.hasActiveRequest(player.getUUID(), block)) {
-                AutocraftTracker.CraftRequest request = AutocraftTracker.getRequest(player.getUUID(), block);
-                if (request.status == AutocraftTracker.RequestStatus.SUBMITTED) {
-                    anySubmitted = true;
-                } else {
-                    anyCalculating = true;
-                }
-                continue;
-            }
-
-            // No existing request — start a new async calculation
-            AE2Helper.AutocraftResult result = AE2Helper.startCraftingCalculation(player, block, amount);
+            AE2Helper.AutocraftResult result = CraftingJobTracker.request(player, block, amount, structure, batch);
             if (result == AE2Helper.AutocraftResult.CALCULATING) {
-                anyNewlyStarted = true;
+                anyCalculating = true;
             } else if (result == AE2Helper.AutocraftResult.ALREADY_REQUESTING) {
                 anySubmitted = true; // ME network is already crafting this
             } else if (result == AE2Helper.AutocraftResult.NO_PATTERN) {
                 unrequestable.add(block);
             }
-            // NO_GRID, FAILED — silently skip, will be reported below
+            // NO_GRID, FAILED - silently skip, will be reported below
         }
 
         if (!unrequestable.isEmpty()) {
             return new BuildResult(false, Component.translatable("message.mbtool.autocrafting_no_pattern",
                     unrequestable.get(0).getName()));
-        } else if (anyCalculating || anyNewlyStarted) {
+        } else if (anyCalculating) {
             return new BuildResult(false, Component.translatable("message.mbtool.crafting_in_progress"), true);
         } else if (anySubmitted) {
             return new BuildResult(false, Component.translatable("message.mbtool.autocrafting_requested"));

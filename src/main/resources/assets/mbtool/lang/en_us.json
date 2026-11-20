@@ -180,5 +180,20 @@
   "message.mbtool.structure_craft.menu_failed": "Could not open the ME crafting screen for %s. Is the terminal powered and in range?",
   "message.mbtool.structure_craft.pattern_timeout": "The ME network did not pick up the crafting request for %s",
   "message.mbtool.structure_craft.done": "Materials for %s are ready in ME storage",
-  "message.mbtool.structure_craft.cancelled": "Crafting materials for %s was cancelled"
+  "message.mbtool.structure_craft.cancelled": "Crafting materials for %s was cancelled",
+  "gui.mbtool.crafting.crafting": "Crafting: %s%%",
+  "gui.mbtool.crafting.stalled": "No progress: %s%%",
+  "gui.mbtool.crafting.disconnected": "ME unavailable: %s%%",
+  "gui.mbtool.crafting.cancelling": "Cancellation pending: %s%%",
+  "gui.mbtool.crafting.calculating": "Calculating craft…",
+  "gui.mbtool.crafting.waiting_for_cpu": "Waiting for crafting CPU",
+  "gui.mbtool.crafting.connecting": "Connecting to ME…",
+  "gui.mbtool.crafting.confirming": "Confirm craft in AE2",
+  "gui.mbtool.crafting.completed": "Requested crafts complete",
+  "gui.mbtool.crafting.cancelled": "Crafting cancelled",
+  "gui.mbtool.crafting.removed": "Crafting job removed - retry",
+  "gui.mbtool.crafting.failed": "Craft request failed - retry",
+  "gui.mbtool.crafting.timing": "Spent %s · ETA ~%s",
+  "gui.mbtool.crafting.cancel": "Cancel",
+  "gui.mbtool.crafting.cancel.descr": "Cancel tracked jobs for this structure (including shared requests). Offline cancellations wait for the original CPU."
 }

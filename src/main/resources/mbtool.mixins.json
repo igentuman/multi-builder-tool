@@ -5,6 +5,8 @@
   "refmap": "nuclearcraft.refmap.json",
   "plugin": "igentuman.mbtool.mixin.MBToolMixinPlugin",
   "mixins": [
+    "CraftingCPUClusterMixin",
+    "CraftingCpuLogicMixin"
   ],
   "server": [
   ],
