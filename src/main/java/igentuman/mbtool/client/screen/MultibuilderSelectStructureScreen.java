@@ -1,11 +1,14 @@
 package igentuman.mbtool.client.screen;
 
 import igentuman.mbtool.client.gui.BrowserScrollPanel;
+import igentuman.mbtool.client.gui.GuiTheme;
 import igentuman.mbtool.client.gui.StructureBrowserModel;
+import igentuman.mbtool.client.gui.ThemedButton;
 import igentuman.mbtool.client.gui.StructureBrowserModel.Entry;
 import igentuman.mbtool.client.gui.StructureBrowserModel.Folder;
 import igentuman.mbtool.client.render.MultiblockRenderer;
 import igentuman.mbtool.container.MultibuilderContainer;
+import igentuman.mbtool.config.MbtoolClientConfig;
 import igentuman.mbtool.container.MultibuilderSelectStructureContainer;
 import igentuman.mbtool.item.MultibuilderItem;
 import igentuman.mbtool.network.NetworkHandler;
@@ -105,8 +108,8 @@ public class MultibuilderSelectStructureScreen<T extends AbstractContainerMenu> 
         int cardHeight = Math.min(132, Math.max(84, cardWidth));
         MultiblockRenderer.setVisiblePreviewCount(columns * (contentHeight / (cardHeight + 3) + 2));
 
-        addRenderableWidget(Button.builder(__("gui.mbtool.inventory"), button -> showInventory())
-                .bounds(panelX + panelWidth - 82, panelY + 5, 76, 20).build());
+        addRenderableWidget(new ThemedButton(panelX + panelWidth - 82, panelY + 5, 76, 20,
+                __("gui.mbtool.inventory"), button -> showInventory()));
         autocraftButton = null;
         if (ModUtil.isAe2Loaded()) {
             addRenderableWidget(new ToggleButton(panelX + panelWidth - 123, panelY + 6, "gui.mbtool.me_access",
@@ -118,6 +121,9 @@ public class MultibuilderSelectStructureScreen<T extends AbstractContainerMenu> 
         addRenderableWidget(new ToggleButton(panelX + panelWidth - (ModUtil.isAe2Loaded() ? 142 : 104), panelY + 6,
                 "gui.mbtool.ignore_collisions", "minecraft:barrier", this::ignoreCollisions, this::toggleIgnoreCollisions,
                 ChatFormatting.GREEN, false));
+        addRenderableWidget(new ToggleButton(panelX + panelWidth - (ModUtil.isAe2Loaded() ? 161 : 123), panelY + 6,
+                "gui.mbtool.dark_mode", "D", MbtoolClientConfig::isDarkMode,
+                MbtoolClientConfig::toggleDarkMode, ChatFormatting.GREEN, false));
         search = new EditBox(font, panelX + 7, panelY + 28, panelWidth - 14, 16,
                 __("gui.mbtool.search_structures"));
         search.setMaxLength(128);
@@ -138,7 +144,9 @@ public class MultibuilderSelectStructureScreen<T extends AbstractContainerMenu> 
             @Override
             protected void renderEntry(GuiGraphics graphics, int index, int x, int y, int w, int h, boolean hovered) {
                 boolean selected = index == 0 ? folder == null : folders.get(index - 1).id().equals(folder);
-                bevel(graphics, x, y, w, h, selected ? 0xFF8B8B8B : hovered ? 0xFFAAAAAA : 0xFF999999, selected);
+                bevel(graphics, x, y, w, h, GuiTheme.color(
+                        selected ? 0xFF8B8B8B : hovered ? 0xFFAAAAAA : 0xFF999999,
+                        selected ? 0xFF505050 : hovered ? 0xFF606060 : 0xFF3C3C3C), selected);
                 drawFitted(graphics, folderLabel(index).getString(), x + 4, y + (h - font.lineHeight) / 2, w - 8, selected ? 0xFFFFFF : 0xE0E0E0);
             }
 
@@ -161,9 +169,10 @@ public class MultibuilderSelectStructureScreen<T extends AbstractContainerMenu> 
             protected void renderEntry(GuiGraphics graphics, int index, int x, int y, int w, int h, boolean hovered) {
                 Entry<MultiblockStructure> entry = filtered.get(index);
                 boolean selected = entry.sourceIndex() == selectedIndex;
-                bevel(graphics, x, y, w, h, hovered ? 0xFFA0A0A0 : 0xFF8B8B8B, selected);
+                bevel(graphics, x, y, w, h, GuiTheme.color(
+                        hovered ? 0xFFA0A0A0 : 0xFF8B8B8B, hovered ? 0xFF555555 : 0xFF3C3C3C), selected);
                 int previewHeight = h - 29;
-                graphics.fill(x + 3, y + 3, x + w - 3, y + previewHeight, 0xFF686868);
+                graphics.fill(x + 3, y + 3, x + w - 3, y + previewHeight, GuiTheme.color(0xFF686868, 0xFF282828));
                 graphics.enableScissor(x + 3, Math.max(getY(), y + 3), x + w - 3,
                         Math.min(getY() + getHeight(), y + previewHeight));
                 try {
@@ -197,8 +206,8 @@ public class MultibuilderSelectStructureScreen<T extends AbstractContainerMenu> 
                 selectStructure(filtered.get(index));
             }
         });
-        addRenderableWidget(Button.builder(__("gui.done"), button -> onClose())
-                .bounds(panelX + panelWidth - 66, panelY + panelHeight - 23, 60, 20).build());
+        addRenderableWidget(new ThemedButton(panelX + panelWidth - 66, panelY + panelHeight - 23,
+                60, 20, __("gui.done"), button -> onClose()));
         loadStructures();
         folderPanel.setScroll(folderScroll);
         grid.setScroll(gridScroll);
@@ -355,16 +364,18 @@ public class MultibuilderSelectStructureScreen<T extends AbstractContainerMenu> 
         private final ChatFormatting enabledColor;
         private final boolean notice;
         private final ItemStack icon;
+        private final String iconText;
         private Boolean lastEnabled;
 
-        private ToggleButton(int x, int y, String key, String iconId, BooleanSupplier state, Runnable toggle,
+        private ToggleButton(int x, int y, String key, String iconIdOrText, BooleanSupplier state, Runnable toggle,
                              ChatFormatting enabledColor, boolean notice) {
             super(x, y, 18, 18, __(key), button -> toggle.run(), DEFAULT_NARRATION);
             this.key = key;
             this.state = state;
             this.enabledColor = enabledColor;
             this.notice = notice;
-            ResourceLocation id = ResourceLocation.tryParse(iconId);
+            iconText = iconIdOrText.contains(":") ? null : iconIdOrText;
+            ResourceLocation id = iconText == null ? ResourceLocation.tryParse(iconIdOrText) : null;
             var item = id == null ? null : ForgeRegistries.ITEMS.getValue(id);
             icon = item == null ? ItemStack.EMPTY : new ItemStack(item);
         }
@@ -383,8 +394,11 @@ public class MultibuilderSelectStructureScreen<T extends AbstractContainerMenu> 
                 lastEnabled = enabled;
             }
             BrowserScrollPanel.bevel(graphics, getX(), getY(), width, height,
-                    isHoveredOrFocused() ? 0xFFAAAAAA : enabled ? 0xFF8B8B8B : 0xFFC6C6C6, enabled);
+                    GuiTheme.color(isHoveredOrFocused() ? 0xFFAAAAAA : enabled ? 0xFF8B8B8B : 0xFFC6C6C6,
+                            isHoveredOrFocused() ? 0xFF606060 : enabled ? 0xFF505050 : 0xFF3C3C3C), enabled);
             if (!icon.isEmpty()) graphics.renderItem(icon, getX() + 1, getY() + 1);
+            if (iconText != null) graphics.drawCenteredString(font, iconText,
+                    getX() + width / 2, getY() + (height - font.lineHeight) / 2, 0xFFFFFF);
         }
     }
 
@@ -402,8 +416,10 @@ public class MultibuilderSelectStructureScreen<T extends AbstractContainerMenu> 
         this.mouseX = mouseX;
         this.mouseY = mouseY;
         renderBackground(graphics);
-        BrowserScrollPanel.bevel(graphics, panelX, panelY, panelWidth, panelHeight, 0xFFC6C6C6, false);
-        drawFitted(graphics, title.getString(), panelX + 7, panelY + 11, panelWidth - (ModUtil.isAe2Loaded() ? 158 : 117), 0x404040, false);
+        BrowserScrollPanel.bevel(graphics, panelX, panelY, panelWidth, panelHeight,
+                GuiTheme.color(0xFFC6C6C6, 0xFF383838), false);
+        drawFitted(graphics, title.getString(), panelX + 7, panelY + 11,
+                panelWidth - (ModUtil.isAe2Loaded() ? 177 : 136), GuiTheme.labelColor(), false);
         ItemStack stack = toolStack();
         selectedIndex = stack.hasTag() && stack.getTag().contains("recipe") && !stack.getTag().contains("runtimeStructure")
                 ? stack.getTag().getInt("recipe") : -1;
@@ -411,7 +427,7 @@ public class MultibuilderSelectStructureScreen<T extends AbstractContainerMenu> 
         super.render(graphics, mouseX, mouseY, partialTick);
         drawFitted(graphics, __("gui.mbtool.structure_count", filtered.size(),
                 totalStructures).getString(),
-                panelX + 7, panelY + panelHeight - 16, panelWidth - 80, 0x404040, false);
+                panelX + 7, panelY + panelHeight - 16, panelWidth - 80, GuiTheme.labelColor(), false);
         if (filtered.isEmpty()) graphics.drawCenteredString(font, __("gui.mbtool.no_matching_structures"),
                 grid.getX() + grid.getWidth() / 2, grid.getY() + grid.getHeight() / 2, 0xFFFFFF);
         renderBrowserTooltip(graphics, mouseX, mouseY);

@@ -1,6 +1,9 @@
 package igentuman.mbtool.client.screen;
 
 import igentuman.mbtool.client.render.MultiblockRenderer;
+import igentuman.mbtool.client.gui.GuiTheme;
+import igentuman.mbtool.client.gui.ThemedButton;
+import igentuman.mbtool.config.MbtoolClientConfig;
 import igentuman.mbtool.item.MultibuilderItem;
 import igentuman.mbtool.util.ModUtil;
 import igentuman.mbtool.util.MultiblocksProvider;
@@ -79,12 +82,9 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
         int buttonWidth = 57;
         int buttonHeight = 17;
         
-        this.chooseButton = Button.builder(
-                __("gui.mbtool.choose"),
-            this::onChooseButtonClick
-        ).bounds(x, y, buttonWidth, buttonHeight)
-                .tooltip(Tooltip.create(__("gui.mbtool.select_structure")))
-                .build();
+        this.chooseButton = new ThemedButton(x, y, buttonWidth, buttonHeight,
+                __("gui.mbtool.choose"), this::onChooseButtonClick);
+        this.chooseButton.setTooltip(Tooltip.create(__("gui.mbtool.select_structure")));
         
         this.addRenderableWidget(this.chooseButton);
         
@@ -201,7 +201,13 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
     protected void renderBg(GuiGraphics pGuiGraphics, float pPartialTick, int pMouseX, int pMouseY) {
         int x = (this.width - this.imageWidth) / 2;
         int y = (this.height - this.imageHeight) / 2;
-        pGuiGraphics.blit(TEXTURE, x, y, 0, 0, this.imageWidth, this.imageHeight);
+        float tint = MbtoolClientConfig.isDarkMode() ? 0.32F : 1.0F;
+        pGuiGraphics.setColor(tint, tint, tint, 1.0F);
+        try {
+            pGuiGraphics.blit(TEXTURE, x, y, 0, 0, this.imageWidth, this.imageHeight);
+        } finally {
+            pGuiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+        }
         ItemStack multibuilderStack = Minecraft.getInstance().player.getInventory().getItem(menu.getPlayerSlot());
         if(!multibuilderStack.is(MBTOOL.get())) return;
         MultibuilderItem multibuilderItem = (MultibuilderItem) multibuilderStack.getItem();
@@ -222,6 +228,6 @@ public class MultibuilderScreen extends AbstractContainerScreen<MultibuilderCont
     }
     @Override
     protected void renderLabels(@NotNull GuiGraphics graphics, int mouseX, int mouseY) {
-        graphics.drawString(this.font, this.title, this.inventoryLabelX, 3, 4210752, false);
+        graphics.drawString(this.font, this.title, this.inventoryLabelX, 3, GuiTheme.labelColor(), false);
     }
 }

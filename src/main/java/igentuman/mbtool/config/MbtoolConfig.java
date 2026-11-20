@@ -66,6 +66,7 @@ public class MbtoolConfig {
     
     public static void register() {
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, SPEC, "mbtool-common.toml");
+        MbtoolClientConfig.register();
     }
     
     // Convenience methods for getting config values

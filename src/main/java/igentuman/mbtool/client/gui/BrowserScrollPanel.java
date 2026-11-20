@@ -74,7 +74,7 @@ public abstract class BrowserScrollPanel extends AbstractWidget {
 
     @Override
     protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        graphics.fill(getX(), getY(), getX() + width, getY() + height, 0xFF737373);
+        graphics.fill(getX(), getY(), getX() + width, getY() + height, GuiTheme.color(0xFF737373, 0xFF252525));
         graphics.enableScissor(getX(), getY(), getX() + width - SCROLLBAR_WIDTH - 3, getY() + height);
         try {
             int firstRow = (int) scroll / (cellHeight + gap);
@@ -94,17 +94,19 @@ public abstract class BrowserScrollPanel extends AbstractWidget {
             graphics.disableScissor();
         }
         int barX = getX() + width - SCROLLBAR_WIDTH;
-        graphics.fill(barX, getY(), barX + SCROLLBAR_WIDTH, getY() + height, 0xFF373737);
+        graphics.fill(barX, getY(), barX + SCROLLBAR_WIDTH, getY() + height, GuiTheme.color(0xFF373737, 0xFF1C1C1C));
         if (maxScroll() > 0) {
             int y = thumbY();
-            bevel(graphics, barX, y, SCROLLBAR_WIDTH, thumbHeight(), 0xFFC6C6C6, false);
+            bevel(graphics, barX, y, SCROLLBAR_WIDTH, thumbHeight(), GuiTheme.color(0xFFC6C6C6, 0xFF606060), false);
         }
     }
 
     public static void bevel(GuiGraphics graphics, int x, int y, int width, int height, int color, boolean selected) {
         graphics.fill(x, y, x + width, y + height, color);
-        int light = selected ? 0xFF373737 : 0xFFFFFFFF;
-        int dark = selected ? 0xFFFFFFFF : 0xFF373737;
+        int highlight = GuiTheme.color(0xFFFFFFFF, 0xFF808080);
+        int shadow = GuiTheme.color(0xFF373737, 0xFF181818);
+        int light = selected ? shadow : highlight;
+        int dark = selected ? highlight : shadow;
         graphics.fill(x, y, x + width - 1, y + 1, light);
         graphics.fill(x, y, x + 1, y + height - 1, light);
         graphics.fill(x + width - 1, y, x + width, y + height, dark);
