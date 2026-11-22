@@ -41,11 +41,18 @@ public class MultiblockBuilder {
      */
     public static BuildResult buildMultiblock(Level level, Player player, ItemStack multibuilderStack, 
                                             MultiblockStructure structure, BlockPos centerPos, int rotation) {
-        
+        return buildMultiblock(level, player, multibuilderStack, structure, centerPos, rotation, BlockReplacementPreferences.EMPTY);
+    }
+
+    public static BuildResult buildMultiblock(Level level, Player player, ItemStack multibuilderStack,
+                                             MultiblockStructure structure, BlockPos centerPos, int rotation,
+                                             BlockReplacementPreferences preferences) {
         if (level.isClientSide) {
             return new BuildResult(false, Component.literal("Cannot build on client side"));
         }
         
+        var replacementGroups = BlockEquivalencyManager.getGroups();
+        preferences = preferences.validated(replacementGroups);
         boolean isCreative = player.isCreative();
         boolean ignoreCollisions = MultibuilderItem.isIgnoreCollisions(multibuilderStack);
 
@@ -157,10 +164,26 @@ public class MultiblockBuilder {
                 
                 Block requiredBlock = blockState.getBlock();
                 Block chosenBlock = null;
-                
+                Block preferred = preferences.preferred(requiredBlock, replacementGroups);
+                // A preferred ME block must beat even an exact block already in the tool.
+                if (preferred != null) {
+                    for (int i = 0; i < tempSlotCounts.length; i++) {
+                        if (tempSlotBlocks[i] == preferred && tempSlotCounts[i] > 0) {
+                            tempSlotCounts[i]--;
+                            chosenBlock = preferred;
+                            break;
+                        }
+                    }
+                    if (chosenBlock == null && hasME && tempAe2Counts.getOrDefault(preferred, 0) > 0) {
+                        tempAe2Counts.merge(preferred, -1, Integer::sum);
+                        blocksFromAE2ToExtract.merge(preferred, 1, Integer::sum);
+                        chosenBlock = preferred;
+                    }
+                }
+
                 // 1. Try to find the exact block in the multibuilder inventory
                 for (int i = 0; i < tempSlotCounts.length; i++) {
-                    if (tempSlotBlocks[i] == requiredBlock && tempSlotCounts[i] > 0) {
+                    if (chosenBlock == null && tempSlotBlocks[i] == requiredBlock && tempSlotCounts[i] > 0) {
                         tempSlotCounts[i]--;
                         chosenBlock = requiredBlock;
                         break;
@@ -219,7 +242,7 @@ public class MultiblockBuilder {
                 if (isMeAutocraftingEnabled(multibuilderStack)) {
                     // Use the same combined request and AE2 confirmation as the GUI Craft button.
                     // Include stored ME materials so AE2 can reserve them as part of the plan.
-                    StructureCraftingManager.request((ServerPlayer) player, multibuilderStack, structure, requiredBlocks);
+                    StructureCraftingManager.request((ServerPlayer) player, multibuilderStack, structure, requiredBlocks, preferences);
                     return new BuildResult(false, null);
                 } else {
                     // Return error for the first missing block
@@ -274,14 +297,14 @@ public class MultiblockBuilder {
             BlockPos worldPos = centerPos.offset(rotatedRelativePos);
             BlockState rotatedBlockState = rotateBlockState(blockState, rotation);
             
-            // Apply block replacement if needed (skip for creative mode)
+            // Creative placement uses the same preference without requiring materials.
             BlockState finalBlockState = rotatedBlockState;
-            if (!isCreative) {
-                Block replacementBlock = plannedReplacements.get(relativePos);
-                if (replacementBlock != null && replacementBlock != rotatedBlockState.getBlock()) {
-                    // Create a new BlockState with the replacement block but try to preserve properties
-                    finalBlockState = createReplacementBlockState(rotatedBlockState, replacementBlock);
-                }
+            Block replacementBlock = isCreative
+                    ? preferences.preferred(blockState.getBlock(), replacementGroups)
+                    : plannedReplacements.get(relativePos);
+            if (replacementBlock != null && replacementBlock != rotatedBlockState.getBlock()) {
+                // Create a new BlockState with the replacement block but try to preserve properties.
+                finalBlockState = createReplacementBlockState(rotatedBlockState, replacementBlock);
             }
             
             // Place the block using player-respecting method

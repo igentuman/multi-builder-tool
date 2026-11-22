@@ -11,6 +11,7 @@ import igentuman.mbtool.Mbtool;
 import igentuman.mbtool.item.MultibuilderItem;
 import igentuman.mbtool.item.StructureRequestItem;
 import igentuman.mbtool.util.BlockEquivalencyManager;
+import igentuman.mbtool.util.BlockReplacementPreferences;
 import igentuman.mbtool.util.MultiblockStructure;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -27,10 +28,8 @@ import net.minecraftforge.items.IItemHandler;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 public final class StructureCraftingManager {
@@ -39,16 +38,27 @@ public final class StructureCraftingManager {
     private StructureCraftingManager() {}
 
     public static void request(ServerPlayer player, ItemStack tool, MultiblockStructure structure) {
+        request(player, tool, structure, BlockReplacementPreferences.EMPTY);
+    }
+
+    public static void request(ServerPlayer player, ItemStack tool, MultiblockStructure structure,
+                               BlockReplacementPreferences preferences) {
         Map<Block, Integer> requiredBlocks = new LinkedHashMap<>();
         for (BlockState state : structure.getBlocks().values()) {
             if (!state.isAir()) requiredBlocks.merge(state.getBlock(), 1, Integer::sum);
         }
-        request(player, tool, structure, requiredBlocks);
+        request(player, tool, structure, requiredBlocks, preferences);
     }
 
     /** Requests confirmation for the blocks needed by this placement, excluding skipped positions. */
     public static void request(ServerPlayer player, ItemStack tool, MultiblockStructure structure,
                                Map<Block, Integer> requiredBlocks) {
+        request(player, tool, structure, requiredBlocks, BlockReplacementPreferences.EMPTY);
+    }
+
+    public static void request(ServerPlayer player, ItemStack tool, MultiblockStructure structure,
+                               Map<Block, Integer> requiredBlocks, BlockReplacementPreferences preferences) {
+        preferences = preferences.validated(BlockEquivalencyManager.getGroups());
         if (!(tool.getItem() instanceof MultibuilderItem item) || !item.isMeAccessAllowed(tool)) {
             player.sendSystemMessage(Component.translatable("message.mbtool.structure_craft.me_disabled"));
             return;
@@ -71,7 +81,8 @@ public final class StructureCraftingManager {
 
         Component name = StructureRequestItem.structureName(structure.getName());
         int[] skipped = new int[1];
-        List<StructureCraftingPattern.Input> inputs = collectInputs(item.getInventory(tool), requiredBlocks, skipped);
+        List<StructureCraftingPattern.Input> inputs = collectInputs(item.getInventory(tool), requiredBlocks, skipped, preferences,
+                block -> AE2Helper.getAvailableAmount(player, block));
         if (skipped[0] > 0) {
             player.sendSystemMessage(Component.translatable("message.mbtool.structure_craft.skipped", skipped[0]));
         }
@@ -106,8 +117,9 @@ public final class StructureCraftingManager {
         CraftingJobTracker.sync(player);
     }
 
-    private static List<StructureCraftingPattern.Input> collectInputs(IItemHandler inventory, Map<Block, Integer> requiredBlocks,
-                                                                     int[] skipped) {
+    static List<StructureCraftingPattern.Input> collectInputs(IItemHandler inventory, Map<Block, Integer> requiredBlocks,
+                                                              int[] skipped, BlockReplacementPreferences preferences,
+                                                              java.util.function.ToLongFunction<Block> storedAmount) {
         Map<Block, Integer> missing = new LinkedHashMap<>(requiredBlocks);
         Map<Block, Integer> available = new HashMap<>();
         for (int slot = 0; inventory != null && slot < inventory.getSlots(); slot++) {
@@ -115,6 +127,22 @@ public final class StructureCraftingManager {
             Block block = stack.isEmpty() ? Blocks.AIR : Block.byItem(stack.getItem());
             if (block != Blocks.AIR) available.merge(block, stack.getCount(), Integer::sum);
         }
+        Map<Block, Integer> preferredStored = new HashMap<>();
+        Map<Item, Long> reserved = new LinkedHashMap<>();
+        // Reserve preferred ME stock before counting lower-priority tool inventory as coverage.
+        missing.replaceAll((block, count) -> {
+            Block preferred = preferences.preferred(block, BlockEquivalencyManager.getGroups());
+            if (preferred == null) return count;
+            count = take(available, preferred, count);
+            int stored = preferredStored.computeIfAbsent(preferred,
+                    candidate -> (int) Math.min(Integer.MAX_VALUE, Math.max(0, storedAmount.applyAsLong(candidate))));
+            int used = Math.min(count, stored);
+            if (used > 0) {
+                preferredStored.put(preferred, stored - used);
+                reserved.merge(preferred.asItem(), (long) used, Long::sum);
+            }
+            return count - used;
+        });
         missing.replaceAll((block, count) -> take(available, block, count));
         missing.replaceAll((block, count) -> {
             for (Block equivalent : BlockEquivalencyManager.getEquivalentBlocks(block)) {
@@ -124,24 +152,21 @@ public final class StructureCraftingManager {
             return count;
         });
 
-        Map<Item, Long> amounts = new LinkedHashMap<>();
-        Map<Item, Set<Item>> candidates = new HashMap<>();
+        // Candidate order is significant to AE2: preferred, original, remaining equivalents.
+        Map<List<AEItemKey>, Long> amounts = new LinkedHashMap<>();
+        reserved.forEach((item, amount) -> amounts.merge(List.of(AEItemKey.of(item)), amount, Long::sum));
         for (Map.Entry<Block, Integer> entry : missing.entrySet()) {
             if (entry.getValue() <= 0) continue;
-            Item item = entry.getKey().asItem();
-            if (item == Items.AIR) {
+            if (entry.getKey().asItem() == Items.AIR) {
                 skipped[0]++;
                 continue;
             }
-            amounts.merge(item, (long) entry.getValue(), Long::sum);
-            Set<Item> options = candidates.computeIfAbsent(item, first -> new LinkedHashSet<>(List.of(first)));
-            for (Block equivalent : BlockEquivalencyManager.getEquivalentBlocks(entry.getKey())) {
-                if (equivalent.asItem() != Items.AIR) options.add(equivalent.asItem());
-            }
+            List<AEItemKey> options = BlockEquivalencyManager.orderedCandidates(entry.getKey(), preferences).stream()
+                    .map(Block::asItem).filter(item -> item != Items.AIR).distinct().map(AEItemKey::of).toList();
+            amounts.merge(options, (long) entry.getValue(), Long::sum);
         }
         List<StructureCraftingPattern.Input> inputs = new ArrayList<>();
-        amounts.forEach((item, amount) -> inputs.add(new StructureCraftingPattern.Input(
-                candidates.get(item).stream().map(AEItemKey::of).toList(), amount)));
+        amounts.forEach((options, amount) -> inputs.add(new StructureCraftingPattern.Input(options, amount)));
         return inputs;
     }
 

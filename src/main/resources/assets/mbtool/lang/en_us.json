@@ -1,4 +1,18 @@
 {
+  "gui.mbtool.ftbquests.rotation_speed": "Rotation speed (degrees/second)",
+  "gui.mbtool.ftbquests.rotation_speed.tooltip": "18 = one turn every 20 seconds. 0 = stopped. Negative values reverse direction (range: -360 to 360).",
+  "gui.mbtool.ftbquests": "Multiblock preview",
+  "gui.mbtool.ftbquests.structure": "Structure",
+  "gui.mbtool.ftbquests.width": "Width",
+  "gui.mbtool.ftbquests.height": "Height",
+  "gui.mbtool.ftbquests.align": "Alignment",
+  "gui.mbtool.ftbquests.fit": "Fit to quest width",
+  "gui.mbtool.ftbquests.structure.tooltip": "Choose a multiblock structure for the rotating preview.",
+  "gui.mbtool.ftbquests.width.tooltip": "Preview width in GUI pixels (1–1000).",
+  "gui.mbtool.ftbquests.height.tooltip": "Preview height in GUI pixels (1–1000).",
+  "gui.mbtool.ftbquests.fit.tooltip": "Scale the preview to the quest text width, preserving its aspect ratio.",
+  "gui.mbtool.ftbquests.missing": "Structure unavailable: %s",
+  "gui.mbtool.ftbquests.empty": "No matching multiblock structures available",
   "gui.mbtool.multibuilder": "Multibuilder Tool",
   "gui.mbtool.select_structure": "Select Structure",
   "gui.mbtool.choose": "Choose",
@@ -199,5 +213,12 @@
   "gui.mbtool.crafting.failed": "Craft request failed - retry",
   "gui.mbtool.crafting.timing": "Spent %s · ETA ~%s",
   "gui.mbtool.crafting.cancel": "Cancel",
-  "gui.mbtool.crafting.cancel.descr": "Cancel tracked jobs for this structure (including shared requests). Offline cancellations wait for the original CPU."
+  "gui.mbtool.crafting.cancel.descr": "Cancel tracked jobs for this structure (including shared requests). Offline cancellations wait for the original CPU.",
+  "gui.mbtool.block_replacements": "Block replacements",
+  "gui.mbtool.replacements.set": "Set %s: %s",
+  "gui.mbtool.replacements.none": "No preference (original block first)",
+  "gui.mbtool.replacements.preferred": "Preferred: %s",
+  "gui.mbtool.replacements.help": "Click a block to prefer it. Click again to clear. Changes save automatically.",
+  "gui.mbtool.replacements.reset": "Reset choices",
+  "gui.mbtool.replacements.empty": "No replacement sets configured by this server."
 }

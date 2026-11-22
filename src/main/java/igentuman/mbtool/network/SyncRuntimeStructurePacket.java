@@ -1,5 +1,6 @@
 package igentuman.mbtool.network;
 
+import igentuman.mbtool.util.BlockReplacementPreferences;
 import igentuman.mbtool.util.MultiblockStructure;
 import igentuman.mbtool.item.MultibuilderItem;
 import igentuman.mbtool.util.MultiblockBuilder;
@@ -21,24 +22,31 @@ public class SyncRuntimeStructurePacket {
     private final CompoundTag structureNbt;
     private final int rotation;
     private final InteractionHand hand;
+    private final BlockReplacementPreferences preferences;
     
     public SyncRuntimeStructurePacket(CompoundTag structureNbt, int rotation, InteractionHand hand) {
+        this(structureNbt, rotation, hand, BlockReplacementPreferences.EMPTY);
+    }
+
+    public SyncRuntimeStructurePacket(CompoundTag structureNbt, int rotation, InteractionHand hand, BlockReplacementPreferences preferences) {
         this.structureNbt = structureNbt;
         this.rotation = rotation;
         this.hand = hand;
+        this.preferences = preferences;
     }
     
     public static void encode(SyncRuntimeStructurePacket packet, FriendlyByteBuf buffer) {
         buffer.writeNbt(packet.structureNbt);
         buffer.writeInt(packet.rotation);
         buffer.writeEnum(packet.hand);
+        packet.preferences.write(buffer);
     }
     
     public static SyncRuntimeStructurePacket decode(FriendlyByteBuf buffer) {
         CompoundTag structureNbt = buffer.readNbt();
         int rotation = buffer.readInt();
         InteractionHand hand = buffer.readEnum(InteractionHand.class);
-        return new SyncRuntimeStructurePacket(structureNbt, rotation, hand);
+        return new SyncRuntimeStructurePacket(structureNbt, rotation, hand, BlockReplacementPreferences.read(buffer));
     }
     
     public static void handle(SyncRuntimeStructurePacket packet, Supplier<NetworkEvent.Context> contextSupplier) {
@@ -73,7 +81,8 @@ public class SyncRuntimeStructurePacket {
             
             // Attempt to build the multiblock
             MultiblockBuilder.BuildResult result = MultiblockBuilder.buildMultiblock(
-                player.level(), player, itemStack, structure, buildPos, packet.rotation);
+                player.level(), player, itemStack, structure, buildPos, packet.rotation,
+                    packet.preferences);
             
             // Send result message to player
             if(result.getMessage() != null) {

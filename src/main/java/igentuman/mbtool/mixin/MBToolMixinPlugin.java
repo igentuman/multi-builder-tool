@@ -23,6 +23,10 @@ public class MBToolMixinPlugin implements IMixinConfigPlugin {
 
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
+        if (mixinClassName.contains(".ftbquests.")) {
+            return LoadingModList.get().getModFileById("ftbquests") != null
+                    && LoadingModList.get().getModFileById("ftblibrary") != null;
+        }
         if (mixinClassName.endsWith(".CraftingCPUClusterMixin")
                 || mixinClassName.endsWith(".CraftingCpuLogicMixin")) {
             return LoadingModList.get().getModFileById("ae2") != null;

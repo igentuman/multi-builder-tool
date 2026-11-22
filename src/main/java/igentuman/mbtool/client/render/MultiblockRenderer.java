@@ -154,7 +154,7 @@ public class MultiblockRenderer {
     }
 
     /** Temporary geometry, used only while rendering a new snapshot. */
-    private static StructureMesh bakeMesh(MultiblockStructure structure) {
+    static StructureMesh bakeMesh(MultiblockStructure structure) {
         // Build a fake level from the structure's absolute positions so tesselateBlock can resolve
         // neighbours for CTM and internal face culling.
         FakeStructureLevel level = new FakeStructureLevel();
@@ -181,6 +181,7 @@ public class MultiblockRenderer {
             return;
         }
         IMAGE_CACHE.clear();
+        RotatingMultiblockRenderer.invalidateCache();
         STRUCTURE_KEYS.clear();
         structure = null;
     }

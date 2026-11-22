@@ -17,12 +17,14 @@ public class BlockEquivalencyManager {
     private static final Logger LOGGER = LogManager.getLogger();
     private static Map<Block, Set<Block>> equivalencyMap = new HashMap<>();
     private static boolean initialized = false;
+    private static List<BlockReplacementPreferences.Group> groups = List.of();
     
     /**
      * Initialize the equivalency map from config
      */
     public static void initialize() {
         equivalencyMap.clear();
+        List<BlockReplacementPreferences.Group> loadedGroups = new ArrayList<>();
         
         List<? extends String> equivalencySets = MbtoolConfig.getBlockEquivalencySets();
         
@@ -32,7 +34,7 @@ public class BlockEquivalencyManager {
             }
             
             String[] blockIds = setString.split(",");
-            Set<Block> blockSet = new HashSet<>();
+            Set<Block> blockSet = new LinkedHashSet<>();
             
             // Parse all blocks in this equivalency set
             for (String blockId : blockIds) {
@@ -46,7 +48,7 @@ public class BlockEquivalencyManager {
                         }
                         Block block = ForgeRegistries.BLOCKS.getValue(resourceLocation);
                         if (block != null && block != net.minecraft.world.level.block.Blocks.AIR) {
-                            blockSet.add(block);
+                            if (blockSet.size() < BlockReplacementPreferences.MAX_MEMBERS) blockSet.add(block);
                         }
                     } catch (Exception e) {
                         // Invalid block ID, skip it
@@ -56,15 +58,18 @@ public class BlockEquivalencyManager {
             }
             
             // Add bidirectional mappings for all blocks in this set
-            if (blockSet.size() > 1) {
+            if (blockSet.size() > 1 && loadedGroups.size() < BlockReplacementPreferences.MAX_SETS) {
+                var group = BlockReplacementPreferences.Group.of(blockSet);
+                if (loadedGroups.stream().noneMatch(existing -> existing.id().equals(group.id()))) loadedGroups.add(group);
                 for (Block block : blockSet) {
-                    equivalencyMap.computeIfAbsent(block, k -> new HashSet<>()).addAll(blockSet);
+                    equivalencyMap.computeIfAbsent(block, k -> new LinkedHashSet<>()).addAll(blockSet);
                     // Remove self-reference
                     equivalencyMap.get(block).remove(block);
                 }
             }
         }
         
+        groups = List.copyOf(loadedGroups);
         initialized = true;
         LOGGER.info("Loaded {} block equivalency sets with {} total block mappings", 
                    equivalencySets.size(), equivalencyMap.size());
@@ -78,7 +83,7 @@ public class BlockEquivalencyManager {
             initialize();
         }
         
-        Set<Block> equivalents = new HashSet<>();
+        Set<Block> equivalents = new LinkedHashSet<>();
         equivalents.add(block); // Always include the original block
         
         Set<Block> configuredEquivalents = equivalencyMap.get(block);
@@ -89,6 +94,20 @@ public class BlockEquivalencyManager {
         return equivalents;
     }
     
+    public static List<BlockReplacementPreferences.Group> getGroups() {
+        if (!initialized) initialize();
+        return groups;
+    }
+
+    /** Preferred first, original second, then the server-configured alternatives. */
+    public static List<Block> orderedCandidates(Block original, BlockReplacementPreferences preferences) {
+        LinkedHashSet<Block> candidates = new LinkedHashSet<>();
+        Block preferred = preferences.preferred(original, getGroups());
+        if (preferred != null) candidates.add(preferred);
+        candidates.addAll(getEquivalentBlocks(original));
+        return List.copyOf(candidates);
+    }
+
     /**
      * Check if two blocks are equivalent
      */

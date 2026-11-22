@@ -25,6 +25,12 @@ final class StructureThumbnail implements AutoCloseable {
     private final RenderTarget target;
 
     record Size(int width, int height) {
+        static Size forGui(int width, int height, Matrix4f transform, double guiScale) {
+            int displayWidth = Math.max(1, (int) Math.ceil(width * Math.hypot(transform.m00(), transform.m01())));
+            int displayHeight = Math.max(1, (int) Math.ceil(height * Math.hypot(transform.m10(), transform.m11())));
+            return forGui(displayWidth, displayHeight, guiScale);
+        }
+
         static Size forGui(int width, int height, double guiScale) {
             double scale = Math.min(guiScale, (double) MAX_SIDE / Math.max(width, height));
             return new Size(Math.max(1, (int) Math.ceil(width * scale)),
@@ -64,7 +70,25 @@ final class StructureThumbnail implements AutoCloseable {
         return (long) target.width * target.height * 8;
     }
 
+    void redraw(Consumer<RenderTarget> draw) {
+        SavedState state = new SavedState();
+        try {
+            RenderSystem.disableScissor();
+            RenderSystem.depthMask(true);
+            RenderSystem.colorMask(true, true, true, true);
+            target.clear(Minecraft.ON_OSX);
+            target.bindWrite(true);
+            draw.accept(target);
+        } finally {
+            state.restore();
+        }
+    }
+
     void draw(PoseStack pose, int x, int y, int width, int height) {
+        draw(pose, x, y, width, height, 0xFFFFFFFF);
+    }
+
+    void draw(PoseStack pose, int x, int y, int width, int height, int tint) {
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
         RenderSystem.setShaderTexture(0, target.getColorTextureId());
         RenderSystem.enableBlend();
@@ -74,7 +98,10 @@ final class StructureThumbnail implements AutoCloseable {
         RenderSystem.depthMask(false);
         float[] color = RenderSystem.getShaderColor();
         float r = color[0], g = color[1], b = color[2], a = color[3];
-        RenderSystem.setShaderColor(1, 1, 1, 1);
+        float alpha = ((tint >>> 24) & 255) / 255F;
+        // RGB is premultiplied in the offscreen target, so opacity must also scale its color.
+        RenderSystem.setShaderColor(((tint >>> 16) & 255) / 255F * alpha,
+                ((tint >>> 8) & 255) / 255F * alpha, (tint & 255) / 255F * alpha, alpha);
         try {
             Matrix4f matrix = pose.last().pose();
             BufferBuilder buffer = Tesselator.getInstance().getBuilder();

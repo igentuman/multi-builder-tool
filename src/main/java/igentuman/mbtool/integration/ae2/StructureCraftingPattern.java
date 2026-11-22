@@ -44,7 +44,7 @@ final class StructureCraftingPattern implements IPatternDetails {
         return definition.hashCode();
     }
 
-    /** One block type. The first candidate is the exact block; the rest are configured equivalents. */
+    /** One block type. Candidates are ordered by client preference, then the original block and configured equivalents. */
     static final class Input implements IInput {
         private final GenericStack[] candidates;
         private final long amount;

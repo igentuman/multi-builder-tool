@@ -1,6 +1,7 @@
 package igentuman.mbtool.item;
 
 import igentuman.mbtool.Mbtool;
+import igentuman.mbtool.client.BlockReplacementState;
 import igentuman.mbtool.util.MultiblocksProvider;
 import igentuman.mbtool.config.MbtoolConfig;
 import igentuman.mbtool.container.MultibuilderContainer;
@@ -92,7 +93,8 @@ public class MultibuilderItem extends Item {
                     // Send runtimeStructure to server to build (with air blocks filtered out)
                     CompoundTag filteredNbt = MultiblockStructure.filterAirBlocks(runtimeStructure.getStructureNbt());
                     NetworkHandler.INSTANCE.sendToServer(
-                            new SyncRuntimeStructurePacket(filteredNbt, rotation, hand));
+                            new SyncRuntimeStructurePacket(filteredNbt, rotation, hand,
+                                    BlockReplacementState.snapshot()));
                     if(itemStack.getOrCreateTag().getInt("recipe") > 0) {
                         setRuntimeStructure(itemStack, null);
                     }
@@ -111,7 +113,8 @@ public class MultibuilderItem extends Item {
                         // Send packet to server with current parameters
                         setRuntimeStructure(itemStack, null);
                         NetworkHandler.INSTANCE.sendToServer(
-                            new SyncMultibuilderParamsPacket(recipeIndex, rotation, hand));
+                            new SyncMultibuilderParamsPacket(recipeIndex, rotation, hand,
+                                    BlockReplacementState.snapshot()));
                         return InteractionResultHolder.success(itemStack);
                     } else {
                         player.sendSystemMessage(Component.translatable("message.mbtool.invalid_recipe"));

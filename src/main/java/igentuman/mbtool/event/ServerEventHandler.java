@@ -3,6 +3,7 @@ package igentuman.mbtool.event;
 import igentuman.mbtool.integration.ae2.StructureCraftingManager;
 import igentuman.mbtool.integration.ae2.CraftingJobTracker;
 import igentuman.mbtool.network.NetworkHandler;
+import igentuman.mbtool.network.SyncBlockEquivalencyPacket;
 import igentuman.mbtool.network.SyncSingleStructurePacket;
 import igentuman.mbtool.util.ModUtil;
 import igentuman.mbtool.util.MultiblockStructure;
@@ -25,6 +26,8 @@ public class ServerEventHandler {
     @SubscribeEvent
     public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer serverPlayer) {
+            NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> serverPlayer),
+                    SyncBlockEquivalencyPacket.snapshot());
             if (ModUtil.isAe2Loaded()) CraftingJobTracker.sync(serverPlayer);
 
             // Send server structures to the joining client one by one

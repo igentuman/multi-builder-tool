@@ -79,10 +79,19 @@ public class Mbtool
 
     @SubscribeEvent
     public static void onModConfigEvent(final ModConfigEvent event) {
-        if (event.getConfig().getType() == ModConfig.Type.COMMON) {
+        if (event.getConfig().getSpec() == MbtoolConfig.SPEC) {
             CommonConfig.setLoaded();
-            // Reinitialize block equivalency manager when config changes
-            BlockEquivalencyManager.reinitialize();
+            var server = net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer();
+            if (server == null) {
+                BlockEquivalencyManager.reinitialize();
+            } else {
+                // Config watchers run off-thread; update policy and clients together on the server.
+                server.execute(() -> {
+                    BlockEquivalencyManager.reinitialize();
+                    NetworkHandler.INSTANCE.send(net.minecraftforge.network.PacketDistributor.ALL.noArg(),
+                            igentuman.mbtool.network.SyncBlockEquivalencyPacket.snapshot());
+                });
+            }
         }
     }
 

@@ -6,12 +6,17 @@
   "plugin": "igentuman.mbtool.mixin.MBToolMixinPlugin",
   "mixins": [
     "CraftingCPUClusterMixin",
-    "CraftingCpuLogicMixin"
+    "CraftingCpuLogicMixin",
+    "ftbquests.PreviewIconMixin"
   ],
-  "server": [
-  ],
+  "server": [],
   "client": [
-    "MultiblockWidgetMixin"
+    "MultiblockWidgetMixin",
+    "ftbquests.DescriptionEditorMixin",
+    "ftbquests.QuestPreviewMixin",
+    "ftbquests.ChapterPreviewMenuMixin",
+    "ftbquests.ChapterPreviewConfigMixin",
+    "ftbquests.QuestScreenAccessor"
   ],
   "minVersion": "0.8"
 }

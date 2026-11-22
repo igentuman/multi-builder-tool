@@ -1,5 +1,6 @@
 package igentuman.mbtool.client.screen;
 
+import igentuman.mbtool.client.BlockReplacementState;
 import igentuman.mbtool.client.gui.BrowserScrollPanel;
 import igentuman.mbtool.client.gui.GuiTheme;
 import igentuman.mbtool.client.gui.StructureBrowserModel;
@@ -206,6 +207,9 @@ public class MultibuilderSelectStructureScreen<T extends AbstractContainerMenu> 
                 selectStructure(filtered.get(index));
             }
         });
+        addRenderableWidget(new ThemedButton(panelX + panelWidth - 202, panelY + panelHeight - 23,
+                132, 20, __("gui.mbtool.block_replacements"),
+                button -> minecraft.setScreen(new BlockReplacementsScreen<>(this))));
         addRenderableWidget(new ThemedButton(panelX + panelWidth - 66, panelY + panelHeight - 23,
                 60, 20, __("gui.done"), button -> onClose()));
         loadStructures();
@@ -311,7 +315,8 @@ public class MultibuilderSelectStructureScreen<T extends AbstractContainerMenu> 
             return;
         }
         minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
-        NetworkHandler.INSTANCE.sendToServer(new RequestStructureCraftPacket(menu.containerId, playerSlot, entry.sourceIndex()));
+        NetworkHandler.INSTANCE.sendToServer(new RequestStructureCraftPacket(menu.containerId, playerSlot, entry.sourceIndex(),
+                BlockReplacementState.snapshot()));
     }
 
     private void showInventory() {
@@ -427,7 +432,7 @@ public class MultibuilderSelectStructureScreen<T extends AbstractContainerMenu> 
         super.render(graphics, mouseX, mouseY, partialTick);
         drawFitted(graphics, __("gui.mbtool.structure_count", filtered.size(),
                 totalStructures).getString(),
-                panelX + 7, panelY + panelHeight - 16, panelWidth - 80, GuiTheme.labelColor(), false);
+                panelX + 7, panelY + panelHeight - 16, panelWidth - 214, GuiTheme.labelColor(), false);
         if (filtered.isEmpty()) graphics.drawCenteredString(font, __("gui.mbtool.no_matching_structures"),
                 grid.getX() + grid.getWidth() / 2, grid.getY() + grid.getHeight() / 2, 0xFFFFFF);
         renderBrowserTooltip(graphics, mouseX, mouseY);

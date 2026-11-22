@@ -1,5 +1,6 @@
 package igentuman.mbtool.network;
 
+import igentuman.mbtool.util.BlockReplacementPreferences;
 import igentuman.mbtool.util.MultiblocksProvider;
 import igentuman.mbtool.util.MultiblockStructure;
 import igentuman.mbtool.item.MultibuilderItem;
@@ -21,24 +22,31 @@ public class SyncMultibuilderParamsPacket {
     private final int recipeIndex;
     private final int rotation;
     private final InteractionHand hand;
+    private final BlockReplacementPreferences preferences;
     
     public SyncMultibuilderParamsPacket(int recipeIndex, int rotation, InteractionHand hand) {
+        this(recipeIndex, rotation, hand, BlockReplacementPreferences.EMPTY);
+    }
+
+    public SyncMultibuilderParamsPacket(int recipeIndex, int rotation, InteractionHand hand, BlockReplacementPreferences preferences) {
         this.recipeIndex = recipeIndex;
         this.rotation = rotation;
         this.hand = hand;
+        this.preferences = preferences;
     }
     
     public static void encode(SyncMultibuilderParamsPacket packet, FriendlyByteBuf buffer) {
         buffer.writeInt(packet.recipeIndex);
         buffer.writeInt(packet.rotation);
         buffer.writeEnum(packet.hand);
+        packet.preferences.write(buffer);
     }
     
     public static SyncMultibuilderParamsPacket decode(FriendlyByteBuf buffer) {
         int recipeIndex = buffer.readInt();
         int rotation = buffer.readInt();
         InteractionHand hand = buffer.readEnum(InteractionHand.class);
-        return new SyncMultibuilderParamsPacket(recipeIndex, rotation, hand);
+        return new SyncMultibuilderParamsPacket(recipeIndex, rotation, hand, BlockReplacementPreferences.read(buffer));
     }
     
     public static void handle(SyncMultibuilderParamsPacket packet, Supplier<NetworkEvent.Context> contextSupplier) {
@@ -83,7 +91,8 @@ public class SyncMultibuilderParamsPacket {
             
             // Attempt to build the multiblock
             MultiblockBuilder.BuildResult result = MultiblockBuilder.buildMultiblock(
-                player.level(), player, itemStack, structure, buildPos, packet.rotation);
+                player.level(), player, itemStack, structure, buildPos, packet.rotation,
+                    packet.preferences);
 
             // Crafting requests handle their own errors and open the AE2 confirmation menu.
             if (result.getMessage() == null) return;
