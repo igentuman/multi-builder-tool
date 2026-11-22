@@ -146,6 +146,7 @@ dependencies {
     implementation fg.deobf("curse.maven:curios-309927:6418456"){
         transitive = false
     }
+    runtimeOnly fg.deobf("curse.maven:spark-361579:4738952")
     implementation fg.deobf("curse.maven:extreme-reactors-250277:6772552")
     implementation fg.deobf("curse.maven:zerocore-247921:5850671")
     compileOnly fg.deobf("curse.maven:ldlib-626676:6849454")

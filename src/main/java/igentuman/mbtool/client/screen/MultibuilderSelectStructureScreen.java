@@ -134,8 +134,8 @@ public class MultibuilderSelectStructureScreen<T extends AbstractContainerMenu> 
             applyFilter();
         });
         addRenderableWidget(search);
-        folderPanel = addRenderableWidget(new BrowserScrollPanel(panelX + 6, contentY, sidebarWidth,
-                contentHeight, 1, 16, 1, __("gui.mbtool.folders")) {
+        folderPanel = addRenderableWidget(new BrowserScrollPanel(panelX + 6, contentY, sidebarWidth + 12,
+                contentHeight, 1, 14, 1, __("gui.mbtool.folders")) {
             @Override
             protected Component entryNarration(int index) {
                 return folderLabel(index);
@@ -144,10 +144,10 @@ public class MultibuilderSelectStructureScreen<T extends AbstractContainerMenu> 
             @Override
             protected void renderEntry(GuiGraphics graphics, int index, int x, int y, int w, int h, boolean hovered) {
                 boolean selected = index == 0 ? folder == null : folders.get(index - 1).id().equals(folder);
-                bevel(graphics, x, y, w, h, GuiTheme.color(
+                bevel(graphics, x, y, w + 18, h, GuiTheme.color(
                         selected ? 0xFF8B8B8B : hovered ? 0xFFAAAAAA : 0xFF999999,
                         selected ? 0xFF505050 : hovered ? 0xFF606060 : 0xFF3C3C3C), selected);
-                drawFitted(graphics, folderLabel(index).getString(), x + 4, y + (h - font.lineHeight) / 2, w - 8, selected ? 0xFFFFFF : 0xE0E0E0);
+                drawFitted(graphics, folderLabel(index).getString(), x + 4, y + (h - font.lineHeight) / 2+1, w - 6, selected ? 0xFFFFFF : 0xE0E0E0);
             }
 
             @Override

@@ -2,9 +2,8 @@ package igentuman.mbtool.util;
 
 import igentuman.mbtool.config.MbtoolConfig;
 import igentuman.mbtool.integration.ae2.AE2Helper;
-import igentuman.mbtool.integration.ae2.CraftingJobTracker;
+import igentuman.mbtool.integration.ae2.StructureCraftingManager;
 import igentuman.mbtool.item.MultibuilderItem;
-import igentuman.mbtool.item.StructureRequestItem;
 
 import java.util.*;
 
@@ -218,7 +217,10 @@ public class MultiblockBuilder {
             // If there are missing blocks, attempt autocrafting if enabled
             if (!missingBlocks.isEmpty()) {
                 if (isMeAutocraftingEnabled(multibuilderStack)) {
-                    return attemptAutocrafting((ServerPlayer) player, missingBlocks, structure.getName());
+                    // Use the same combined request and AE2 confirmation as the GUI Craft button.
+                    // Include stored ME materials so AE2 can reserve them as part of the plan.
+                    StructureCraftingManager.request((ServerPlayer) player, multibuilderStack, structure, requiredBlocks);
+                    return new BuildResult(false, null);
                 } else {
                     // Return error for the first missing block
                     Map.Entry<Block, Integer> first = missingBlocks.entrySet().iterator().next();
@@ -330,47 +332,6 @@ public class MultiblockBuilder {
     private static boolean isMeAutocraftingEnabled(ItemStack multibuilderStack) {
         if (!ModUtil.isAe2Loaded()) return false;
         return MultibuilderItem.isMeAutocraftingEnabled(multibuilderStack);
-    }
-
-    /**
-     * Attempts to request autocrafting for all missing blocks via the ME network.
-     * Starts asynchronous calculations; the server tracker polls them independently of the tool.
-     */
-    private static BuildResult attemptAutocrafting(ServerPlayer player, Map<Block, Integer> missingBlocks, String structure) {
-        boolean anyCalculating = false;
-        boolean anySubmitted = false;
-        List<Block> unrequestable = new ArrayList<>();
-
-        UUID batch = CraftingJobTracker.beginBatch(player, structure);
-        if (batch == null) {
-            return new BuildResult(false, Component.translatable("message.mbtool.structure_craft.already_running",
-                    StructureRequestItem.structureName(structure)));
-        }
-        for (Map.Entry<Block, Integer> missing : missingBlocks.entrySet()) {
-            Block block = missing.getKey();
-            int amount = missing.getValue();
-
-            AE2Helper.AutocraftResult result = CraftingJobTracker.request(player, block, amount, structure, batch);
-            if (result == AE2Helper.AutocraftResult.CALCULATING) {
-                anyCalculating = true;
-            } else if (result == AE2Helper.AutocraftResult.ALREADY_REQUESTING) {
-                anySubmitted = true; // ME network is already crafting this
-            } else if (result == AE2Helper.AutocraftResult.NO_PATTERN) {
-                unrequestable.add(block);
-            }
-            // NO_GRID, FAILED - silently skip, will be reported below
-        }
-
-        if (!unrequestable.isEmpty()) {
-            return new BuildResult(false, Component.translatable("message.mbtool.autocrafting_no_pattern",
-                    unrequestable.get(0).getName()));
-        } else if (anyCalculating) {
-            return new BuildResult(false, Component.translatable("message.mbtool.crafting_in_progress"), true);
-        } else if (anySubmitted) {
-            return new BuildResult(false, Component.translatable("message.mbtool.autocrafting_requested"));
-        }
-
-        return new BuildResult(false, Component.translatable("message.mbtool.autocrafting_failed"));
     }
 
     private static boolean isAllowedMEAccess(ItemStack multibuilderStack) {

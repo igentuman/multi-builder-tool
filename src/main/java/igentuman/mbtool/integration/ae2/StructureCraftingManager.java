@@ -39,6 +39,16 @@ public final class StructureCraftingManager {
     private StructureCraftingManager() {}
 
     public static void request(ServerPlayer player, ItemStack tool, MultiblockStructure structure) {
+        Map<Block, Integer> requiredBlocks = new LinkedHashMap<>();
+        for (BlockState state : structure.getBlocks().values()) {
+            if (!state.isAir()) requiredBlocks.merge(state.getBlock(), 1, Integer::sum);
+        }
+        request(player, tool, structure, requiredBlocks);
+    }
+
+    /** Requests confirmation for the blocks needed by this placement, excluding skipped positions. */
+    public static void request(ServerPlayer player, ItemStack tool, MultiblockStructure structure,
+                               Map<Block, Integer> requiredBlocks) {
         if (!(tool.getItem() instanceof MultibuilderItem item) || !item.isMeAccessAllowed(tool)) {
             player.sendSystemMessage(Component.translatable("message.mbtool.structure_craft.me_disabled"));
             return;
@@ -61,7 +71,7 @@ public final class StructureCraftingManager {
 
         Component name = StructureRequestItem.structureName(structure.getName());
         int[] skipped = new int[1];
-        List<StructureCraftingPattern.Input> inputs = collectInputs(item.getInventory(tool), structure, skipped);
+        List<StructureCraftingPattern.Input> inputs = collectInputs(item.getInventory(tool), requiredBlocks, skipped);
         if (skipped[0] > 0) {
             player.sendSystemMessage(Component.translatable("message.mbtool.structure_craft.skipped", skipped[0]));
         }
@@ -96,12 +106,9 @@ public final class StructureCraftingManager {
         CraftingJobTracker.sync(player);
     }
 
-    private static List<StructureCraftingPattern.Input> collectInputs(IItemHandler inventory, MultiblockStructure structure,
+    private static List<StructureCraftingPattern.Input> collectInputs(IItemHandler inventory, Map<Block, Integer> requiredBlocks,
                                                                      int[] skipped) {
-        Map<Block, Integer> missing = new LinkedHashMap<>();
-        for (BlockState state : structure.getBlocks().values()) {
-            if (!state.isAir()) missing.merge(state.getBlock(), 1, Integer::sum);
-        }
+        Map<Block, Integer> missing = new LinkedHashMap<>(requiredBlocks);
         Map<Block, Integer> available = new HashMap<>();
         for (int slot = 0; inventory != null && slot < inventory.getSlots(); slot++) {
             ItemStack stack = inventory.getStackInSlot(slot);

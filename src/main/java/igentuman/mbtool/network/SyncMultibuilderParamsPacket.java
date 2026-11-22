@@ -84,6 +84,9 @@ public class SyncMultibuilderParamsPacket {
             // Attempt to build the multiblock
             MultiblockBuilder.BuildResult result = MultiblockBuilder.buildMultiblock(
                 player.level(), player, itemStack, structure, buildPos, packet.rotation);
+
+            // Crafting requests handle their own errors and open the AE2 confirmation menu.
+            if (result.getMessage() == null) return;
             
             // Send result message to player
             if (result.isShowAsTitle()) {

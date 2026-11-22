@@ -162,7 +162,7 @@
   "gui.mbtool.me_autocraft.notice": "Experimental. Post bugs in case of issues",
   "gui.mbtool.inventory": "Inventory",
   "gui.mbtool.dark_mode": "Dark mode",
-  "gui.mbtool.dark_mode.descr": "Use dark gray backgrounds for all Multibuilder tools. Saved on this client.",
+  "gui.mbtool.dark_mode.descr": "Use dark gray backgrounds",
   "gui.mbtool.dark_mode.enabled": "Enabled",
   "gui.mbtool.dark_mode.disabled": "Disabled",
   "gui.mbtool.search_structures": "Search structures...",
