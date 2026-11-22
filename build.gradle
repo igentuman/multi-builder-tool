@@ -170,6 +170,8 @@ dependencies {
     compileOnly fg.deobf("mezz.jei:jei-${mc_version}-common-api:${jei_version}")
     compileOnly fg.deobf("mezz.jei:jei-${mc_version}-forge-api:${jei_version}")
     implementation fg.deobf("mezz.jei:jei-${mc_version}-forge:${jei_version}")
+    // JEI 15.75 requires the standalone MezzConfig mod at runtime.
+    runtimeOnly fg.deobf("net.mezzdev.config:mezz_config-${mc_version}-forge:${mezz_config_version}")
 
     runtimeOnly fg.deobf("curse.maven:fps-monitor-548447:4578682")
 
