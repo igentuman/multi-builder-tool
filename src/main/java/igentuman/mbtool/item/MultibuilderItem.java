@@ -1,6 +1,5 @@
 package igentuman.mbtool.item;
 
-import igentuman.mbtool.integration.ae2.AE2Helper;
 import igentuman.mbtool.util.MultiblocksProvider;
 import igentuman.mbtool.config.MbtoolConfig;
 import igentuman.mbtool.container.MultibuilderContainer;
@@ -92,7 +91,8 @@ public class MultibuilderItem extends Item {
                     // Send runtimeStructure to server to build (with air blocks filtered out)
                     CompoundTag filteredNbt = MultiblockStructure.filterAirBlocks(runtimeStructure.getStructureNbt());
                     ClientPacketDistributor.sendToServer(
-                            new SyncRuntimeStructurePacket(filteredNbt, rotation, hand));
+                            new SyncRuntimeStructurePacket(filteredNbt, rotation, hand,
+                                    igentuman.mbtool.client.BlockReplacementState.snapshot()));
                     if(itemStack.getOrDefault(MbtoolDataComponents.STRUCTURE_RECIPE.get(), -1) >= 0) {
                         setRuntimeStructure(itemStack, null);
                     }
@@ -111,7 +111,8 @@ public class MultibuilderItem extends Item {
                         // Send packet to server with current parameters
                         setRuntimeStructure(itemStack, null);
                         ClientPacketDistributor.sendToServer(
-                            new SyncMultibuilderParamsPacket(recipeIndex, rotation, hand));
+                            new SyncMultibuilderParamsPacket(recipeIndex, rotation, hand,
+                                    igentuman.mbtool.client.BlockReplacementState.snapshot()));
                         return InteractionResult.SUCCESS;
                     } else {
                         player.sendSystemMessage(Component.translatable("message.mbtool.invalid_recipe"));
@@ -160,7 +161,22 @@ public class MultibuilderItem extends Item {
     }
     
     public IItemHandler getInventory(ItemStack stack) {
-        return getInventory(stack, null);
+        return getInventory(stack, resolveRegistryAccess());
+    }
+
+    private static HolderLookup.Provider resolveRegistryAccess() {
+        if (net.neoforged.fml.loading.FMLEnvironment.getDist().isClient()) {
+            net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+            if (mc.level != null) {
+                return mc.level.registryAccess();
+            }
+        } else {
+            net.minecraft.server.MinecraftServer server = net.neoforged.neoforge.server.ServerLifecycleHooks.getCurrentServer();
+            if (server != null) {
+                return server.registryAccess();
+            }
+        }
+        return null;
     }
 
     public IItemHandler getInventory(ItemStack stack, HolderLookup.Provider provider) {
@@ -453,11 +469,6 @@ public class MultibuilderItem extends Item {
         }
     }
 
-    public void inventoryTick(ItemStack pStack, Level pLevel, Entity pEntity, int pSlotId, boolean pIsSelected) {
-        if(ModUtil.isAe2Loaded() && pEntity instanceof ServerPlayer player) {
-            AE2Helper.tickJobs(player);
-        }
-    }
     
     /**
      * Get the runtime structure from the ItemStack's NBT
@@ -511,5 +522,14 @@ public class MultibuilderItem extends Item {
 
     public static void setMeAutocraftingEnabled(ItemStack stack, boolean enabled) {
         stack.set(MbtoolDataComponents.ME_AUTOCRAFTING.get(), enabled);
+    }
+
+    public static boolean isIgnoreCollisions(ItemStack stack) {
+        return stack.getOrDefault(MbtoolDataComponents.IGNORE_COLLISIONS.get(), false);
+    }
+
+    public static void setIgnoreCollisions(ItemStack stack, boolean enabled) {
+        if (enabled) stack.set(MbtoolDataComponents.IGNORE_COLLISIONS.get(), true);
+        else stack.remove(MbtoolDataComponents.IGNORE_COLLISIONS.get());
     }
 }

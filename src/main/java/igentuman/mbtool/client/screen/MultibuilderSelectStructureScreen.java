@@ -1,355 +1,575 @@
 package igentuman.mbtool.client.screen;
 
-import igentuman.mbtool.client.gui.MultiblockButton;
-import igentuman.mbtool.item.MultibuilderItem;
-import igentuman.mbtool.util.MultiblocksProvider;
+import igentuman.mbtool.client.BlockReplacementState;
+import igentuman.mbtool.client.CraftingProgress;
+import igentuman.mbtool.client.gui.BrowserScrollPanel;
+import igentuman.mbtool.client.gui.GuiTheme;
+import igentuman.mbtool.client.gui.StructureBrowserModel;
+import igentuman.mbtool.client.gui.StructureBrowserModel.Entry;
+import igentuman.mbtool.client.gui.StructureBrowserModel.Folder;
+import igentuman.mbtool.client.gui.ThemedButton;
+import igentuman.mbtool.client.render.MultiblockRenderer;
+import igentuman.mbtool.config.MbtoolClientConfig;
+import igentuman.mbtool.config.MbtoolConfig;
+import igentuman.mbtool.container.MultibuilderContainer;
 import igentuman.mbtool.container.MultibuilderSelectStructureContainer;
-import igentuman.mbtool.util.MultiblockStructure;
+import igentuman.mbtool.item.MultibuilderItem;
+import igentuman.mbtool.network.CancelCraftingJobsPacket;
+import igentuman.mbtool.network.RequestStructureCraftPacket;
+import igentuman.mbtool.network.SelectStructurePacket;
+import igentuman.mbtool.network.ToggleIgnoreCollisionsPacket;
+import igentuman.mbtool.network.ToggleMeAccessPacket;
+import igentuman.mbtool.network.ToggleMeAutocraftPacket;
 import igentuman.mbtool.registration.MbtoolDataComponents;
+import igentuman.mbtool.util.ModUtil;
+import igentuman.mbtool.util.MultiblockStructure;
+import igentuman.mbtool.util.MultiblocksProvider;
+import igentuman.mbtool.util.TextUtils;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.gui.screens.inventory.MenuAccess;
 import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;
-import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
-import org.jetbrains.annotations.NotNull;
+import net.neoforged.neoforge.client.network.ClientPacketDistributor;
+import net.neoforged.neoforge.items.IItemHandler;
 
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.function.BooleanSupplier;
 
-import static igentuman.mbtool.Mbtool.rl;
-import static igentuman.mbtool.Mbtool.MBTOOL;
+import static igentuman.mbtool.util.TextUtils.__;
 
-public class MultibuilderSelectStructureScreen extends AbstractContainerScreen<MultibuilderSelectStructureContainer> {
-    private static final Identifier TEXTURE = rl("textures/gui/container/mbtool.png");
-    private final Screen previousScreen;
-    private int currentPage = 0;
-    private int pages = 1;
 
-    private Button prevButton;
-    private Button nextButton;
-    private EditBox searchField;
+@SuppressWarnings("removal")
+public class MultibuilderSelectStructureScreen<T extends AbstractContainerMenu> extends Screen implements MenuAccess<T> {
+    private final T menu;
+    private final Inventory playerInventory;
+    private final int playerSlot;
+    private StructureBrowserModel<MultiblockStructure> model;
+    private final Map<MultiblockStructure, List<ItemStack>> requiredItems = new IdentityHashMap<>();
+    private List<Entry<MultiblockStructure>> filtered = List.of();
+    private List<Folder> folders = List.of();
+    private String query = "";
+    private String folder;
+    private int allMatches;
+    private int totalStructures;
+    private int sourceRevision = -1;
+    private EditBox search;
+    private ToggleButton autocraftButton;
+    private BrowserScrollPanel folderPanel;
+    private BrowserScrollPanel grid;
+    private MultibuilderScreen inventoryScreen;
+    private int panelX;
+    private int panelY;
+    private int panelWidth;
+    private int panelHeight;
+    private int selectedIndex = -1;
+    private int mouseX;
+    private int mouseY;
 
-    private static final int GRID_COLUMNS = 3;
-    private static final int GRID_ROWS = 2;
-    private static final int BUTTON_SIZE = 64;
-    private static final int BUTTON_SPACING = 2;
-    private static final int STRUCTURES_PER_PAGE = GRID_COLUMNS * GRID_ROWS;
-
-    private List<MultiblockStructure> allStructures = new ArrayList<>();
-    private List<MultiblockStructure> filteredStructures = new ArrayList<>();
-    private List<MultiblockButton> multiblockButtons = new ArrayList<>();
-    private String currentFilter = "";
-
-    public MultibuilderSelectStructureScreen(MultibuilderSelectStructureContainer pMenu, Inventory pPlayerInventory, Component pTitle) {
-        this(pMenu, pPlayerInventory, pTitle, null);
+    public MultibuilderSelectStructureScreen(T menu, Inventory inventory, Component title) {
+        super(__("gui.mbtool.select_structure"));
+        this.menu = menu;
+        this.playerInventory = inventory;
+        this.playerSlot = menu instanceof MultibuilderContainer container ? container.getPlayerSlot()
+                : menu instanceof MultibuilderSelectStructureContainer container ? container.getPlayerSlot() : -1;
     }
 
-    public MultibuilderSelectStructureScreen(MultibuilderSelectStructureContainer pMenu, Inventory pPlayerInventory, Component pTitle, Screen previousScreen) {
-        super(pMenu, pPlayerInventory, pTitle,
-            Math.max(226, GRID_COLUMNS * BUTTON_SIZE + (GRID_COLUMNS - 1) * BUTTON_SPACING + 10),
-            Math.max(186, GRID_ROWS * BUTTON_SIZE + (GRID_ROWS - 1) * BUTTON_SPACING + 20));
-        this.previousScreen = previousScreen;
-        loadStructures();
+    @Override
+    public T getMenu() {
+        return menu;
+    }
+
+    private static boolean ae2Available() {
+        return ModUtil.isAe2Loaded() && MbtoolConfig.isAe2IntegrationEnabled();
     }
 
     @Override
     protected void init() {
-        super.init();
+        double folderScroll = folderPanel == null ? 0 : folderPanel.getScroll();
+        double gridScroll = grid == null ? 0 : grid.getScroll();
+        boolean ae2 = ae2Available();
+        panelX = 8;
+        panelY = 8;
+        panelWidth = width - 16;
+        panelHeight = height - 16;
+        int sidebarWidth = Math.min(160, Math.max(80, panelWidth / 5));
+        int contentY = panelY + 48;
+        int contentHeight = Math.max(24, panelHeight - 74);
+        int gridX = panelX + sidebarWidth + 22;
+        int gridWidth = panelWidth - sidebarWidth - 28;
+        int columns = Math.max(1, (gridWidth - 6) / 100);
+        int cardWidth = (gridWidth - 10 - (columns - 1) * 3) / columns;
+        int cardHeight = Math.min(132, Math.max(84, cardWidth));
 
-        int screenX = (this.width - this.imageWidth) / 2;
-        int screenY = (this.height - this.imageHeight) / 2;
+        // Header: title left; dark mode, ignore collisions, ME controls, Inventory right.
+        int right = panelX + panelWidth - 6;
+        if (menu instanceof MultibuilderContainer) {
+            addRenderableWidget(new ThemedButton(right - 76, panelY + 5, 76, 20,
+                    __("gui.mbtool.inventory"), button -> showInventory()));
+            right -= 80;
+        }
+        autocraftButton = null;
+        if (ae2) {
+            autocraftButton = addRenderableWidget(new ToggleButton(right - 18, panelY + 6, "gui.mbtool.me_autocraft",
+                    "minecraft:crafting_table", () -> meEnabled(true), () -> toggleMe(true), ChatFormatting.AQUA, true));
+            autocraftButton.visible = meEnabled(false);
+            right -= 19;
+            addRenderableWidget(new ToggleButton(right - 18, panelY + 6, "gui.mbtool.me_access",
+                    "ae2:wireless_terminal", () -> meEnabled(false), () -> toggleMe(false), ChatFormatting.GREEN, false));
+            right -= 19;
+        }
+        addRenderableWidget(new ToggleButton(right - 18, panelY + 6,
+                "gui.mbtool.ignore_collisions", "minecraft:barrier", this::ignoreCollisions, this::toggleIgnoreCollisions,
+                ChatFormatting.GREEN, false));
+        right -= 19;
+        addRenderableWidget(new ToggleButton(right - 18, panelY + 6,
+                "gui.mbtool.dark_mode", "D", MbtoolClientConfig::isDarkMode,
+                MbtoolClientConfig::toggleDarkMode, ChatFormatting.GREEN, false));
 
-        multiblockButtons.clear();
+        search = new EditBox(font, panelX + 7, panelY + 28, panelWidth - 14, 16, __("gui.mbtool.search_structures"));
+        search.setMaxLength(128);
+        search.setHint(__("gui.mbtool.search_structures"));
+        search.setValue(query);
+        search.setResponder(value -> {
+            query = value;
+            applyFilter();
+        });
+        addRenderableWidget(search);
 
-        int searchFieldWidth = Math.min(200, this.imageWidth - 80);
-        int searchFieldX = screenX + (this.imageWidth - searchFieldWidth) / 2;
-        int searchFieldY = screenY + this.imageHeight - 28;
-
-        this.searchField = new EditBox(this.font, searchFieldX, searchFieldY, searchFieldWidth, 16, Component.literal("Search structures..."));
-        this.searchField.setHint(Component.literal("Search structures..."));
-        this.searchField.setResponder(this::onSearchChanged);
-        this.searchField.setFocused(true);
-        this.addRenderableWidget(this.searchField);
-
-        int gridWidth = GRID_COLUMNS * BUTTON_SIZE + (GRID_COLUMNS - 1) * BUTTON_SPACING;
-        int gridStartX = screenX + (this.imageWidth - gridWidth) / 2;
-        int gridStartY = screenY + 20;
-
-        for (int row = 0; row < GRID_ROWS; row++) {
-            for (int col = 0; col < GRID_COLUMNS; col++) {
-                int buttonX = gridStartX + col * (BUTTON_SIZE + BUTTON_SPACING);
-                int buttonY = gridStartY + row * (BUTTON_SIZE + BUTTON_SPACING);
-
-                MultiblockButton button = MultiblockButton.builder()
-                        .bounds(buttonX, buttonY, BUTTON_SIZE, BUTTON_SIZE)
-                        .structure(null)
-                        .container(getMenu())
-                        .onPress(this::onMultiblockButtonPressed)
-                        .build();
-
-                multiblockButtons.add(button);
-                this.addRenderableWidget(button);
+        folderPanel = addRenderableWidget(new BrowserScrollPanel(panelX + 6, contentY, sidebarWidth + 12,
+                contentHeight, 1, 14, 1, __("gui.mbtool.folders")) {
+            @Override
+            protected Component entryNarration(int index) {
+                return folderLabel(index);
             }
+
+            @Override
+            protected void renderEntry(GuiGraphicsExtractor graphics, int index, int x, int y, int w, int h, boolean hovered) {
+                boolean selected = index == 0 ? folder == null : folders.get(index - 1).id().equals(folder);
+                bevel(graphics, x, y, w, h, GuiTheme.color(
+                        selected ? 0xFF8B8B8B : hovered ? 0xFFAAAAAA : 0xFF999999,
+                        selected ? 0xFF505050 : hovered ? 0xFF606060 : 0xFF3C3C3C), selected);
+                drawFitted(graphics, folderLabel(index).getString(), x + 4, y + (h - font.lineHeight) / 2 + 1, w - 6,
+                        selected ? 0xFFFFFFFF : 0xFFE0E0E0);
+            }
+
+            @Override
+            protected void activateEntry(int index) {
+                folder = index == 0 ? null : folders.get(index - 1).id();
+                double scroll = getScroll();
+                applyFilter();
+                setScroll(scroll);
+            }
+        });
+
+        grid = addRenderableWidget(new BrowserScrollPanel(gridX, contentY, gridWidth, contentHeight,
+                columns, cardHeight, 3, __("gui.mbtool.select_structure")) {
+            @Override
+            protected Component entryNarration(int index) {
+                return Component.literal(filtered.get(index).name());
+            }
+
+            @Override
+            protected void renderEntry(GuiGraphicsExtractor graphics, int index, int x, int y, int w, int h, boolean hovered) {
+                Entry<MultiblockStructure> entry = filtered.get(index);
+                boolean selected = entry.sourceIndex() == selectedIndex;
+                bevel(graphics, x, y, w, h, GuiTheme.color(
+                        hovered ? 0xFFA0A0A0 : 0xFF8B8B8B, hovered ? 0xFF555555 : 0xFF3C3C3C), selected);
+                int previewHeight = h - 29;
+                graphics.fill(x + 3, y + 3, x + w - 3, y + previewHeight, GuiTheme.color(0xFF686868, 0xFF282828));
+                graphics.enableScissor(x + 3, Math.max(getY(), y + 3), x + w - 3,
+                        Math.min(getY() + getHeight(), y + previewHeight));
+                try {
+                    MultiblockRenderer.render(entry.value(), graphics, x + 4, y + 4, w - 8, previewHeight - 6);
+                } finally {
+                    graphics.disableScissor();
+                }
+                drawFitted(graphics, entry.name(), x + 4, y + h - 24, w - 8, 0xFFFFFFFF);
+                drawFitted(graphics, entry.folderName(), x + 4, y + h - 12, w - 8, 0xFFD0D0D0);
+                CraftingProgress.Summary progress = CraftingProgress.forStructure(entry.value().getName());
+                if (progress != null) {
+                    int top = y + previewHeight - 25;
+                    graphics.fill(x + 3, top - 2, x + w - 3, y + previewHeight, 0xC0000000);
+                    drawFitted(graphics, progress.status().getString(), x + 5, top, w - 10, 0xFFB5FFFF);
+                    drawFitted(graphics, progress.timing().getString(), x + 5, top + 11, w - 10, 0xFFFFFFFF);
+                }
+                if (hovered && craftActionVisible(progress)) renderCraftButton(graphics, x, y, w, progress);
+            }
+
+            @Override
+            protected boolean clickEntry(int index, int x, int y, int w, int h, double mouseX, double mouseY) {
+                CraftingProgress.Summary progress = CraftingProgress.forStructure(filtered.get(index).value().getName());
+                if (!craftActionVisible(progress) || !overCraftButton(x, y, w, mouseX, mouseY)) return false;
+                requestCraft(filtered.get(index));
+                return true;
+            }
+
+            @Override
+            protected void activateEntry(int index) {
+                selectStructure(filtered.get(index));
+            }
+        });
+        MultiblockRenderer.setVisiblePreviewCount(grid.visibleCapacity());
+
+        addRenderableWidget(new ThemedButton(panelX + panelWidth - 202, panelY + panelHeight - 23,
+                132, 20, __("gui.mbtool.block_replacements"),
+                button -> minecraft.setScreen(new BlockReplacementsScreen<>(this))));
+        addRenderableWidget(new ThemedButton(panelX + panelWidth - 66, panelY + panelHeight - 23,
+                60, 20, __("gui.done"), button -> onClose()));
+
+        loadStructures();
+        folderPanel.setScroll(folderScroll);
+        grid.setScroll(gridScroll);
+        setInitialFocus(search);
+    }
+
+    private Component folderLabel(int index) {
+        if (index == 0) return __("gui.mbtool.all_structures", allMatches);
+        Folder value = folders.get(index - 1);
+        return Component.literal(value.name() + " (" + value.count() + ")");
+    }
+
+    /** Prefer translations; turn untranslated identifiers into readable names. */
+    private static String displayName(String key) {
+        if (key == null || key.isBlank()) return "";
+        String translated = __(key).getString();
+        return translated.equals(key) ? TextUtils.convertToName(key.replace("mbtool.structure.", "")) : translated;
+    }
+
+    private static String folderDisplayName(String group) {
+        String key = "gui.mbtool.folder." + group;
+        String translated = __(key).getString();
+        return translated.equals(key) ? displayName(group) : translated;
+    }
+
+    private void loadStructures() {
+        List<MultiblockStructure> sourceStructures = List.copyOf(MultiblocksProvider.getStructures());
+        requiredItems.clear();
+        List<Entry<MultiblockStructure>> entries = new ArrayList<>();
+        for (int i = 0; i < sourceStructures.size(); i++) {
+            MultiblockStructure structure = sourceStructures.get(i);
+            String group = structure.getGroup();
+            if (group == null || group.isBlank()) group = MultiblockStructure.DEFAULT_GROUP;
+            String groupName = MultiblockStructure.DEFAULT_GROUP.equals(group)
+                    ? __("gui.mbtool.ungrouped").getString() : folderDisplayName(group);
+            entries.add(new Entry<>(structure, i, displayName(structure.getName()), group, groupName));
+        }
+        totalStructures = entries.size();
+        model = new StructureBrowserModel<>(entries);
+        sourceRevision = MultiblocksProvider.getRevision();
+        if (folder != null && model.folders("").stream().noneMatch(value -> value.id().equals(folder))) folder = null;
+        applyFilter();
+    }
+
+    private void applyFilter() {
+        if (model == null) return;
+        filtered = model.filter(query, folder);
+        folders = model.folders(query);
+        allMatches = model.filter(query, null).size();
+        if (grid != null) grid.setItemCount(filtered.size());
+        if (folderPanel != null) {
+            double scroll = folderPanel.getScroll();
+            folderPanel.setItemCount(folders.size() + 1);
+            folderPanel.setScroll(scroll);
+        }
+    }
+
+    private ItemStack toolStack() {
+        return playerSlot >= 0 && playerSlot < playerInventory.getContainerSize()
+                ? playerInventory.getItem(playerSlot) : ItemStack.EMPTY;
+    }
+
+    private InteractionHand toolHand() {
+        return playerSlot == 40 ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
+    }
+
+    /** Identity check against the live provider list; a stale result list is reloaded instead. */
+    private boolean isCurrent(Entry<MultiblockStructure> entry) {
+        List<MultiblockStructure> current = MultiblocksProvider.getStructures();
+        return entry.sourceIndex() < current.size() && current.get(entry.sourceIndex()) == entry.value();
+    }
+
+    private void selectStructure(Entry<MultiblockStructure> entry) {
+        ItemStack stack = toolStack();
+        if (!(stack.getItem() instanceof MultibuilderItem)) return;
+        if (!isCurrent(entry)) {
+            loadStructures();
+            return;
+        }
+        SelectStructurePacket selection = new SelectStructurePacket(menu.containerId, playerSlot, entry.sourceIndex());
+        selection.applyTo(stack);
+        ClientPacketDistributor.sendToServer(selection);
+        selectedIndex = entry.sourceIndex();
+        onClose();
+    }
+
+    private boolean craftAvailable() {
+        return ae2Available() && meEnabled(false);
+    }
+
+    /** Craft while ME access is on; Cancel stays available for an active job even if ME access was disabled. */
+    private boolean craftActionVisible(CraftingProgress.Summary progress) {
+        return ModUtil.isAe2Loaded() && (craftAvailable() || progress != null && progress.active());
+    }
+
+    private int craftButtonWidth() {
+        return Math.max(font.width(__("gui.mbtool.craft")), font.width(__("gui.mbtool.crafting.cancel"))) + 8;
+    }
+
+    private boolean overCraftButton(int x, int y, int w, double mouseX, double mouseY) {
+        int left = x + w - craftButtonWidth() - 5;
+        int top = y + 5;
+        return mouseX >= left && mouseX < left + craftButtonWidth() && mouseY >= top && mouseY < top + 13;
+    }
+
+    private void renderCraftButton(GuiGraphicsExtractor graphics, int x, int y, int w, CraftingProgress.Summary progress) {
+        int width = craftButtonWidth();
+        int left = x + w - width - 5;
+        int top = y + 5;
+        boolean hover = overCraftButton(x, y, w, mouseX, mouseY);
+        BrowserScrollPanel.bevel(graphics, left, top, width, 13, hover ? 0xFF5F9EA0 : 0xFF3C6E71, false);
+        graphics.centeredText(font, __(progress != null && progress.active() ? "gui.mbtool.crafting.cancel" : "gui.mbtool.craft"),
+                left + width / 2, top + 3, hover ? 0xFFFFFFA0 : 0xFFFFFFFF);
+    }
+
+    private void requestCraft(Entry<MultiblockStructure> entry) {
+        CraftingProgress.Summary progress = CraftingProgress.forStructure(entry.value().getName());
+        if (progress != null && progress.active()) {
+            ClientPacketDistributor.sendToServer(new CancelCraftingJobsPacket(entry.value().getName()));
+            return;
+        }
+        if (minecraft == null || !(toolStack().getItem() instanceof MultibuilderItem)) return;
+        if (!isCurrent(entry)) {
+            loadStructures();
+            return;
+        }
+        minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+        ClientPacketDistributor.sendToServer(new RequestStructureCraftPacket(menu.containerId, playerSlot,
+                entry.sourceIndex(), BlockReplacementState.snapshot()));
+    }
+
+    private void showInventory() {
+        if (minecraft == null) return;
+        if (menu instanceof MultibuilderContainer container) {
+            if (inventoryScreen == null) {
+                inventoryScreen = new MultibuilderScreen(container, playerInventory, __("gui.mbtool.multibuilder"), this);
+            }
+            minecraft.setScreen(inventoryScreen);
+        }
+    }
+
+    private boolean meEnabled(boolean autocraft) {
+        ItemStack stack = toolStack();
+        if (!(stack.getItem() instanceof MultibuilderItem)) return false;
+        return autocraft ? MultibuilderItem.isMeAutocraftingEnabled(stack)
+                : stack.getOrDefault(MbtoolDataComponents.ME_ACCESS.get(), false);
+    }
+
+    private void toggleMe(boolean autocraft) {
+        ItemStack stack = toolStack();
+        if (!(stack.getItem() instanceof MultibuilderItem) || (autocraft && !meEnabled(false))) return;
+        boolean enabled = !meEnabled(autocraft);
+        if (autocraft) {
+            MultibuilderItem.setMeAutocraftingEnabled(stack, enabled);
+            ClientPacketDistributor.sendToServer(new ToggleMeAutocraftPacket(enabled, toolHand()));
+        } else {
+            stack.set(MbtoolDataComponents.ME_ACCESS.get(), enabled);
+            ClientPacketDistributor.sendToServer(new ToggleMeAccessPacket(enabled, toolHand()));
+            if (autocraftButton != null) autocraftButton.visible = enabled;
+        }
+    }
+
+    private boolean ignoreCollisions() {
+        ItemStack stack = toolStack();
+        return stack.getItem() instanceof MultibuilderItem && MultibuilderItem.isIgnoreCollisions(stack);
+    }
+
+    private void toggleIgnoreCollisions() {
+        ItemStack stack = toolStack();
+        if (!(stack.getItem() instanceof MultibuilderItem)) return;
+        boolean enabled = !MultibuilderItem.isIgnoreCollisions(stack);
+        MultibuilderItem.setIgnoreCollisions(stack, enabled);
+        ClientPacketDistributor.sendToServer(new ToggleIgnoreCollisionsPacket(enabled, toolHand()));
+    }
+
+    /** Small header toggle: item icon or letter, bevel showing state, tooltip with description and state. */
+    private final class ToggleButton extends Button {
+        private final String key;
+        private final BooleanSupplier state;
+        private final ChatFormatting enabledColor;
+        private final boolean notice;
+        private final ItemStack icon;
+        private final String iconText;
+        private Boolean lastEnabled;
+
+        private ToggleButton(int x, int y, String key, String iconIdOrText, BooleanSupplier state, Runnable toggle,
+                             ChatFormatting enabledColor, boolean notice) {
+            super(x, y, 18, 18, __(key), button -> toggle.run(), DEFAULT_NARRATION);
+            this.key = key;
+            this.state = state;
+            this.enabledColor = enabledColor;
+            this.notice = notice;
+            iconText = iconIdOrText.contains(":") ? null : iconIdOrText;
+            Identifier id = iconText == null ? Identifier.tryParse(iconIdOrText) : null;
+            icon = id == null ? ItemStack.EMPTY
+                    : BuiltInRegistries.ITEM.getOptional(id).map(ItemStack::new).orElse(ItemStack.EMPTY);
         }
 
-        this.prevButton = Button.builder(Component.literal("<"), button -> previousPage())
-                .bounds(screenX + 10, screenY + this.imageHeight - 30, 20, 20)
-                .build();
+        @Override
+        protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+            boolean enabled = state.getAsBoolean();
+            if (lastEnabled == null || lastEnabled != enabled) {
+                MutableComponent tooltip = Component.empty().append(getMessage()).append("\n")
+                        .append(__(key + ".descr").withStyle(ChatFormatting.GOLD));
+                if (notice) tooltip.append("\n").append(__(key + ".notice").withStyle(ChatFormatting.RED));
+                tooltip.append("\n").append(__(key + (enabled ? ".enabled" : ".disabled"))
+                        .withStyle(enabled ? enabledColor : ChatFormatting.RED));
+                setTooltip(Tooltip.create(tooltip));
+                lastEnabled = enabled;
+            }
+            BrowserScrollPanel.bevel(graphics, getX(), getY(), width, height,
+                    GuiTheme.color(isHoveredOrFocused() ? 0xFFAAAAAA : enabled ? 0xFF8B8B8B : 0xFFC6C6C6,
+                            isHoveredOrFocused() ? 0xFF606060 : enabled ? 0xFF505050 : 0xFF3C3C3C), enabled);
+            if (!icon.isEmpty()) graphics.item(icon, getX() + 1, getY() + 1);
+            if (iconText != null) graphics.centeredText(font, iconText,
+                    getX() + width / 2, getY() + (height - font.lineHeight) / 2 + 1, 0xFFFFFFFF);
+        }
+    }
 
-        this.nextButton = Button.builder(Component.literal(">"), button -> nextPage())
-                .bounds(screenX + this.imageWidth - 30, screenY + this.imageHeight - 30, 20, 20)
-                .build();
+    private void drawFitted(GuiGraphicsExtractor graphics, String text, int x, int y, int maxWidth, int color) {
+        drawFitted(graphics, text, x, y, maxWidth, color, true);
+    }
 
-        this.addRenderableWidget(this.prevButton);
-        this.addRenderableWidget(this.nextButton);
-
-        updateButtonStates();
-        updateMultiblockButtons();
+    private void drawFitted(GuiGraphicsExtractor graphics, String text, int x, int y, int maxWidth, int color, boolean shadow) {
+        if (maxWidth <= 0) return;
+        if (font.width(text) > maxWidth) text = font.plainSubstrByWidth(text, Math.max(0, maxWidth - font.width("..."))) + "...";
+        graphics.text(font, text, x, y, color, shadow);
     }
 
     @Override
-    public void extractContents(GuiGraphicsExtractor pGuiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
-        int x = (this.width - this.imageWidth) / 2;
-        int y = (this.height - this.imageHeight) / 2;
-        pGuiGraphics.blit(RenderPipelines.GUI_TEXTURED, TEXTURE, x, y, 0f, 0f, this.imageWidth, this.imageHeight, 256, 256);
-        // Renders widgets (buttons), labels, slots
-        super.extractContents(pGuiGraphics, pMouseX, pMouseY, pPartialTick);
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        this.mouseX = mouseX;
+        this.mouseY = mouseY;
+        BrowserScrollPanel.bevel(graphics, panelX, panelY, panelWidth, panelHeight,
+                GuiTheme.color(0xFFC6C6C6, 0xFF383838), false);
+        int headerControls = (menu instanceof MultibuilderContainer ? 80 : 0) + (ae2Available() ? 38 : 0) + 38 + 14;
+        drawFitted(graphics, title.getString(), panelX + 7, panelY + 11, panelWidth - headerControls,
+                GuiTheme.labelColor(), false);
+        ItemStack stack = toolStack();
+        selectedIndex = stack.getItem() instanceof MultibuilderItem && !stack.has(MbtoolDataComponents.RUNTIME_STRUCTURE.get())
+                ? stack.getOrDefault(MbtoolDataComponents.STRUCTURE_RECIPE.get(), -1) : -1;
+        if (autocraftButton != null) autocraftButton.visible = meEnabled(false);
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+        drawFitted(graphics, __("gui.mbtool.structure_count", filtered.size(), totalStructures).getString(),
+                panelX + 7, panelY + panelHeight - 16, panelWidth - 214, GuiTheme.labelColor(), false);
+        if (filtered.isEmpty()) graphics.centeredText(font, __("gui.mbtool.no_matching_structures"),
+                grid.getX() + grid.getWidth() / 2, grid.getY() + grid.getHeight() / 2, 0xFFFFFFFF);
+        renderBrowserTooltip(graphics, mouseX, mouseY);
+    }
+
+    private void renderBrowserTooltip(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+        int index = grid.hoveredIndex(mouseX, mouseY);
+        if (index >= 0) {
+            Entry<MultiblockStructure> entry = filtered.get(index);
+            CraftingProgress.Summary progress = CraftingProgress.forStructure(entry.value().getName());
+            if (craftActionVisible(progress)
+                    && overCraftButton(grid.entryX(index), grid.entryY(index), grid.getCellWidth(), mouseX, mouseY)) {
+                if (progress != null && progress.active()) {
+                    graphics.setComponentTooltipForNextFrame(font, List.of(progress.status(), progress.timing(),
+                            __("gui.mbtool.crafting.cancel.descr").withStyle(ChatFormatting.GOLD)), mouseX, mouseY);
+                } else {
+                    graphics.setComponentTooltipForNextFrame(font, List.of(__("gui.mbtool.craft"),
+                            __("gui.mbtool.craft.descr").withStyle(ChatFormatting.GOLD),
+                            __("gui.mbtool.craft.notice").withStyle(ChatFormatting.GRAY)), mouseX, mouseY);
+                }
+                return;
+            }
+            graphics.setComponentTooltipForNextFrame(font, structureTooltip(entry), mouseX, mouseY);
+            return;
+        }
+        int folderIndex = folderPanel.hoveredIndex(mouseX, mouseY);
+        if (folderIndex >= 0) graphics.setTooltipForNextFrame(font, folderLabel(folderIndex), mouseX, mouseY);
+    }
+
+    /** Full name, folder, dimensions, and required materials with tool-inventory availability. */
+    private List<Component> structureTooltip(Entry<MultiblockStructure> entry) {
+        MultiblockStructure structure = entry.value();
+        List<Component> tooltip = new ArrayList<>();
+        tooltip.add(Component.literal(entry.name()));
+        tooltip.add(Component.literal(entry.folderName()).withStyle(ChatFormatting.GRAY));
+        tooltip.add(__("gui.mbtool.multiblock_button.dimensions",
+                structure.getWidth(), structure.getHeight(), structure.getDepth()).withStyle(ChatFormatting.GRAY));
+        ItemStack tool = toolStack();
+        if (tool.getItem() instanceof MultibuilderItem item) {
+            IItemHandler inventory = item.getInventory(tool);
+            boolean creative = playerInventory.player.isCreative();
+            for (ItemStack needed : requiredItems.computeIfAbsent(structure, MultiblockStructure::getNeededItems)) {
+                int available = 0;
+                for (int slot = 0; inventory != null && slot < inventory.getSlots(); slot++) {
+                    ItemStack stored = inventory.getStackInSlot(slot);
+                    if (ItemStack.isSameItemSameComponents(stored, needed)) available += stored.getCount();
+                }
+                boolean enough = creative || available >= needed.getCount();
+                tooltip.add(Component.literal(needed.getCount() + "x ").append(needed.getHoverName())
+                        .withStyle(enough ? ChatFormatting.GREEN : ChatFormatting.RED));
+            }
+        }
+        return tooltip;
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor pGuiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
-        List<Tooltip> savedTooltips = new ArrayList<>();
-        for (MultiblockButton button : multiblockButtons) {
-            savedTooltips.add(button.getTooltip());
-            button.setTooltip(null);
+    public void tick() {
+        if (minecraft == null || minecraft.player == null) return;
+        if (!minecraft.player.isAlive() || minecraft.player.isRemoved()
+                || !(toolStack().getItem() instanceof MultibuilderItem)) {
+            onClose();
+            return;
         }
-
-        super.extractRenderState(pGuiGraphics, pMouseX, pMouseY, pPartialTick);
-
-        for (int i = 0; i < multiblockButtons.size(); i++) {
-            multiblockButtons.get(i).setTooltip(savedTooltips.get(i));
-        }
-
-        renderCustomTooltip(pGuiGraphics, pMouseX, pMouseY);
-    }
-
-    private void renderCustomTooltip(GuiGraphicsExtractor pGuiGraphics, int pMouseX, int pMouseY) {
-        MultiblockButton hoveredButton = null;
-        for (MultiblockButton button : multiblockButtons) {
-            if (button.isMouseOver(pMouseX, pMouseY) && button.visible && button.getTooltip() != null) {
-                hoveredButton = button;
-                break;
-            }
-        }
-
-        if (hoveredButton != null) {
-            var tooltip = hoveredButton.getTooltip();
-            if (tooltip != null) {
-                int tooltipX = pMouseX;
-                int tooltipY = pMouseY;
-                pGuiGraphics.setTooltipForNextFrame(this.font, tooltip.toCharSequence(this.minecraft), tooltipX, tooltipY);
-            }
-        }
+        if (sourceRevision != MultiblocksProvider.getRevision()) loadStructures();
     }
 
     @Override
     public boolean keyPressed(KeyEvent event) {
-        int pKeyCode = event.key();
-        if (this.searchField != null && this.searchField.isFocused()) {
-            if (this.searchField.keyPressed(event)) {
-                return true;
-            }
-            if (pKeyCode != 256) {
-                return true;
-            }
+        if (event.isEscape()) {
+            onClose();
+            return true;
         }
-
-        if (this.searchField != null && this.searchField.keyPressed(event)) {
+        if (search.isFocused() && event.key() != org.lwjgl.glfw.GLFW.GLFW_KEY_TAB) {
+            // Typing in search must not trigger inventory or gameplay shortcuts.
+            search.keyPressed(event);
+            return true;
+        }
+        if (minecraft != null && minecraft.options.keyInventory.matches(event)) {
+            onClose();
             return true;
         }
         return super.keyPressed(event);
     }
 
     @Override
-    public boolean charTyped(CharacterEvent event) {
-        if (this.searchField != null && this.searchField.isFocused()) {
-            if (this.searchField.charTyped(event)) {
-                return true;
-            }
-            return true;
-        }
-
-        if (this.searchField != null && this.searchField.charTyped(event)) {
-            return true;
-        }
-        return super.charTyped(event);
-    }
-
-    @Override
-    protected void containerTick() {
-        super.containerTick();
-    }
-
-    @Override
-    public boolean mouseClicked(MouseButtonEvent event, boolean b) {
-        if (this.searchField.mouseClicked(event, b)) {
-            return true;
-        }
-        return super.mouseClicked(event, b);
-    }
-
-    @Override
-    protected void extractLabels(@NotNull GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
-        FormattedCharSequence formattedcharsequence = title.getVisualOrderText();
-        graphics.text(this.font, formattedcharsequence, 110 - this.font.width(formattedcharsequence) / 2, 6, 4210752, false);
-    }
-
-    private void previousPage() {
-        if (currentPage > 0) {
-            currentPage--;
-            updateButtonStates();
-            onPageChanged();
-        }
-    }
-
-    private void nextPage() {
-        if (currentPage < pages - 1) {
-            currentPage++;
-            updateButtonStates();
-            onPageChanged();
-        }
-    }
-
-    private void updateButtonStates() {
-        if (prevButton != null) prevButton.active = currentPage > 0;
-        if (nextButton != null) nextButton.active = currentPage < pages - 1;
-    }
-
-    protected void onPageChanged() {
-        updateMultiblockButtons();
-    }
-
-    public int getCurrentPage() { return currentPage; }
-
-    public void setCurrentPage(int page) {
-        if (page >= 0 && page < pages) {
-            this.currentPage = page;
-            updateButtonStates();
-            onPageChanged();
-        }
-    }
-
-    public void setPages(int pages) {
-        this.pages = Math.max(1, pages);
-        if (currentPage >= this.pages) currentPage = this.pages - 1;
-        updateButtonStates();
-    }
-
-    @Override
     public void onClose() {
-        if (this.previousScreen != null && this.minecraft != null) {
-            this.minecraft.setScreen(this.previousScreen);
-        } else {
-            super.onClose();
-        }
+        if (minecraft != null && minecraft.player != null) minecraft.player.closeContainer();
+        else super.onClose();
     }
 
-    private void loadStructures() {
-        allStructures = MultiblocksProvider.getStructures();
-        filteredStructures = new ArrayList<>(allStructures);
-        updatePagination();
-    }
-
-    private void onSearchChanged(String searchText) {
-        currentFilter = searchText.toLowerCase().trim();
-        applyFilter();
-    }
-
-    private void applyFilter() {
-        if (currentFilter.isEmpty()) {
-            filteredStructures = new ArrayList<>(allStructures);
-        } else {
-            filteredStructures = allStructures.stream()
-                    .filter(structure -> structure.getName() != null &&
-                            structure.getName().toLowerCase().contains(currentFilter))
-                    .collect(Collectors.toList());
-        }
-
-        currentPage = 0;
-        updatePagination();
-        updateButtonStates();
-        updateMultiblockButtons();
-    }
-
-    private void updatePagination() {
-        if (filteredStructures.isEmpty()) {
-            pages = 1;
-        } else {
-            pages = (int) Math.ceil((double) filteredStructures.size() / STRUCTURES_PER_PAGE);
-        }
-
-        if (currentPage >= pages) {
-            currentPage = 0;
-        }
-    }
-
-    private void updateMultiblockButtons() {
-        int startIndex = currentPage * STRUCTURES_PER_PAGE;
-
-        for (int i = 0; i < multiblockButtons.size(); i++) {
-            MultiblockButton button = multiblockButtons.get(i);
-            int structureIndex = startIndex + i;
-
-            if (structureIndex < filteredStructures.size()) {
-                button.setStructure(filteredStructures.get(structureIndex));
-                button.visible = true;
-                button.active = true;
-            } else {
-                button.setStructure(null);
-                button.visible = false;
-                button.active = false;
-            }
-        }
-    }
-
-    private void onMultiblockButtonPressed(MultiblockButton button) {
-        MultiblockStructure structure = button.getStructure();
-        if (structure != null && minecraft != null && minecraft.player != null) {
-            int originalIndex = allStructures.indexOf(structure);
-
-            int slot = menu.getPlayerSlot();
-            if (slot >= 0) {
-                ItemStack multibuilderStack;
-                if (slot == 40) {
-                    multibuilderStack = minecraft.player.getOffhandItem();
-                } else {
-                    multibuilderStack = minecraft.player.getInventory().getItem(slot);
-                }
-
-                if (multibuilderStack.is(MBTOOL.get())) {
-                    multibuilderStack.set(MbtoolDataComponents.STRUCTURE_RECIPE.get(), originalIndex);
-
-                    MultibuilderItem multibuilderItem = (MultibuilderItem) multibuilderStack.getItem();
-                    multibuilderItem.setRuntimeStructure(multibuilderStack, null);
-                }
-            }
-
-            if (previousScreen instanceof MultibuilderScreen) {
-                ((MultibuilderScreen)previousScreen).selectedStructure = originalIndex;
-            }
-
-            onClose();
-        }
+    @Override
+    public boolean isPauseScreen() {
+        return false;
     }
 }

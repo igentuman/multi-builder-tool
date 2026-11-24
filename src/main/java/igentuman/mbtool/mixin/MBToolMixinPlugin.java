@@ -1,6 +1,6 @@
 package igentuman.mbtool.mixin;
 
-import igentuman.mbtool.util.ModUtil;
+import net.neoforged.fml.loading.LoadingModList;
 import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
@@ -22,6 +22,13 @@ public class MBToolMixinPlugin implements IMixinConfigPlugin {
 
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
+        if (mixinClassName.contains(".ftbquests.")) {
+            return isModPresent("ftbquests") && isModPresent("ftblibrary");
+        }
+        if (mixinClassName.endsWith(".CraftingCPUClusterMixin")
+                || mixinClassName.endsWith(".CraftingCpuLogicMixin")) {
+            return isModPresent("ae2");
+        }
         // Check if JEMM is loaded before applying MultiblockWidgetMixin
         /*if (mixinClassName.equals("igentuman.mbtool.mixin.MultiblockWidgetMixin")) {
             return ModUtil.isJEMMLoaded();
@@ -29,6 +36,15 @@ public class MBToolMixinPlugin implements IMixinConfigPlugin {
         
         // Apply all other mixins by default
         return true;
+    }
+
+    /** ModList is not ready during mixin selection; consult the loading mod list instead. */
+    private static boolean isModPresent(String modId) {
+        try {
+            return LoadingModList.get().getModFileById(modId) != null;
+        } catch (RuntimeException e) {
+            return false;
+        }
     }
 
     @Override

@@ -4,6 +4,8 @@ import igentuman.mbtool.config.MbtoolConfig;
 import igentuman.mbtool.container.MultibuilderContainer;
 import igentuman.mbtool.container.MultibuilderSelectStructureContainer;
 import igentuman.mbtool.item.MultibuilderItem;
+import igentuman.mbtool.item.StructureRequestItem;
+import igentuman.mbtool.config.MbtoolClientConfig;
 import igentuman.mbtool.registration.MbtoolDataComponents;
 import igentuman.mbtool.util.MultiblocksProvider;
 import igentuman.mbtool.util.BlockEquivalencyManager;
@@ -38,6 +40,7 @@ public class Mbtool
     public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(MODID);
     public static final DeferredRegister<MenuType<?>> CONTAINERS = DeferredRegister.create(Registries.MENU, MODID);
     public static final DeferredItem<MultibuilderItem> MBTOOL = ITEMS.registerItem("mbtool", props -> new MultibuilderItem(props.stacksTo(1)));
+    public static final DeferredItem<StructureRequestItem> STRUCTURE_REQUEST = ITEMS.registerItem("structure_request", StructureRequestItem::new);
     public static final DeferredHolder<MenuType<?>, MenuType<MultibuilderContainer>> MULTIBUILDER_CONTAINER = CONTAINERS.register("mbtool_container",
             () -> IMenuTypeExtension.create((windowId, inv, data) -> new MultibuilderContainer(windowId, data.readBlockPos(), inv, data.readInt())));
     public static final DeferredHolder<MenuType<?>, MenuType<MultibuilderSelectStructureContainer>> MULTIBUILDER_STRUCTURE_CONTAINER = CONTAINERS.register("mbtool_structure_container",
@@ -54,13 +57,24 @@ public class Mbtool
         modEventBus.addListener(this::onModConfigEvent);
 
         MbtoolConfig.register(modContainer);
+        MbtoolClientConfig.register(modContainer);
 
         NeoForge.EVENT_BUS.register(this);
     }
 
     public void onModConfigEvent(final ModConfigEvent event) {
-        if (event.getConfig().getType() == ModConfig.Type.COMMON) {
-            BlockEquivalencyManager.reinitialize();
+        if (event.getConfig().getSpec() == MbtoolConfig.SPEC) {
+            var server = net.neoforged.neoforge.server.ServerLifecycleHooks.getCurrentServer();
+            if (server == null) {
+                BlockEquivalencyManager.reinitialize();
+            } else {
+                // Config watchers run off-thread; update policy and clients together on the server thread.
+                server.execute(() -> {
+                    BlockEquivalencyManager.reinitialize();
+                    net.neoforged.neoforge.network.PacketDistributor.sendToAllPlayers(
+                            igentuman.mbtool.network.SyncBlockEquivalencyPacket.snapshot());
+                });
+            }
         }
     }
 

@@ -218,6 +218,10 @@ public class MultibuilderContainer extends AbstractContainerMenu {
         return false;
     }
     
+    public int getPlayerSlot() {
+        return playerSlot;
+    }
+
     public IItemHandler getItemHandler() {
         return itemHandler;
     }

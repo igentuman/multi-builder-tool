@@ -20,12 +20,20 @@ import java.util.concurrent.Executor;
 
 import static igentuman.mbtool.Mbtool.rlFromString;
 import static igentuman.mbtool.util.ModUtil.isGtLoaded;
-import static igentuman.mbtool.util.ModUtil.isKubeJsLoaded;
 
 public class MultiblocksProvider implements PreparableReloadListener {
 
     public static List<MultiblockStructure> structures = new ArrayList<>();
     private static MultiblocksProvider INSTANCE = new MultiblocksProvider();
+    private static volatile int revision;
+
+    public static int getRevision() {
+        return revision;
+    }
+
+    public static void markChanged() {
+        revision++;
+    }
 
     public static MultiblocksProvider getInstance() {
         return INSTANCE;
@@ -43,6 +51,7 @@ public class MultiblocksProvider implements PreparableReloadListener {
         structures.clear();
 
         structures.addAll(newStructures);
+        markChanged();
     }
 
     @Override
@@ -55,9 +64,6 @@ public class MultiblocksProvider implements PreparableReloadListener {
         }, backgroundExecutor).thenCompose(preparationBarrier::wait).thenAcceptAsync(loadedStructures -> {
             InitMbtoolStructuresEvent event = new InitMbtoolStructuresEvent(loadedStructures);
             NeoForge.EVENT_BUS.post(event);
-/*            if(isKubeJsLoaded()) {
-                MbtoolKubeJsEvents.onInitMbtoolStructures(event);
-            }*/
             List<MultiblockStructure> structuresToAdd = new ArrayList<>();
             for (MultiblockStructure structure : event.structures) {
                 if(!validateStructureBlocks(structure.getStructureNbt())) {
@@ -68,6 +74,7 @@ public class MultiblocksProvider implements PreparableReloadListener {
             }
             structures.clear();
             structures.addAll(structuresToAdd);
+            markChanged();
         }, gameExecutor);
     }
 

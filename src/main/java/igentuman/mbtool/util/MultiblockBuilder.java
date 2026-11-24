@@ -2,6 +2,7 @@ package igentuman.mbtool.util;
 
 import igentuman.mbtool.config.MbtoolConfig;
 import igentuman.mbtool.integration.ae2.AE2Helper;
+import igentuman.mbtool.integration.ae2.StructureCraftingManager;
 import igentuman.mbtool.item.MultibuilderItem;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -23,10 +24,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.phys.AABB;
 import net.neoforged.neoforge.items.IItemHandler;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class MultiblockBuilder {
     
@@ -42,15 +40,57 @@ public class MultiblockBuilder {
      */
     public static BuildResult buildMultiblock(Level level, Player player, ItemStack multibuilderStack, 
                                             MultiblockStructure structure, BlockPos centerPos, int rotation) {
-        
+        return buildMultiblock(level, player, multibuilderStack, structure, centerPos, rotation, BlockReplacementPreferences.EMPTY);
+    }
+
+    public static BuildResult buildMultiblock(Level level, Player player, ItemStack multibuilderStack,
+                                              MultiblockStructure structure, BlockPos centerPos, int rotation,
+                                              BlockReplacementPreferences preferences) {
         if (level.isClientSide()) {
             return new BuildResult(false, Component.literal("Cannot build on client side"));
         }
-        
+
+        List<BlockReplacementPreferences.Group> replacementGroups = BlockEquivalencyManager.getGroups();
+        preferences = (preferences == null ? BlockReplacementPreferences.EMPTY : preferences).validated(replacementGroups);
         boolean isCreative = player.isCreative();
-        
+        boolean ignoreCollisions = MultibuilderItem.isIgnoreCollisions(multibuilderStack);
+
+        Set<BlockPos> skippedPositions = new HashSet<>();
+        Set<BlockPos> skippedWorldPositions = new HashSet<>();
+        for (Map.Entry<BlockPos, BlockState> entry : structure.getBlocks().entrySet()) {
+            BlockPos relativePos = entry.getKey();
+            BlockState blockState = entry.getValue();
+            if (blockState.isAir()) {
+                continue;
+            }
+
+            BlockPos worldPos = centerPos.offset(rotateBlockPos(relativePos, structure, rotation));
+            if (level.isOutsideBuildHeight(worldPos)) {
+                return new BuildResult(false, Component.translatable("message.mbtool.outside_build_height",
+                    worldPos.getX(), worldPos.getY(), worldPos.getZ()));
+            }
+
+            if (!level.getBlockState(worldPos).canBeReplaced()) {
+                if (ignoreCollisions) {
+                    skippedPositions.add(relativePos);
+                    skippedWorldPositions.add(worldPos.immutable());
+                    continue;
+                }
+                return new BuildResult(false, Component.translatable("message.mbtool.cannot_place_at",
+                    worldPos.getX(), worldPos.getY(), worldPos.getZ()));
+            }
+
+            if (!canPlayerPlaceBlockAt(level, player, worldPos, rotateBlockState(blockState, rotation))) {
+                return new BuildResult(false, Component.translatable("message.mbtool.cannot_place_protected",
+                    worldPos.getX(), worldPos.getY(), worldPos.getZ()));
+            }
+        }
+
         // Calculate required materials
-        Map<Block, Integer> requiredBlocks = calculateRequiredBlocks(structure);
+        Map<Block, Integer> requiredBlocks = calculateRequiredBlocks(structure, skippedPositions);
+        if (requiredBlocks.isEmpty()) {
+            return new BuildResult(false, Component.translatable("message.mbtool.nothing_to_place"));
+        }
         
         // Calculate total energy cost
         int totalEnergyCost = requiredBlocks.values().stream().mapToInt(Integer::intValue).sum() * MbtoolConfig.getEnergyPerBlock();
@@ -114,16 +154,33 @@ public class MultiblockBuilder {
                 BlockPos relativePos = entry.getKey();
                 BlockState blockState = entry.getValue();
 
-                if (blockState.isAir()) {
+                if (blockState.isAir() || skippedPositions.contains(relativePos)) {
                     continue;
                 }
 
                 Block requiredBlock = blockState.getBlock();
                 Block chosenBlock = null;
 
+                // 0. A preferred block (tool first, then ME) beats even an exact block already in the tool.
+                Block preferred = preferences.preferred(requiredBlock, replacementGroups);
+                if (preferred != null) {
+                    for (int i = 0; i < tempSlotCounts.length; i++) {
+                        if (tempSlotBlocks[i] == preferred && tempSlotCounts[i] > 0) {
+                            tempSlotCounts[i]--;
+                            chosenBlock = preferred;
+                            break;
+                        }
+                    }
+                    if (chosenBlock == null && hasME && tempAe2Counts.getOrDefault(preferred, 0) > 0) {
+                        tempAe2Counts.merge(preferred, -1, Integer::sum);
+                        blocksFromAE2ToExtract.merge(preferred, 1, Integer::sum);
+                        chosenBlock = preferred;
+                    }
+                }
+
                 // 1. Try exact block in inventory
                 for (int i = 0; i < tempSlotCounts.length; i++) {
-                    if (tempSlotBlocks[i] == requiredBlock && tempSlotCounts[i] > 0) {
+                    if (chosenBlock == null && tempSlotBlocks[i] == requiredBlock && tempSlotCounts[i] > 0) {
                         tempSlotCounts[i]--;
                         chosenBlock = requiredBlock;
                         break;
@@ -180,40 +237,17 @@ public class MultiblockBuilder {
             // If there are missing blocks, attempt autocrafting if enabled
             if (!missingBlocks.isEmpty()) {
                 if (isMeAutocraftingEnabled(multibuilderStack)) {
-                    return attemptAutocrafting((ServerPlayer) player, missingBlocks);
+                    // Use the same combined request and AE2 confirmation as the GUI Craft button.
+                    // Placement-specific requirements (after collision skips) are requested, and stored
+                    // ME materials are included so AE2 can reserve them as part of the plan.
+                    StructureCraftingManager.request((ServerPlayer) player, multibuilderStack, structure,
+                        requiredBlocks, preferences);
+                    return new BuildResult(false, null);
                 } else {
                     Map.Entry<Block, Integer> first = missingBlocks.entrySet().iterator().next();
                     return new BuildResult(false, Component.translatable("message.mbtool.insufficient_blocks",
                             first.getValue(), first.getKey().getName()));
                 }
-            }
-        }
-        
-        for (Map.Entry<BlockPos, BlockState> entry : structure.getBlocks().entrySet()) {
-            BlockPos relativePos = entry.getKey();
-            BlockState blockState = entry.getValue();
-            
-            // Skip air blocks in the structure
-            if (blockState.isAir()) {
-                continue;
-            }
-            
-            // Apply rotation to position and block state
-            BlockPos rotatedRelativePos = rotateBlockPos(relativePos, structure, rotation);
-            BlockPos worldPos = centerPos.offset(rotatedRelativePos);
-            BlockState currentState = level.getBlockState(worldPos);
-            BlockState rotatedBlockState = rotateBlockState(blockState, rotation);
-            
-            // Check if we can place the block here
-            if (!currentState.canBeReplaced() || !canPlayerPlaceBlockAt(level, player, worldPos, blockState)) {
-                return new BuildResult(false, Component.translatable("message.mbtool.cannot_place_at", 
-                    worldPos.getX(), worldPos.getY(), worldPos.getZ()));
-            }
-            
-            // Check if the player can place blocks at this position (respects claims)
-            if (!canPlayerPlaceBlockAt(level, player, worldPos, rotatedBlockState)) {
-                return new BuildResult(false, Component.translatable("message.mbtool.cannot_place_protected", 
-                    worldPos.getX(), worldPos.getY(), worldPos.getZ()));
             }
         }
         
@@ -250,8 +284,8 @@ public class MultiblockBuilder {
             BlockPos relativePos = entry.getKey();
             BlockState blockState = entry.getValue();
             
-            // Skip air blocks
-            if (blockState.isAir()) {
+            // Skip air blocks and positions kept due to ignored collisions
+            if (blockState.isAir() || skippedPositions.contains(relativePos)) {
                 continue;
             }
             
@@ -260,13 +294,14 @@ public class MultiblockBuilder {
             BlockPos worldPos = centerPos.offset(rotatedRelativePos);
             BlockState rotatedBlockState = rotateBlockState(blockState, rotation);
             
-            // Apply block replacement if needed (skip for creative mode)
+            // Creative placement uses the same preference without requiring materials.
             BlockState finalBlockState = rotatedBlockState;
-            if (!isCreative) {
-                Block replacementBlock = plannedReplacements.get(relativePos);
-                if (replacementBlock != null && replacementBlock != rotatedBlockState.getBlock()) {
-                    finalBlockState = createReplacementBlockState(rotatedBlockState, replacementBlock);
-                }
+            Block replacementBlock = isCreative
+                    ? preferences.preferred(blockState.getBlock(), replacementGroups)
+                    : plannedReplacements.get(relativePos);
+            if (replacementBlock != null && replacementBlock != rotatedBlockState.getBlock()) {
+                // Preserve compatible (rotated) properties on the substituted block
+                finalBlockState = createReplacementBlockState(rotatedBlockState, replacementBlock);
             }
             
             // Place the block using player-respecting method
@@ -292,7 +327,7 @@ public class MultiblockBuilder {
         if (blocksPlaced > 0) {
             AABB structureBounds = calculateStructureBounds(structure, centerPos, rotation);
             PlacedStructuresManager.addPlacedStructure(multibuilderStack, structure.getName(), 
-                structureBounds, player.getUUID(), rotation);
+                structureBounds, player.getUUID(), rotation, skippedWorldPositions);
         }
         
         // Spawn smoke particles around the built structure
@@ -306,58 +341,18 @@ public class MultiblockBuilder {
             MultibuilderItem.syncInventoryToClient((ServerPlayer) player, multibuilderStack, InteractionHand.MAIN_HAND);
         }
         
-        return new BuildResult(true, Component.translatable("message.mbtool.multiblock_built", 
-            blocksPlaced, Component.translatable(structure.getName())));
+        String structureName = structure.getName() != null ? structure.getName() : "mbtool.structure.unknown";
+        if (!skippedPositions.isEmpty()) {
+            return new BuildResult(true, Component.translatable("message.mbtool.multiblock_built_shared",
+                blocksPlaced, Component.translatable(structureName), skippedPositions.size()));
+        }
+        return new BuildResult(true, Component.translatable("message.mbtool.multiblock_built",
+            blocksPlaced, Component.translatable(structureName)));
     }
 
     private static boolean isMeAutocraftingEnabled(ItemStack multibuilderStack) {
         if (!ModUtil.isAe2Loaded()) return false;
         return MultibuilderItem.isMeAutocraftingEnabled(multibuilderStack);
-    }
-
-    /**
-     * Attempts to request autocrafting for all missing blocks via the ME network.
-     * This method is fully non-blocking — it starts async calculations and polls
-     * for results on subsequent build attempts.
-     */
-    private static BuildResult attemptAutocrafting(ServerPlayer player, Map<Block, Integer> missingBlocks) {
-        boolean anyCalculating = false;
-        boolean anySubmitted = false;
-        boolean anyNewlyStarted = false;
-        java.util.List<Block> unrequestable = new ArrayList<>();
-
-        for (Map.Entry<Block, Integer> missing : missingBlocks.entrySet()) {
-            Block block = missing.getKey();
-            int amount = missing.getValue();
-
-            // First, check if there's already a tracked request for this block
-            if (AutocraftTracker.hasActiveRequest(player.getUUID(), block)) {
-                anyCalculating = true;
-                continue;
-            }
-
-            // No existing request — start a new async calculation
-            AE2Helper.AutocraftResult result = AE2Helper.startCraftingCalculation(player, block, amount);
-            if (result == AE2Helper.AutocraftResult.CALCULATING) {
-                anyNewlyStarted = true;
-            } else if (result == AE2Helper.AutocraftResult.ALREADY_REQUESTING) {
-                anySubmitted = true; // ME network is already crafting this
-            } else if (result == AE2Helper.AutocraftResult.NO_PATTERN) {
-                unrequestable.add(block);
-            }
-            // NO_GRID, FAILED — silently skip, will be reported below
-        }
-
-        if (!unrequestable.isEmpty()) {
-            return new BuildResult(false, Component.translatable("message.mbtool.autocrafting_no_pattern",
-                    unrequestable.get(0).getName()));
-        } else if (anyCalculating || anyNewlyStarted) {
-            return new BuildResult(false, Component.translatable("message.mbtool.crafting_in_progress"), true);
-        } else if (anySubmitted) {
-            return new BuildResult(false, Component.translatable("message.mbtool.autocrafting_requested"));
-        }
-
-        return new BuildResult(false, Component.translatable("message.mbtool.autocrafting_failed"));
     }
 
     private static boolean isAllowedMEAccess(ItemStack multibuilderStack) {
@@ -521,16 +516,14 @@ public class MultiblockBuilder {
     /**
      * Calculate required blocks for the structure
      */
-    private static Map<Block, Integer> calculateRequiredBlocks(MultiblockStructure structure) {
-        Map<Block, Integer> requiredBlocks = new HashMap<>();
-        
-        for (BlockState blockState : structure.getBlocks().values()) {
-            if (!blockState.isAir()) {
-                Block block = blockState.getBlock();
-                requiredBlocks.put(block, requiredBlocks.getOrDefault(block, 0) + 1);
+    private static Map<Block, Integer> calculateRequiredBlocks(MultiblockStructure structure, Set<BlockPos> skippedPositions) {
+        Map<Block, Integer> requiredBlocks = new LinkedHashMap<>();
+        for (Map.Entry<BlockPos, BlockState> entry : structure.getBlocks().entrySet()) {
+            BlockState blockState = entry.getValue();
+            if (!blockState.isAir() && !skippedPositions.contains(entry.getKey())) {
+                requiredBlocks.merge(blockState.getBlock(), 1, Integer::sum);
             }
         }
-        
         return requiredBlocks;
     }
     

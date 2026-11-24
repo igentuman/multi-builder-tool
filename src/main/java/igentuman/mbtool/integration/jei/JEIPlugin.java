@@ -36,6 +36,8 @@ public class JEIPlugin implements IModPlugin {
     @Override
     public void onRuntimeAvailable(@NotNull IJeiRuntime runtime) {
         jeiRuntime = runtime;
+        runtime.getIngredientManager().removeIngredientsAtRuntime(mezz.jei.api.constants.VanillaTypes.ITEM_STACK,
+                java.util.List.of(new net.minecraft.world.item.ItemStack(igentuman.mbtool.Mbtool.STRUCTURE_REQUEST.get())));
     }
 
     public void registerRecipes(IRecipeRegistration registration) {

@@ -1,14 +1,18 @@
 package igentuman.mbtool.event;
 
+import igentuman.mbtool.integration.ae2.CraftingJobTracker;
+import igentuman.mbtool.integration.ae2.StructureCraftingManager;
+import igentuman.mbtool.network.SyncBlockEquivalencyPacket;
 import igentuman.mbtool.network.SyncSingleStructurePacket;
-import igentuman.mbtool.util.AutocraftTracker;
+import igentuman.mbtool.util.ModUtil;
 import igentuman.mbtool.util.MultiblockStructure;
 import igentuman.mbtool.util.MultiblocksProvider;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
-import net.neoforged.neoforge.event.server.ServerStoppedEvent;
+import net.neoforged.neoforge.event.server.ServerStoppingEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.List;
@@ -21,8 +25,8 @@ public class ServerEventHandler {
     @SubscribeEvent
     public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer serverPlayer) {
-            // Clear any stale autocrafting tracking state
-            AutocraftTracker.clearPlayer(serverPlayer.getUUID());
+            PacketDistributor.sendToPlayer(serverPlayer, SyncBlockEquivalencyPacket.snapshot());
+            if (ModUtil.isAe2Loaded()) CraftingJobTracker.sync(serverPlayer);
 
             // Send server structures to the joining client one by one
             List<MultiblockStructure> structures = MultiblocksProvider.getStructures();
@@ -37,12 +41,15 @@ public class ServerEventHandler {
     }
 
     @SubscribeEvent
-    public static void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
-        AutocraftTracker.clearPlayer(event.getEntity().getUUID());
+    public static void onServerTick(ServerTickEvent.Post event) {
+        if (ModUtil.isAe2Loaded()) {
+            StructureCraftingManager.tick(event.getServer());
+            CraftingJobTracker.tick(event.getServer());
+        }
     }
 
     @SubscribeEvent
-    public static void onServerStopped(ServerStoppedEvent event) {
-        AutocraftTracker.clearAll();
+    public static void onServerStopping(ServerStoppingEvent event) {
+        if (ModUtil.isAe2Loaded()) StructureCraftingManager.shutdown(event.getServer());
     }
 }

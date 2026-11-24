@@ -4,6 +4,7 @@ import igentuman.mbtool.Mbtool;
 import igentuman.mbtool.registration.MbtoolDataComponents;
 import igentuman.mbtool.util.MultiblockStructure;
 import igentuman.mbtool.item.MultibuilderItem;
+import igentuman.mbtool.util.BlockReplacementPreferences;
 import igentuman.mbtool.util.MultiblockBuilder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -28,18 +29,25 @@ public class SyncRuntimeStructurePacket implements CustomPacketPayload {
     public static final StreamCodec<RegistryFriendlyByteBuf, SyncRuntimeStructurePacket> STREAM_CODEC = StreamCodec.composite(
         ByteBufCodecs.COMPOUND_TAG, SyncRuntimeStructurePacket::structureNbt,
         ByteBufCodecs.INT, SyncRuntimeStructurePacket::rotation,
-        ByteBufCodecs.VAR_INT.map(i -> InteractionHand.values()[i], InteractionHand::ordinal), SyncRuntimeStructurePacket::hand,
+        ByteBufCodecs.VAR_INT.map(i -> InteractionHand.values()[Math.floorMod(i, InteractionHand.values().length)], InteractionHand::ordinal), SyncRuntimeStructurePacket::hand,
+        BlockReplacementPreferences.STREAM_CODEC, SyncRuntimeStructurePacket::preferences,
         SyncRuntimeStructurePacket::new
     );
 
     private final CompoundTag structureNbt;
     private final int rotation;
     private final InteractionHand hand;
+    private final BlockReplacementPreferences preferences;
     
     public SyncRuntimeStructurePacket(CompoundTag structureNbt, int rotation, InteractionHand hand) {
+        this(structureNbt, rotation, hand, BlockReplacementPreferences.EMPTY);
+    }
+
+    public SyncRuntimeStructurePacket(CompoundTag structureNbt, int rotation, InteractionHand hand, BlockReplacementPreferences preferences) {
         this.structureNbt = structureNbt;
         this.rotation = rotation;
         this.hand = hand;
+        this.preferences = preferences == null ? BlockReplacementPreferences.EMPTY : preferences;
     }
     
     @Override
@@ -57,6 +65,10 @@ public class SyncRuntimeStructurePacket implements CustomPacketPayload {
 
     public InteractionHand hand() {
         return hand;
+    }
+
+    public BlockReplacementPreferences preferences() {
+        return preferences;
     }
 
     public void handle(IPayloadContext context) {
@@ -90,7 +102,8 @@ public class SyncRuntimeStructurePacket implements CustomPacketPayload {
             
             // Attempt to build the multiblock
             MultiblockBuilder.BuildResult result = MultiblockBuilder.buildMultiblock(
-                player.level(), player, itemStack, structure, buildPos, this.rotation);
+                player.level(), player, itemStack, structure, buildPos, this.rotation,
+                this.preferences);
             
             // Send result message to player
             if(result.getMessage() != null) {

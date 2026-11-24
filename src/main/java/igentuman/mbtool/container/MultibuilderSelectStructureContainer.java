@@ -2,7 +2,6 @@ package igentuman.mbtool.container;
 
 import igentuman.mbtool.item.MultibuilderItem;
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -29,7 +28,7 @@ public class MultibuilderSelectStructureContainer extends AbstractContainerMenu 
         super(MULTIBUILDER_CONTAINER.get(), pContainerId);
         this.playerSlot = slot;
         this.playerInventory = pPlayerInventory;
-        ItemStack item = playerInventory.player.getItemInHand(InteractionHand.MAIN_HAND);
+        ItemStack item = playerInventory.getItem(slot);
         if(item.getItem() instanceof MultibuilderItem multibuilderItem) {
             inventory = multibuilderItem.getInventory(item, playerInventory.player.level().registryAccess());
         }
@@ -50,7 +49,7 @@ public class MultibuilderSelectStructureContainer extends AbstractContainerMenu 
 
     @Override
     public boolean stillValid(Player pPlayer) {
-        return pPlayer.getItemInHand(InteractionHand.MAIN_HAND).is(MBTOOL.get());
+        return playerSlot >= 0 && pPlayer.getInventory().getItem(playerSlot).is(MBTOOL.get());
     }
 
     public boolean hasEnough(ItemStack stack) {

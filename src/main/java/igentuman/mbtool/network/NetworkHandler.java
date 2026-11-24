@@ -12,7 +12,7 @@ public class NetworkHandler {
     
     @SubscribeEvent
     public static void register(final RegisterPayloadHandlersEvent event) {
-        final PayloadRegistrar registrar = event.registrar(Mbtool.MODID).versioned("1");
+        final PayloadRegistrar registrar = event.registrar(Mbtool.MODID).versioned("2");
         
         registrar.playToServer(
             SyncMultibuilderParamsPacket.TYPE,
@@ -44,7 +44,43 @@ public class NetworkHandler {
             DismantleStructurePacket::handle
         );
 
+        registrar.playToServer(
+            SelectStructurePacket.TYPE,
+            SelectStructurePacket.STREAM_CODEC,
+            SelectStructurePacket::handle
+        );
+
+        registrar.playToServer(
+            ToggleIgnoreCollisionsPacket.TYPE,
+            ToggleIgnoreCollisionsPacket.STREAM_CODEC,
+            ToggleIgnoreCollisionsPacket::handle
+        );
+
+        registrar.playToClient(
+            SyncBlockEquivalencyPacket.TYPE,
+            SyncBlockEquivalencyPacket.STREAM_CODEC,
+            SyncBlockEquivalencyPacket::handle
+        );
+
         if(ModUtil.isAe2Loaded()) {
+            registrar.playToServer(
+                RequestStructureCraftPacket.TYPE,
+                RequestStructureCraftPacket.STREAM_CODEC,
+                RequestStructureCraftPacket::handle
+            );
+
+            registrar.playToServer(
+                CancelCraftingJobsPacket.TYPE,
+                CancelCraftingJobsPacket.STREAM_CODEC,
+                CancelCraftingJobsPacket::handle
+            );
+
+            registrar.playToClient(
+                SyncCraftingJobsPacket.TYPE,
+                SyncCraftingJobsPacket.STREAM_CODEC,
+                SyncCraftingJobsPacket::handle
+            );
+
             registrar.playToServer(
                 ToggleMeAccessPacket.TYPE,
                 ToggleMeAccessPacket.STREAM_CODEC,
@@ -63,7 +99,8 @@ public class NetworkHandler {
                 PacketAE2PatternTransfer::handle
             );
         }
-        if(ModUtil.isJEILoaded()) {
+        // Shared by the JEI and EMI "+" transfer buttons.
+        if(ModUtil.isJEILoaded() || ModUtil.isEMILoaded()) {
             registrar.playToServer(
                     PacketJeiRecipeTransfer.TYPE,
                     PacketJeiRecipeTransfer.STREAM_CODEC,

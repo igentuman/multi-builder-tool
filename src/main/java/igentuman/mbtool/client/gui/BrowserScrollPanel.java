@@ -1,0 +1,219 @@
+package igentuman.mbtool.client.gui;
+
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.narration.NarratedElementType;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.util.Mth;
+import org.lwjgl.glfw.GLFW;
+
+public abstract class BrowserScrollPanel extends AbstractWidget {
+    private static final int SCROLLBAR_WIDTH = 6;
+    protected final int columns;
+    protected final int cellWidth;
+    protected final int cellHeight;
+    protected final int gap;
+    private int itemCount;
+    private double scroll;
+    private boolean draggingScrollbar;
+    private double grabOffset;
+    private int keyboardIndex = -1;
+
+    protected BrowserScrollPanel(int x, int y, int width, int height, int columns, int cellHeight,
+                                 int gap, Component narration) {
+        super(x, y, width, height, narration);
+        this.columns = columns;
+        this.cellHeight = cellHeight;
+        this.gap = gap;
+        this.cellWidth = (width - SCROLLBAR_WIDTH - 4 - gap * (columns - 1)) / columns;
+    }
+
+    public void setItemCount(int count) {
+        itemCount = count;
+        keyboardIndex = count == 0 ? -1 : Mth.clamp(keyboardIndex, 0, count - 1);
+        setScroll(0);
+    }
+
+    public double getScroll() {
+        return scroll;
+    }
+
+    public void setScroll(double value) {
+        scroll = Mth.clamp(value, 0, maxScroll());
+    }
+
+    private int contentHeight() {
+        return Math.max(0, ((itemCount + columns - 1) / columns) * (cellHeight + gap) - gap);
+    }
+
+    private int maxScroll() {
+        return Math.max(0, contentHeight() - height);
+    }
+
+    private int thumbHeight() {
+        return Math.min(height, Math.max(12, height * height / Math.max(height, contentHeight())));
+    }
+
+    private int thumbY() {
+        return getY() + (maxScroll() == 0 ? 0 : (int) (scroll / maxScroll() * (height - thumbHeight())));
+    }
+
+    public int hoveredIndex(double mouseX, double mouseY) {
+        if (!visible || !isMouseOver(mouseX, mouseY) || mouseX >= getX() + width - SCROLLBAR_WIDTH - 4) return -1;
+        int localX = (int) (mouseX - getX());
+        int localY = (int) (mouseY - getY() + scroll);
+        int column = localX / (cellWidth + gap);
+        int row = localY / (cellHeight + gap);
+        if (column >= columns || localX % (cellWidth + gap) >= cellWidth
+                || localY % (cellHeight + gap) >= cellHeight) return -1;
+        int index = row * columns + column;
+        return index < itemCount ? index : -1;
+    }
+
+    public int visibleCapacity() {
+        return columns * (height / (cellHeight + gap) + 2);
+    }
+
+    @Override
+    protected void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        graphics.fill(getX(), getY(), getX() + width, getY() + height, GuiTheme.color(0xFF737373, 0xFF252525));
+        graphics.enableScissor(getX(), getY(), getX() + width - SCROLLBAR_WIDTH - 3, getY() + height);
+        try {
+            int firstRow = (int) scroll / (cellHeight + gap);
+            int lastRow = Math.min((itemCount + columns - 1) / columns,
+                    (int) (scroll + height) / (cellHeight + gap) + 1);
+            int hovered = hoveredIndex(mouseX, mouseY);
+            for (int row = firstRow; row < lastRow; row++) {
+                for (int col = 0; col < columns; col++) {
+                    int index = row * columns + col;
+                    if (index >= itemCount) break;
+                    renderEntry(graphics, index, getX() + col * (cellWidth + gap),
+                            getY() + row * (cellHeight + gap) - (int) scroll,
+                            cellWidth, cellHeight, hovered == index || (isFocused() && keyboardIndex == index));
+                }
+            }
+        } finally {
+            graphics.disableScissor();
+        }
+        int barX = getX() + width - SCROLLBAR_WIDTH;
+        graphics.fill(barX, getY(), barX + SCROLLBAR_WIDTH, getY() + height, GuiTheme.color(0xFF373737, 0xFF1C1C1C));
+        if (maxScroll() > 0) {
+            bevel(graphics, barX, thumbY(), SCROLLBAR_WIDTH, thumbHeight(), GuiTheme.color(0xFFC6C6C6, 0xFF606060), false);
+        }
+    }
+
+    public static void bevel(GuiGraphicsExtractor graphics, int x, int y, int width, int height, int color, boolean selected) {
+        graphics.fill(x, y, x + width, y + height, color);
+        int highlight = GuiTheme.color(0xFFFFFFFF, 0xFF808080);
+        int shadow = GuiTheme.color(0xFF373737, 0xFF181818);
+        int light = selected ? shadow : highlight;
+        int dark = selected ? highlight : shadow;
+        graphics.fill(x, y, x + width - 1, y + 1, light);
+        graphics.fill(x, y, x + 1, y + height - 1, light);
+        graphics.fill(x + width - 1, y, x + width, y + height, dark);
+        graphics.fill(x, y + height - 1, x + width, y + height, dark);
+    }
+
+    @Override
+    public void onClick(MouseButtonEvent event, boolean doubleClick) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        if (mouseX >= getX() + width - SCROLLBAR_WIDTH) {
+            if (maxScroll() > 0) {
+                draggingScrollbar = true;
+                grabOffset = mouseY >= thumbY() && mouseY < thumbY() + thumbHeight()
+                        ? mouseY - thumbY() : thumbHeight() / 2.0;
+                dragScrollbar(mouseY);
+            }
+            return;
+        }
+        int index = hoveredIndex(mouseX, mouseY);
+        if (index >= 0) {
+            keyboardIndex = index;
+            if (clickEntry(index, entryX(index), entryY(index), cellWidth, cellHeight, mouseX, mouseY)) return;
+            activateEntry(index);
+        }
+    }
+
+    public int entryX(int index) {
+        return getX() + index % columns * (cellWidth + gap);
+    }
+
+    public int entryY(int index) {
+        return getY() + index / columns * (cellHeight + gap) - (int) scroll;
+    }
+
+    protected boolean clickEntry(int index, int x, int y, int width, int height, double mouseX, double mouseY) {
+        return false;
+    }
+
+    public int getCellWidth() {
+        return cellWidth;
+    }
+
+    public int getCellHeight() {
+        return cellHeight;
+    }
+
+    private void dragScrollbar(double mouseY) {
+        int travel = height - thumbHeight();
+        if (travel > 0) setScroll((mouseY - getY() - grabOffset) / travel * maxScroll());
+    }
+
+    @Override
+    protected void onDrag(MouseButtonEvent event, double dx, double dy) {
+        if (draggingScrollbar) dragScrollbar(event.y());
+    }
+
+    @Override
+    public void onRelease(MouseButtonEvent event) {
+        draggingScrollbar = false;
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        if (!visible || !isMouseOver(mouseX, mouseY)) return false;
+        setScroll(scroll - scrollY * Math.min(36, cellHeight + gap));
+        return true;
+    }
+
+    @Override
+    public boolean keyPressed(KeyEvent event) {
+        if (!isFocused() || itemCount == 0) return false;
+        int next = Math.max(0, keyboardIndex);
+        switch (event.key()) {
+            case GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER, GLFW.GLFW_KEY_SPACE -> {
+                keyboardIndex = next;
+                activateEntry(next);
+                return true;
+            }
+            case GLFW.GLFW_KEY_LEFT -> next--;
+            case GLFW.GLFW_KEY_RIGHT -> next++;
+            case GLFW.GLFW_KEY_UP -> next -= columns;
+            case GLFW.GLFW_KEY_DOWN -> next += columns;
+            case GLFW.GLFW_KEY_PAGE_UP -> next -= Math.max(1, height / (cellHeight + gap)) * columns;
+            case GLFW.GLFW_KEY_PAGE_DOWN -> next += Math.max(1, height / (cellHeight + gap)) * columns;
+            case GLFW.GLFW_KEY_HOME -> next = 0;
+            case GLFW.GLFW_KEY_END -> next = itemCount - 1;
+            default -> { return false; }
+        }
+        keyboardIndex = Mth.clamp(next, 0, itemCount - 1);
+        int entryY = keyboardIndex / columns * (cellHeight + gap);
+        if (entryY < scroll) setScroll(entryY);
+        else if (entryY + cellHeight > scroll + height) setScroll(entryY + cellHeight - height);
+        return true;
+    }
+
+    @Override
+    protected void updateWidgetNarration(NarrationElementOutput output) {
+        output.add(NarratedElementType.TITLE, keyboardIndex >= 0 && keyboardIndex < itemCount
+                ? entryNarration(keyboardIndex) : getMessage());
+    }
+
+    protected abstract Component entryNarration(int index);
+    protected abstract void renderEntry(GuiGraphicsExtractor graphics, int index, int x, int y, int width, int height, boolean hovered);
+    protected abstract void activateEntry(int index);
+}

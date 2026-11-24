@@ -3,7 +3,9 @@ package igentuman.mbtool.util;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.IntArrayTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
@@ -15,6 +17,8 @@ import static igentuman.mbtool.Mbtool.rlFromString;
 import static net.minecraft.world.level.block.Blocks.AIR;
 
 public class MultiblockStructure {
+    public static final String DEFAULT_GROUP = "default";
+    private static final String GROUP_TAG = "StructureGroup";
     private final Map<BlockPos, BlockState> blocks = new HashMap<>();
     private CompoundTag nbt;
     private String name;
@@ -24,6 +28,8 @@ public class MultiblockStructure {
 
     public MultiblockStructure(CompoundTag nbt) {
         this.nbt = nbt;
+        nbt.getString("StructureName").ifPresent(n -> name = n);
+        nbt.getString("StructureLocation").ifPresent(l -> location = Identifier.tryParse(l));
         if (nbt.contains("blocks")) {
             ListTag blocksList = nbt.getListOrEmpty("blocks");
             ListTag palette = nbt.getListOrEmpty("palette");
@@ -32,12 +38,18 @@ public class MultiblockStructure {
                 CompoundTag blockTag = blocksList.getCompoundOrEmpty(i);
                 int stateIdx = blockTag.getIntOr("state", 0);
                 CompoundTag state = palette.getCompoundOrEmpty(stateIdx);
-                if (blockTag.get("pos") instanceof ListTag posList && state.getString("Name").isPresent()) {
-
-                    if (posList.size() == 3) {
-                        int x = posList.getIntOr(0, 0);
-                        int y = posList.getIntOr(1, 0);
-                        int z = posList.getIntOr(2, 0);
+                Tag posTag = blockTag.get("pos");
+                int[] posArr = null;
+                if (posTag instanceof ListTag posList && posList.size() == 3) {
+                    posArr = new int[]{posList.getIntOr(0, 0), posList.getIntOr(1, 0), posList.getIntOr(2, 0)};
+                } else if (posTag instanceof IntArrayTag intArrayTag && intArrayTag.getAsIntArray().length == 3) {
+                    posArr = intArrayTag.getAsIntArray();
+                }
+                if (posArr != null && state.getString("Name").isPresent()) {
+                    {
+                        int x = posArr[0];
+                        int y = posArr[1];
+                        int z = posArr[2];
 
                         BlockPos pos = new BlockPos(x, y, z);
                         String blockId = state.getStringOr("Name", "");
@@ -82,6 +94,10 @@ public class MultiblockStructure {
         this(nbt);
         location = rl;
         name = file;
+        nbt.putString("StructureName", file);
+        if (rl != null) {
+            nbt.putString("StructureLocation", rl.toString());
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -133,6 +149,27 @@ public class MultiblockStructure {
             return name.replace(".nbt", "");
         }
         return name;
+    }
+
+    public String getGroup() {
+        if (nbt != null) {
+            String group = nbt.getStringOr(GROUP_TAG, "");
+            if (!group.isBlank()) return group;
+        }
+        if (location != null) {
+            String[] parts = location.getPath().split("/");
+            if (parts.length > 2 && !parts[1].isBlank()) return parts[1];
+        }
+        return DEFAULT_GROUP;
+    }
+
+    public void setGroup(String group) {
+        if (nbt == null) return;
+        if (group == null || group.isBlank()) {
+            nbt.remove(GROUP_TAG);
+        } else {
+            nbt.putString(GROUP_TAG, group);
+        }
     }
 
     public CompoundTag getStructureNbt() {

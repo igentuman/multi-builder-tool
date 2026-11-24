@@ -2,7 +2,7 @@ package igentuman.mbtool.client.handler;
 
 import igentuman.mbtool.client.render.GuiStructureRenderState;
 import igentuman.mbtool.client.render.GuiStructureRenderer;
-import igentuman.mbtool.client.screen.MultibuilderScreen;
+import igentuman.mbtool.container.MultibuilderContainer;
 import igentuman.mbtool.client.screen.MultibuilderSelectStructureScreen;
 import igentuman.mbtool.container.MultibuilderSelectStructureContainer;
 import net.minecraft.network.chat.Component;
@@ -26,10 +26,12 @@ public class ClientModHandler {
 
     @SubscribeEvent
     public static void onRegisterScreens(RegisterMenuScreensEvent event) {
-        event.register(MULTIBUILDER_CONTAINER.get(), MultibuilderScreen::new);
+        event.register(MULTIBUILDER_CONTAINER.get(),
+                (MultibuilderContainer container, Inventory inventory, Component title) ->
+                        new MultibuilderSelectStructureScreen<>(container, inventory, title));
         event.register(MULTIBUILDER_STRUCTURE_CONTAINER.get(),
                 (MultibuilderSelectStructureContainer container, Inventory inventory, Component title) ->
-                        new MultibuilderSelectStructureScreen(container, inventory, title));
+                        new MultibuilderSelectStructureScreen<>(container, inventory, title));
     }
 
     @SubscribeEvent

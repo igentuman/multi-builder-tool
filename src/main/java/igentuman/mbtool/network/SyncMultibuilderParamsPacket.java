@@ -5,6 +5,7 @@ import igentuman.mbtool.registration.MbtoolDataComponents;
 import igentuman.mbtool.util.MultiblocksProvider;
 import igentuman.mbtool.util.MultiblockStructure;
 import igentuman.mbtool.item.MultibuilderItem;
+import igentuman.mbtool.util.BlockReplacementPreferences;
 import igentuman.mbtool.util.MultiblockBuilder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -28,18 +29,25 @@ public class SyncMultibuilderParamsPacket implements CustomPacketPayload {
     public static final StreamCodec<RegistryFriendlyByteBuf, SyncMultibuilderParamsPacket> STREAM_CODEC = StreamCodec.composite(
         ByteBufCodecs.INT, SyncMultibuilderParamsPacket::recipeIndex,
         ByteBufCodecs.INT, SyncMultibuilderParamsPacket::rotation,
-        ByteBufCodecs.VAR_INT.map(i -> InteractionHand.values()[i], InteractionHand::ordinal), SyncMultibuilderParamsPacket::hand,
+        ByteBufCodecs.VAR_INT.map(i -> InteractionHand.values()[Math.floorMod(i, InteractionHand.values().length)], InteractionHand::ordinal), SyncMultibuilderParamsPacket::hand,
+        BlockReplacementPreferences.STREAM_CODEC, SyncMultibuilderParamsPacket::preferences,
         SyncMultibuilderParamsPacket::new
     );
 
     private final int recipeIndex;
     private final int rotation;
     private final InteractionHand hand;
+    private final BlockReplacementPreferences preferences;
     
     public SyncMultibuilderParamsPacket(int recipeIndex, int rotation, InteractionHand hand) {
+        this(recipeIndex, rotation, hand, BlockReplacementPreferences.EMPTY);
+    }
+
+    public SyncMultibuilderParamsPacket(int recipeIndex, int rotation, InteractionHand hand, BlockReplacementPreferences preferences) {
         this.recipeIndex = recipeIndex;
         this.rotation = rotation;
         this.hand = hand;
+        this.preferences = preferences == null ? BlockReplacementPreferences.EMPTY : preferences;
     }
     
     @Override
@@ -57,6 +65,10 @@ public class SyncMultibuilderParamsPacket implements CustomPacketPayload {
 
     public InteractionHand hand() {
         return hand;
+    }
+
+    public BlockReplacementPreferences preferences() {
+        return preferences;
     }
 
     public void handle(IPayloadContext context) {
@@ -100,8 +112,12 @@ public class SyncMultibuilderParamsPacket implements CustomPacketPayload {
             
             // Attempt to build the multiblock
             MultiblockBuilder.BuildResult result = MultiblockBuilder.buildMultiblock(
-                player.level(), player, itemStack, structure, buildPos, this.rotation);
+                player.level(), player, itemStack, structure, buildPos, this.rotation,
+                this.preferences);
             
+            // Crafting requests handle their own feedback and open the AE2 confirmation menu.
+            if (result.getMessage() == null) return;
+
             // Send result message to player
             if (result.isShowAsTitle()) {
                 player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket(Component.empty()));

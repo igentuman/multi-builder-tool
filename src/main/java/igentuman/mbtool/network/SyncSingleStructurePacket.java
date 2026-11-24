@@ -1,6 +1,7 @@
 package igentuman.mbtool.network;
 
 import igentuman.mbtool.Mbtool;
+import igentuman.mbtool.integration.emi.EmiCompat;
 import igentuman.mbtool.integration.jei.JEIPlugin;
 import igentuman.mbtool.util.MultiblockStructure;
 import igentuman.mbtool.util.MultiblocksProvider;
@@ -99,6 +100,7 @@ public class SyncSingleStructurePacket implements CustomPacketPayload {
             
             // Add the structure to the client's list
             MultiblocksProvider.getStructures().add(structure);
+            MultiblocksProvider.markChanged();
             
             // Log progress
             System.out.println("Synced structure " + (this.index + 1) + "/" + this.total + ": " + this.name);
@@ -107,6 +109,9 @@ public class SyncSingleStructurePacket implements CustomPacketPayload {
                 System.out.println("All structures synced successfully! Total: " + this.total);
                 if (ModList.get().isLoaded("jei")) {
                     JEIPlugin.updateRecipes();
+                }
+                if (ModList.get().isLoaded("emi")) {
+                    EmiCompat.reloadRecipes();
                 }
             }
         });

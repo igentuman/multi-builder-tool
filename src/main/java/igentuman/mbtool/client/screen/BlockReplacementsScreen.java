@@ -1,0 +1,201 @@
+package igentuman.mbtool.client.screen;
+
+import igentuman.mbtool.client.BlockReplacementState;
+import igentuman.mbtool.client.gui.BrowserScrollPanel;
+import igentuman.mbtool.client.gui.GuiTheme;
+import igentuman.mbtool.client.gui.ThemedButton;
+import igentuman.mbtool.config.MbtoolClientConfig;
+import igentuman.mbtool.util.BlockReplacementPreferences;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.MenuAccess;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.core.Holder;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.Block;
+
+import java.util.List;
+
+public final class BlockReplacementsScreen<T extends AbstractContainerMenu> extends Screen implements MenuAccess<T> {
+    private static final int SLOT = 24;
+    private final MultibuilderSelectStructureScreen<T> parent;
+    private List<BlockReplacementPreferences.Group> groups = List.of();
+    private BlockReplacementPreferences choices = BlockReplacementPreferences.EMPTY;
+    private BrowserScrollPanel panel;
+    private int optionColumns;
+    private int groupsRevision;
+
+    public BlockReplacementsScreen(MultibuilderSelectStructureScreen<T> parent) {
+        super(Component.translatable("gui.mbtool.block_replacements"));
+        this.parent = parent;
+    }
+
+    @Override
+    public T getMenu() {
+        return parent.getMenu();
+    }
+
+    @Override
+    protected void init() {
+        double scroll = panel == null ? 0 : panel.getScroll();
+        groups = BlockReplacementState.groups();
+        groupsRevision = BlockReplacementState.revision();
+        choices = BlockReplacementState.snapshot();
+        optionColumns = Math.max(1, (width - 58) / SLOT);
+        int largest = groups.stream().mapToInt(group -> group.blocks().size() + 1).max().orElse(1);
+        int rowHeight = 31 + ((largest + optionColumns - 1) / optionColumns) * SLOT;
+        panel = addRenderableWidget(new BrowserScrollPanel(16, 53, width - 32, Math.max(24, height - 90),
+                1, rowHeight, 6, title) {
+            @Override
+            protected Component entryNarration(int index) {
+                return groupLabel(index).copy().append(". ").append(selectionLabel(groups.get(index)));
+            }
+
+            @Override
+            protected void renderEntry(GuiGraphicsExtractor graphics, int index, int x, int y, int w, int h, boolean hovered) {
+                var group = groups.get(index);
+                bevel(graphics, x, y, w, h, GuiTheme.color(0xFF999999, 0xFF303030), false);
+                graphics.text(font, font.plainSubstrByWidth(groupLabel(index).getString(), w - 10), x + 5, y + 4, 0xFFFFFFFF);
+                graphics.text(font, font.plainSubstrByWidth(selectionLabel(group).getString(), w - 10), x + 5, y + 16, 0xFFFFFFFF);
+                for (int option = 0; option <= group.blocks().size(); option++) {
+                    Block block = option == 0 ? null : group.blocks().get(option - 1);
+                    int left = x + 5 + option % optionColumns * SLOT;
+                    int top = y + 29 + option / optionColumns * SLOT;
+                    boolean selected = block == null ? !choices.selections().containsKey(group.id())
+                            : BuiltInRegistries.BLOCK.getKey(block).equals(choices.selections().get(group.id()));
+                    bevel(graphics, left, top, SLOT - 2, SLOT - 2,
+                            selected ? 0xFF3B969A : GuiTheme.color(0xFF777777, 0xFF484848), selected);
+                    ItemStack stack = new ItemStack(block == null ? Items.BARRIER : block.asItem());
+                    if (!stack.isEmpty()) graphics.item(stack, left + 3, top + 3);
+                    if (selected) graphics.fill(left + 2, top + SLOT - 5, left + SLOT - 4, top + SLOT - 3, 0xFFFFFF80);
+                }
+            }
+
+            @Override
+            protected boolean clickEntry(int index, int x, int y, int w, int h, double mouseX, double mouseY) {
+                int option = optionAt(index, mouseX, mouseY);
+                if (option >= 0) select(index, option);
+                return true;
+            }
+
+            @Override
+            protected void activateEntry(int index) {
+                var group = groups.get(index);
+                int selected = -1;
+                for (int i = 0; i < group.blocks().size(); i++) {
+                    if (BuiltInRegistries.BLOCK.getKey(group.blocks().get(i)).equals(choices.selections().get(group.id()))) selected = i;
+                }
+                // Keyboard activation cycles: no preference, each selectable block, then back.
+                int options = group.blocks().size() + 1;
+                for (int step = 1; step <= options; step++) {
+                    int option = (selected + 1 + step) % options;
+                    if (option == 0 || group.blocks().get(option - 1).asItem() != Items.AIR) {
+                        MbtoolClientConfig.selectReplacement(group.id(),
+                                option == 0 ? null : BuiltInRegistries.BLOCK.getKey(group.blocks().get(option - 1)));
+                        choices = BlockReplacementState.snapshot();
+                        return;
+                    }
+                }
+            }
+        });
+        panel.setItemCount(groups.size());
+        panel.setScroll(scroll);
+        addRenderableWidget(new ThemedButton(16, height - 29, 126, 20,
+                Component.translatable("gui.mbtool.replacements.reset"), button -> {
+            MbtoolClientConfig.clearReplacements(groups);
+            choices = BlockReplacementState.snapshot();
+        }));
+        addRenderableWidget(new ThemedButton(width - 86, height - 29, 70, 20,
+                Component.translatable("gui.done"), button -> onClose()));
+    }
+
+    private Component groupLabel(int index) {
+        return Component.translatable("gui.mbtool.replacements.set", index + 1,
+                groups.get(index).blocks().get(0).getName());
+    }
+
+    private Component selectionLabel(BlockReplacementPreferences.Group group) {
+        Identifier selected = choices.selections().get(group.id());
+        if (selected == null) return Component.translatable("gui.mbtool.replacements.none");
+        Component name = BuiltInRegistries.BLOCK.get(selected).map(Holder::value).map(Block::getName)
+                .orElse(Component.literal(selected.toString()));
+        return Component.translatable("gui.mbtool.replacements.preferred", name);
+    }
+
+    private int optionAt(int index, double mouseX, double mouseY) {
+        int x = (int) mouseX - panel.entryX(index) - 5;
+        int y = (int) mouseY - panel.entryY(index) - 29;
+        if (x < 0 || y < 0 || x / SLOT >= optionColumns || x % SLOT >= SLOT - 2 || y % SLOT >= SLOT - 2) return -1;
+        int option = y / SLOT * optionColumns + x / SLOT;
+        return option <= groups.get(index).blocks().size() ? option : -1;
+    }
+
+    private void select(int index, int option) {
+        var group = groups.get(index);
+        if (option > 0 && group.blocks().get(option - 1).asItem() == Items.AIR) return;
+        Identifier id = option == 0 ? null : BuiltInRegistries.BLOCK.getKey(group.blocks().get(option - 1));
+        if (id != null && id.equals(choices.selections().get(group.id()))) id = null;
+        MbtoolClientConfig.selectReplacement(group.id(), id);
+        choices = BlockReplacementState.snapshot();
+    }
+
+    @Override
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        BrowserScrollPanel.bevel(graphics, 8, 8, width - 16, height - 16, GuiTheme.color(0xFFC6C6C6, 0xFF383838), false);
+        graphics.centeredText(font, title, width / 2, 15, GuiTheme.labelColor());
+        graphics.centeredText(font, font.plainSubstrByWidth(Component.translatable("gui.mbtool.replacements.help").getString(), width - 32),
+                width / 2, 33, GuiTheme.labelColor());
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+        if (groups.isEmpty()) graphics.centeredText(font, Component.translatable("gui.mbtool.replacements.empty"),
+                width / 2, height / 2, GuiTheme.labelColor());
+        int group = panel.hoveredIndex(mouseX, mouseY);
+        if (group >= 0) {
+            int option = optionAt(group, mouseX, mouseY);
+            if (option == 0) {
+                graphics.setTooltipForNextFrame(font, Component.translatable("gui.mbtool.replacements.none"), mouseX, mouseY);
+            } else if (option > 0) {
+                Block block = groups.get(group).blocks().get(option - 1);
+                graphics.setComponentTooltipForNextFrame(font, List.of(block.getName(),
+                        Component.literal(BuiltInRegistries.BLOCK.getKey(block).toString())), mouseX, mouseY);
+            }
+        }
+    }
+
+    @Override
+    public void tick() {
+        if (minecraft == null || minecraft.player == null) return;
+        if (minecraft.player.containerMenu != getMenu()) {
+            minecraft.setScreen(null);
+            return;
+        }
+        if (!minecraft.player.isAlive() || minecraft.player.isRemoved()) {
+            parent.onClose();
+            return;
+        }
+        if (groupsRevision != BlockReplacementState.revision()) rebuildWidgets();
+    }
+
+    @Override
+    public boolean keyPressed(KeyEvent event) {
+        if (event.isEscape()) {
+            onClose();
+            return true;
+        }
+        return super.keyPressed(event);
+    }
+
+    @Override
+    public void onClose() {
+        if (minecraft != null) minecraft.setScreen(parent);
+    }
+
+    @Override
+    public boolean isPauseScreen() {
+        return false;
+    }
+}

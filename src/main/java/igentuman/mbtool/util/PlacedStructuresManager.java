@@ -21,11 +21,16 @@ public class PlacedStructuresManager {
      * Add a placed structure to the multibuilder tool's Data Components
      */
     public static void addPlacedStructure(ItemStack multibuilderStack, String structureId, AABB boundingBox, UUID placedBy, int rotation) {
+        addPlacedStructure(multibuilderStack, structureId, boundingBox, placedBy, rotation, java.util.Set.of());
+    }
+
+    public static void addPlacedStructure(ItemStack multibuilderStack, String structureId, AABB boundingBox, UUID placedBy,
+                                          int rotation, java.util.Collection<BlockPos> sharedPositions) {
         if(structureId == null) return;
         CompoundTag tag = multibuilderStack.getOrDefault(MbtoolDataComponents.PLACED_STRUCTURES.get(), new CompoundTag());
         ListTag structuresList = tag.getListOrEmpty(NBT_KEY);
         
-        PlacedStructure structure = new PlacedStructure(structureId, boundingBox, placedBy, rotation);
+        PlacedStructure structure = new PlacedStructure(structureId, boundingBox, placedBy, rotation, sharedPositions);
         structuresList.add(structure.toNBT());
         
         tag.put(NBT_KEY, structuresList);
@@ -55,14 +60,20 @@ public class PlacedStructuresManager {
      */
     public static PlacedStructure findStructureAt(ItemStack multibuilderStack, BlockPos pos) {
         List<PlacedStructure> structures = getPlacedStructures(multibuilderStack);
-        
+        PlacedStructure sharedMatch = null;
+
         for (PlacedStructure structure : structures) {
             if (structure.contains(pos)) {
-                return structure;
+                if (!structure.isShared(pos)) {
+                    return structure;
+                }
+                if (sharedMatch == null) {
+                    sharedMatch = structure;
+                }
             }
         }
-        
-        return null;
+
+        return sharedMatch;
     }
     
     /**
